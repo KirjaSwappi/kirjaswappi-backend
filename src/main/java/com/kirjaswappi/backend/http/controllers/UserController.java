@@ -18,7 +18,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -60,9 +59,6 @@ public class UserController {
 
   @Autowired
   private OTPService otpService;
-
-  @Value("${google.api.clientId}")
-  private String googleApiClientId;
 
   @Autowired
   private GoogleIdTokenVerifier googleIdTokenVerifier;
