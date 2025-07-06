@@ -28,6 +28,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
 import com.kirjaswappi.backend.common.service.OTPService;
 import com.kirjaswappi.backend.common.service.exceptions.InvalidCredentials;
@@ -64,6 +66,9 @@ public class UserControllerTest {
 
   @MockBean
   private BookService bookService;
+
+  @MockBean
+  private GoogleIdTokenVerifier googleIdTokenVerifier;
 
   private User user;
 
@@ -519,5 +524,46 @@ public class UserControllerTest {
         .content(objectMapper.writeValueAsString(request))
         .header("Authorization", "Bearer a.b.c"))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("Should login with Google successfully")
+  void shouldLoginWithGoogle() throws Exception {
+    String idTokenString = "valid.token";
+    String googleSub = "google-sub-123";
+    String firstName = "Test";
+    String lastName = "User";
+    String email = "test@example.com";
+
+    GoogleIdToken.Payload payload = Mockito.mock(GoogleIdToken.Payload.class);
+    Mockito.when(payload.getEmail()).thenReturn(email);
+    Mockito.when(payload.get("given_name")).thenReturn(firstName);
+    Mockito.when(payload.get("family_name")).thenReturn(lastName);
+    Mockito.when(payload.getSubject()).thenReturn(googleSub);
+
+    GoogleIdToken idToken = Mockito.mock(GoogleIdToken.class);
+    Mockito.when(idToken.getPayload()).thenReturn(payload);
+    Mockito.when(googleIdTokenVerifier.verify(idTokenString)).thenReturn(idToken);
+    Mockito.when(userService.findOrCreateGoogleUser(email, firstName, lastName, googleSub)).thenReturn(user);
+
+    mockMvc.perform(post(API_BASE + "/login-with-google")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"idToken\":\"" + idTokenString + "\"}")
+        .header("Authorization", "Bearer a.b.c"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.email").value(user.getEmail()));
+  }
+
+  @Test
+  @DisplayName("Should fail Google login with invalid token")
+  void shouldFailLoginWithGoogleInvalidToken() throws Exception {
+    String idTokenString = "invalid.token";
+    Mockito.when(googleIdTokenVerifier.verify(idTokenString)).thenThrow(new RuntimeException("Invalid token"));
+
+    mockMvc.perform(post(API_BASE + "/login-with-google")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"idToken\":\"" + idTokenString + "\"}"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(content().string("Invalid token"));
   }
 }
