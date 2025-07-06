@@ -8,6 +8,7 @@ import static com.kirjaswappi.backend.common.utils.Constants.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.validation.Valid;
 
@@ -33,6 +34,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.kirjaswappi.backend.common.service.OTPService;
 import com.kirjaswappi.backend.common.utils.LinkBuilder;
 import com.kirjaswappi.backend.http.dtos.requests.*;
@@ -56,6 +59,9 @@ public class UserController {
 
   @Autowired
   private OTPService otpService;
+
+  @Autowired
+  private GoogleIdTokenVerifier googleIdTokenVerifier;
 
   @PostMapping(SIGNUP)
   @Operation(summary = "Create user.", responses = {
@@ -127,6 +133,32 @@ public class UserController {
   public ResponseEntity<UserResponse> login(@Valid @RequestBody AuthenticateUserRequest authenticateUserRequest) {
     User user = userService.verifyLogin(authenticateUserRequest.toEntity());
     return ResponseEntity.status(HttpStatus.OK).body(new UserResponse(user));
+  }
+
+  @PostMapping(LOGIN_WITH_GOOGLE)
+  @Operation(summary = "Login with Google.", responses = {
+      @ApiResponse(responseCode = "200", description = "User logged in with Google."),
+      @ApiResponse(responseCode = "401", description = "Invalid token.") })
+  public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> request) {
+    String idTokenString = request.get("idToken");
+    GoogleIdToken idToken;
+    try {
+      idToken = googleIdTokenVerifier.verify(idTokenString);
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+    }
+    if (idToken != null) {
+      GoogleIdToken.Payload payload = idToken.getPayload();
+      String email = payload.getEmail();
+      String firstName = (String) payload.get("given_name");
+      String lastName = (String) payload.get("family_name");
+      String googleSub = payload.getSubject();
+
+      // Find or create user
+      User user = userService.findOrCreateGoogleUser(email, firstName, lastName, googleSub);
+      return ResponseEntity.status(HttpStatus.OK).body(new UserResponse(user));
+    }
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid ID token");
   }
 
   @PostMapping(CHANGE_PASSWORD + EMAIL)

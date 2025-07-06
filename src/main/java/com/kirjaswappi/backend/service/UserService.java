@@ -251,4 +251,21 @@ public class UserService {
     userRepository.save(userDao);
     return getUser(user.getId());
   }
+
+  public User findOrCreateGoogleUser(String email, String firstName, String lastName, String googleSub) {
+    // check if user already exists:
+    var userDao = userRepository.findByEmail(email)
+        .orElseGet(() -> {
+          // create new user if not exists:
+          var newUser = new UserDao();
+          newUser.setEmail(email);
+          newUser.setFirstName(firstName);
+          newUser.setLastName(lastName);
+          newUser.setSalt(googleSub);
+          newUser.setEmailVerified(true);
+          return userRepository.save(newUser);
+        });
+
+    return UserMapper.toEntity(userDao);
+  }
 }

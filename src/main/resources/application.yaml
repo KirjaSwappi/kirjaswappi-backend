@@ -61,6 +61,10 @@ logging:
           actuate: DEBUG
         security: DEBUG
 
+google:
+  api:
+    clientId: 43921547457-06chtojpprgds80g1gq5tprmn5qg0hmq.apps.googleusercontent.com
+
 management:
   endpoints:
     web:

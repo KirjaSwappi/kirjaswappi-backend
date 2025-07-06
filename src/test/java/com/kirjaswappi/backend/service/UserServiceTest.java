@@ -289,4 +289,47 @@ class UserServiceTest {
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));
     assertNotNull(userService.addFavouriteBook(user));
   }
+
+  @Test
+  @DisplayName("Should return existing user for findOrCreateGoogleUser if user exists")
+  void findOrCreateGoogleUser_returnsExistingUser() {
+    String email = "test@example.com";
+    String firstName = "Test";
+    String lastName = "User";
+    String googleSub = "google-sub-123";
+    UserDao existingDao = new UserDao();
+    existingDao.setEmail(email);
+    existingDao.setFirstName(firstName);
+    existingDao.setLastName(lastName);
+    existingDao.setSalt(googleSub);
+    existingDao.setEmailVerified(true);
+    when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingDao));
+
+    User result = userService.findOrCreateGoogleUser(email, firstName, lastName, googleSub);
+    assertEquals(email, result.getEmail());
+    assertEquals(firstName, result.getFirstName());
+    assertEquals(lastName, result.getLastName());
+  }
+
+  @Test
+  @DisplayName("Should create and return new user for findOrCreateGoogleUser if user does not exist")
+  void findOrCreateGoogleUser_createsNewUser() {
+    String email = "new@example.com";
+    String firstName = "New";
+    String lastName = "User";
+    String googleSub = "google-sub-456";
+    when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+    UserDao savedDao = new UserDao();
+    savedDao.setEmail(email);
+    savedDao.setFirstName(firstName);
+    savedDao.setLastName(lastName);
+    savedDao.setSalt(googleSub);
+    savedDao.setEmailVerified(true);
+    when(userRepository.save(any(UserDao.class))).thenReturn(savedDao);
+
+    User result = userService.findOrCreateGoogleUser(email, firstName, lastName, googleSub);
+    assertEquals(email, result.getEmail());
+    assertEquals(firstName, result.getFirstName());
+    assertEquals(lastName, result.getLastName());
+  }
 }

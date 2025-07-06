@@ -18,6 +18,7 @@ public class Constants {
   public static final String SIGNUP = "/signup";
   public static final String VERIFY_EMAIL = "/verify-email";
   public static final String LOGIN = "/login";
+  public static final String LOGIN_WITH_GOOGLE = "/login-with-google";
   public static final String AUTHENTICATE = "/authenticate";
   public static final String REFRESH = "/refresh";
   public static final String SWAGGER_UI = "/swagger-ui/**";
