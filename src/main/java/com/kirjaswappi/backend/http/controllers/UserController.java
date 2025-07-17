@@ -8,7 +8,6 @@ import static com.kirjaswappi.backend.common.utils.Constants.*;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import jakarta.validation.Valid;
 
@@ -139,11 +138,10 @@ public class UserController {
   @Operation(summary = "Login with Google.", responses = {
       @ApiResponse(responseCode = "200", description = "User logged in with Google."),
       @ApiResponse(responseCode = "401", description = "Invalid token.") })
-  public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> request) {
-    String idTokenString = request.get("idToken");
+  public ResponseEntity<?> loginWithGoogle(@RequestBody LoginWithGoogleRequest request) {
     GoogleIdToken idToken;
     try {
-      idToken = googleIdTokenVerifier.verify(idTokenString);
+      idToken = googleIdTokenVerifier.verify(request.idToken());
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
     }
