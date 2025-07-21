@@ -41,7 +41,7 @@
 		<java.version>24</java.version>
 		<spring-cloud.version>2025.0.0</spring-cloud.version>
 		<start-class>com.kirjaswappi.backend.BackendApplication</start-class>
-		<native.maven.plugin.version>0.10.6</native.maven.plugin.version>
+		<native.maven.plugin.version>0.11.0</native.maven.plugin.version>
 	</properties>
 
 	<dependencies>
