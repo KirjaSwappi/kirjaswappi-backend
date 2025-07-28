@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.jpa.daos;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 

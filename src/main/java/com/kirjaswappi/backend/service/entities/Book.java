@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.service.entities;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 

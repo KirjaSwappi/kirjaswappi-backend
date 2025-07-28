@@ -74,9 +74,9 @@ class BookServiceTest {
     dao.setCondition("New");
     dao.setGenres(List.of());
     dao.setCoverPhotos(List.of());
-    dao.setBookAddedAt(java.time.Instant.now().minusSeconds(3600));
-    dao.setBookUpdatedAt(java.time.Instant.now().minusSeconds(1800));
-    dao.setOfferedAgo(Instant.ofEpochMilli(Instant.now().toEpochMilli() - dao.getBookUpdatedAt().toEpochMilli()));
+    dao.setBookAddedAt(Instant.now().minusSeconds(3600));
+    dao.setBookUpdatedAt(Instant.now().minusSeconds(1800));
+    dao.setOfferedAgo(dao.getOfferedAgo());
     dao.setDeleted(false);
     when(bookRepository.findByIdAndIsDeletedFalse("id")).thenReturn(Optional.of(dao));
     Book book = bookService.getBookById("id");
@@ -122,8 +122,6 @@ class BookServiceTest {
     userDao.setEmailVerified(true);
     when(userRepository.findByIdAndIsEmailVerifiedTrue(any())).thenReturn(Optional.of(userDao));
     var bookDao = BookMapper.toDao(book);
-    bookDao
-        .setOfferedAgo(Instant.ofEpochMilli(Instant.now().toEpochMilli() - bookDao.getBookUpdatedAt().toEpochMilli()));
     bookDao.setDeleted(false);
     when(bookRepository.save(any())).thenReturn(bookDao);
     when(bookRepository.findByIdAndIsDeletedFalse(any())).thenReturn(Optional.of(bookDao));
@@ -160,7 +158,7 @@ class BookServiceTest {
     dao.setCoverPhotos(List.of());
     dao.setBookAddedAt(Instant.now().minusSeconds(7200));
     dao.setBookUpdatedAt(Instant.now().minusSeconds(3600));
-    dao.setOfferedAgo(Instant.ofEpochMilli(Instant.now().toEpochMilli() - dao.getBookUpdatedAt().toEpochMilli()));
+    dao.setOfferedAgo(dao.getOfferedAgo());
     dao.setDeleted(false);
     when(bookRepository.findByIdAndIsDeletedFalse("id")).thenReturn(Optional.of(dao));
     when(bookRepository.save(any())).thenReturn(dao);

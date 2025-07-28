@@ -4,7 +4,7 @@
  */
 package com.kirjaswappi.backend.http.dtos.responses;
 
-import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
 
 import lombok.Getter;
@@ -42,9 +42,7 @@ public class BookListResponse {
     this.condition = entity.getCondition().getCode();
     this.coverPhotoUrl = entity.getCoverPhotos() != null ? entity.getCoverPhotos().getFirst() : null;
     this.bookLocation = entity.getOwner() != null ? entity.getOwner().getCity() : null;
-    Instant now = Instant.now();
-    Duration duration = entity.getOfferedAgo() != null ? Duration.between(entity.getOfferedAgo(), now) : null;
-    this.offeredAgo = this.getOfferedAgoHumanReadable(duration);
+    this.offeredAgo = this.getOfferedAgoHumanReadable(entity.getOfferedAgo());
     this.ownerId = entity.getOwner() != null ? entity.getOwner().getId() : null;
     this.offeredBy = entity.getOwner() != null
         ? entity.getOwner().getFirstName() + " " + entity.getOwner().getLastName()
