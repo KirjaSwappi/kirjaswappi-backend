@@ -31,6 +31,8 @@ public class FindAllBooksFilter {
   @Schema(description = "Filter parameter for the genre of the book.", example = "[\"Fiction\"]", allowableValues = {
       "Fantasy", "Science Fiction", "Mystery", "Horror", "Romance", "Thriller", "Historical Fiction", "Non-Fiction" })
   List<String> genres;
+  @Schema(description = "Optional filter parameter for the owner's user ID.", example = "64e8b2f2c2a4e2a1b8d7c9e0")
+  String userId;
 
   @Schema(description = "Filter parameter for owner's book.", example = "64e8b2f2c2a4e2a1b8d7c9e0")
   String ownerId;
