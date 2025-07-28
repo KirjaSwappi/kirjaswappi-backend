@@ -19,17 +19,24 @@ import org.springframework.data.mongodb.core.query.Criteria;
 public class FindAllBooksFilter {
   @Schema(description = "Search parameter to find specific books by name, author, or genre.", example = "Lord of the Rings")
   String search;
+
   @Schema(description = "Filter parameter for the language of the book.", example = "[\"English\"]", allowableValues = {
       "English", "Finnish", "Bengali", "Spanish", "French", "German", "Russian", "Arabic", "Chinese", "Japanese" })
   List<String> languages;
+
   @Schema(description = "Filter parameter for the condition of the book.", example = "[\"New\"]", allowableValues = {
       "New", "Like New", "Good", "Fair", "Poor" })
   List<String> conditions;
+
   @Schema(description = "Filter parameter for the genre of the book.", example = "[\"Fiction\"]", allowableValues = {
       "Fantasy", "Science Fiction", "Mystery", "Horror", "Romance", "Thriller", "Historical Fiction", "Non-Fiction" })
   List<String> genres;
-  @Schema(description = "Optional filter parameter for the owner's user ID.", example = "64e8b2f2c2a4e2a1b8d7c9e0")
-  String userId;
+
+  @Schema(description = "Filter parameter for owner's book.", example = "64e8b2f2c2a4e2a1b8d7c9e0")
+  String ownerId;
+
+  @Schema(description = "Filter parameter for books except mine.", example = "64e8b2f2c2a4e2a1b8d7c9e0")
+  String notOwnerId;
 
   public Criteria buildSearchAndFilterCriteria() {
     List<Criteria> combinedCriteria = new ArrayList<>();
@@ -46,8 +53,13 @@ public class FindAllBooksFilter {
     combinedCriteria.add(Criteria.where("isDeleted").is(false));
 
     // Filter by owner ID if provided:
-    if (this.userId != null && !this.userId.isEmpty()) {
-      combinedCriteria.add(Criteria.where("owner.$id").is(new ObjectId(this.userId)));
+    if (this.ownerId != null && !this.ownerId.isEmpty()) {
+      combinedCriteria.add(Criteria.where("owner.$id").is(new ObjectId(this.ownerId)));
+    }
+
+    // Filter by not owner ID if provided:
+    if (this.notOwnerId != null && !this.notOwnerId.isEmpty()) {
+      combinedCriteria.add(Criteria.where("owner.$id").ne(new ObjectId(this.notOwnerId)));
     }
 
     // Add language, condition, and genre filters:
