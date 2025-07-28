@@ -27,25 +27,19 @@ public class BookMapper {
     entity.setDescription(dao.getDescription());
     entity.setLanguage(Language.fromCode(dao.getLanguage()));
     entity.setCondition(Condition.fromCode(dao.getCondition()));
-    entity.setGenres(dao.getGenres().stream().map(GenreMapper::toEntity).toList());
-    if (dao.getCoverPhotos() != null) {
-      entity.setCoverPhotos(dao.getCoverPhotos());
-    }
+    entity
+        .setGenres(dao.getGenres() == null ? List.of() : dao.getGenres().stream().map(GenreMapper::toEntity).toList());
+    entity.setCoverPhotos(dao.getCoverPhotos() == null ? List.of() : dao.getCoverPhotos());
+    entity.setBookAddedAt(dao.getBookAddedAt());
+    entity.setBookUpdatedAt(dao.getBookUpdatedAt());
+    entity.setBookDeletedAt(dao.getBookDeletedAt());
     entity.setSwapCondition(SwapConditionMapper.toEntity(dao.getSwapCondition()));
     return entity;
   }
 
   public static Book toEntity(BookDao dao, List<String> imageUrls) {
-    var entity = new Book();
-    entity.setId(dao.getId());
-    entity.setTitle(dao.getTitle());
-    entity.setAuthor(dao.getAuthor());
-    entity.setDescription(dao.getDescription());
-    entity.setLanguage(Language.fromCode(dao.getLanguage()));
-    entity.setCondition(Condition.fromCode(dao.getCondition()));
-    entity.setGenres(dao.getGenres().stream().map(GenreMapper::toEntity).toList());
-    entity.setCoverPhotos(imageUrls);
-    entity.setSwapCondition(SwapConditionMapper.toEntity(dao.getSwapCondition()));
+    var entity = toEntity(dao);
+    entity.setCoverPhotos(imageUrls == null ? List.of() : imageUrls);
     return entity;
   }
 
@@ -56,18 +50,22 @@ public class BookMapper {
 
   public static BookDao toDao(Book entity) {
     var dao = new BookDao();
-    if (entity.getId() != null) {
-      dao.setId(entity.getId());
-    }
+    dao.setId(entity.getId());
     dao.setTitle(entity.getTitle());
     dao.setAuthor(entity.getAuthor());
     dao.setDescription(entity.getDescription());
-    dao.setLanguage(entity.getLanguage().getCode());
-    dao.setCondition(entity.getCondition().getCode());
-    dao.setSwapCondition(SwapConditionMapper.toDao(entity.getSwapCondition()));
-    dao.setGenres(entity.getGenres() == null ? null : entity.getGenres().stream().map(GenreMapper::toDao).toList());
-    dao.setCoverPhotos(entity.getCoverPhotos() == null ? null : entity.getCoverPhotos());
+    dao.setLanguage(entity.getLanguage() != null ? entity.getLanguage().getCode() : null);
+    dao.setCondition(entity.getCondition() != null ? entity.getCondition().getCode() : null);
+    dao.setSwapCondition(
+        entity.getSwapCondition() != null ? SwapConditionMapper.toDao(entity.getSwapCondition()) : null);
+    dao.setGenres(
+        entity.getGenres() == null ? List.of() : entity.getGenres().stream().map(GenreMapper::toDao).toList());
+    dao.setCoverPhotos(entity.getCoverPhotos() == null ? List.of() : entity.getCoverPhotos());
     dao.setOwner(entity.getOwner() == null ? null : UserMapper.toDao(entity.getOwner()));
+    dao.setBookAddedAt(entity.getBookAddedAt());
+    dao.setBookUpdatedAt(entity.getBookUpdatedAt());
+    dao.setBookDeletedAt(entity.getBookDeletedAt());
+    dao.setOfferedAgo(entity.getOfferedAgo());
     return dao;
   }
 }

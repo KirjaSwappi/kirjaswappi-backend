@@ -397,14 +397,22 @@ class BookControllerTest {
     book.setId("book123");
     book.setTitle("Test");
     book.setGenres(new ArrayList<>());
-    book.setLanguage(Language.BENGALI);
+    book.setLanguage(Language.ENGLISH);
     book.setCondition(Condition.FAIR);
+    // Add owner info
+    com.kirjaswappi.backend.service.entities.User owner = new com.kirjaswappi.backend.service.entities.User();
+    owner.setId("owner-1");
+    owner.setFirstName("Alice");
+    owner.setLastName("Smith");
+    book.setOwner(owner);
     when(bookService.getAllBooksByFilter(any(), any(Pageable.class)))
         .thenReturn(new PageImpl<>(List.of(book), PageRequest.of(0, 10), 1));
 
     mockMvc.perform(get(BASE_PATH))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$._embedded.books.length()").value(1));
+        .andExpect(jsonPath("$._embedded.books.length()").value(1))
+        .andExpect(jsonPath("$._embedded.books[0].ownerId").value("owner-1"))
+        .andExpect(jsonPath("$._embedded.books[0].ownerName").value("Alice Smith"));
   }
 
   @Test

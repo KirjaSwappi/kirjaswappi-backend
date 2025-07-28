@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.jpa.daos;
 
+import java.time.Instant;
 import java.util.List;
 
 import jakarta.validation.constraints.NotNull;
@@ -56,6 +57,24 @@ public class BookDao {
 
   @NotNull
   private SwapConditionDao swapCondition;
+
+  @NotNull
+  private Instant bookAddedAt = Instant.now();
+
+  @Nullable
+  private Instant bookUpdatedAt;
+
+  @Nullable
+  private Instant bookDeletedAt;
+
+  @NotNull
+  private Instant offeredAgo;
+
+  public Instant getOfferedAgo() {
+    Instant now = Instant.now();
+    Instant latest = (bookUpdatedAt != null && bookUpdatedAt.isAfter(bookAddedAt)) ? bookUpdatedAt : bookAddedAt;
+    return Instant.ofEpochMilli(now.toEpochMilli() - latest.toEpochMilli());
+  }
 
   @NotNull
   private boolean isDeleted = false;

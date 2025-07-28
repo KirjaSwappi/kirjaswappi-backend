@@ -78,10 +78,10 @@ public class UserDao {
   private String coverPhoto;
 
   @Nullable
-  @DBRef
+  @DBRef(lazy = true)
   private List<BookDao> books;
 
   @Nullable
-  @DBRef
+  @DBRef(lazy = true)
   private List<BookDao> favBooks;
 }

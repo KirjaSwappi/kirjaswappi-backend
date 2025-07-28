@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.service.entities;
 
+import java.time.Instant;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
@@ -32,4 +33,13 @@ public class Book {
   private List<MultipartFile> coverPhotoFiles;
   private User owner;
   private SwapCondition swapCondition;
+  private Instant bookAddedAt = Instant.now();
+  private Instant bookUpdatedAt;
+  private Instant bookDeletedAt;
+
+  public Instant getOfferedAgo() {
+    Instant now = Instant.now();
+    Instant latest = (bookUpdatedAt != null && bookUpdatedAt.isAfter(bookAddedAt)) ? bookUpdatedAt : bookAddedAt;
+    return Instant.ofEpochMilli(now.toEpochMilli() - latest.toEpochMilli());
+  }
 }

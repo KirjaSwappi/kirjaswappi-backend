@@ -85,16 +85,7 @@ public class CustomBookRepositoryImpl implements CustomBookRepository {
 
     Aggregation aggregation = Aggregation.newAggregation(operations);
 
-    // Log the final MongoDB query that will be executed
-    // This shows the complete query with all stages
-    logger.debug("MongoDB data query: {}", aggregation);
-
-    List<BookDao> results = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, BookDao.class).getMappedResults();
-
-    // Log result count for debugging
-    logger.debug("Query returned {} books", results.size());
-
-    return results;
+    return mongoTemplate.aggregate(aggregation, COLLECTION_NAME, BookDao.class).getMappedResults();
   }
 
   /**
@@ -142,7 +133,12 @@ public class CustomBookRepositoryImpl implements CustomBookRepository {
         .and("language").as("language")
         .and("description").as("description")
         .and("condition").as("condition")
-        .and("coverPhotos").as("coverPhotos");
+        .and("coverPhotos").as("coverPhotos")
+        .and("offeredAgo").as("offeredAgo")
+        .and("bookAddedAt").as("bookAddedAt")
+        .and("bookUpdatedAt").as("bookUpdatedAt")
+        .and("bookDeletedAt").as("bookDeletedAt")
+        .and("owner").as("owner");
   }
 
   // Helper class for deserializing count aggregation result

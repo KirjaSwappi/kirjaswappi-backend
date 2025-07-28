@@ -51,7 +51,7 @@ public class BookService {
   private PhotoService photoService;
 
   private static final List<String> ALLOWED_SORT_FIELDS = Arrays.asList("title", "author", "language", "condition",
-      "genres.name");
+      "genres.name", "offeredAgo");
 
   public Book createBook(Book book) {
     setValidSwappableGenresIfExists(book);
@@ -100,7 +100,7 @@ public class BookService {
   }
 
   public Page<Book> getAllBooksByFilter(FindAllBooksFilter filter, Pageable pageable) {
-    var criteria = filter.buildSearchAndFilterCriteria(null);
+    var criteria = filter.buildSearchAndFilterCriteria();
     return getBooks(pageable, criteria);
   }
 
@@ -239,6 +239,9 @@ public class BookService {
 
   private Pageable getPageableWithValidSortingCriteria(Pageable pageable) {
     if (!pageable.getSort().isSorted()) {
+      // if no sorting is provided, then add default sorting by offeredAgo
+      pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+          Sort.by(Sort.Direction.DESC, "offeredAgo"));
       return pageable;
     }
 
@@ -308,7 +311,8 @@ public class BookService {
   }
 
   public Page<Book> getUserBooksByFilter(String id, @Valid FindAllBooksFilter filter, Pageable pageable) {
-    var criteria = filter.buildSearchAndFilterCriteria(id);
+    filter.setUserId(id);
+    var criteria = filter.buildSearchAndFilterCriteria();
     return getBooks(pageable, criteria);
   }
 
@@ -316,7 +320,7 @@ public class BookService {
   private PageImpl<Book> getBooks(Pageable pageable, Criteria criteria) {
     pageable = getPageableWithValidSortingCriteria(pageable);
     var bookDaos = bookRepository.findAllBooksByFilter(criteria, pageable);
-    var books = bookDaos.stream().map(this::bookWithCoverPhotoUrl).toList();
+    var books = bookDaos.stream().map(this::bookWithImageUrlAndOwner).toList();
     return new PageImpl<>(books, pageable, bookDaos.getTotalElements());
   }
 }
