@@ -313,7 +313,7 @@ public class BookService {
   }
 
   public Page<Book> getUserBooksByFilter(String id, @Valid FindAllBooksFilter filter, Pageable pageable) {
-    filter.setUserId(id);
+    filter.setOwnerId(id);
     var criteria = filter.buildSearchAndFilterCriteria();
     return getBooks(pageable, criteria);
   }
