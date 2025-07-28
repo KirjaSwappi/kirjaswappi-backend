@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.jpa.repositories;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -68,9 +69,6 @@ public class CustomBookRepositoryImpl implements CustomBookRepository {
     // Add matching criteria (includes owner._id if passed in the criteria)
     operations.add(Aggregation.match(criteria));
 
-    // Log the raw criteria to debug the filter
-    logger.debug("Raw match criteria: {}", criteria.getCriteriaObject().toJson());
-
     // Add projection operation to select required fields
     operations.add(createProjectionOperation());
 
@@ -85,16 +83,7 @@ public class CustomBookRepositoryImpl implements CustomBookRepository {
 
     Aggregation aggregation = Aggregation.newAggregation(operations);
 
-    // Log the final MongoDB query that will be executed
-    // This shows the complete query with all stages
-    logger.debug("MongoDB data query: {}", aggregation);
-
-    List<BookDao> results = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, BookDao.class).getMappedResults();
-
-    // Log result count for debugging
-    logger.debug("Query returned {} books", results.size());
-
-    return results;
+    return mongoTemplate.aggregate(aggregation, COLLECTION_NAME, BookDao.class).getMappedResults();
   }
 
   /**
@@ -109,9 +98,6 @@ public class CustomBookRepositoryImpl implements CustomBookRepository {
     countOperations.add(Aggregation.count().as("totalBooks"));
 
     Aggregation countAggregation = Aggregation.newAggregation(countOperations);
-
-    // Log the count query
-    logger.debug("MongoDB count query: {}", countAggregation);
 
     CountResult countResult = mongoTemplate.aggregate(countAggregation, COLLECTION_NAME, CountResult.class)
         .getUniqueMappedResult();
@@ -142,7 +128,12 @@ public class CustomBookRepositoryImpl implements CustomBookRepository {
         .and("language").as("language")
         .and("description").as("description")
         .and("condition").as("condition")
-        .and("coverPhotos").as("coverPhotos");
+        .and("coverPhotos").as("coverPhotos")
+        .and("offeredAgo").as("offeredAgo")
+        .and("bookAddedAt").as("bookAddedAt")
+        .and("bookUpdatedAt").as("bookUpdatedAt")
+        .and("bookDeletedAt").as("bookDeletedAt")
+        .and("owner").as("owner");
   }
 
   // Helper class for deserializing count aggregation result
@@ -156,6 +147,7 @@ public class CustomBookRepositoryImpl implements CustomBookRepository {
   public void deleteLogically(String id) {
     Query query = new Query(Criteria.where("_id").is(id));
     Update update = new Update().set("isDeleted", true);
+    update.set("bookDeletedAt", Instant.now());
     mongoTemplate.updateFirst(query, update, BookDao.class);
   }
 }

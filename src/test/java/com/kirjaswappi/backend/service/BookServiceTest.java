@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +29,7 @@ import com.kirjaswappi.backend.jpa.daos.SwapConditionDao;
 import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.BookRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
+import com.kirjaswappi.backend.mapper.BookMapper;
 import com.kirjaswappi.backend.service.entities.Book;
 import com.kirjaswappi.backend.service.entities.SwapCondition;
 import com.kirjaswappi.backend.service.entities.User;
@@ -42,6 +44,8 @@ class BookServiceTest {
   private BookRepository bookRepository;
   @Mock
   private UserRepository userRepository;
+  @Mock
+  private PhotoService photoService;
   @InjectMocks
   private BookService bookService;
 
@@ -70,9 +74,15 @@ class BookServiceTest {
     dao.setCondition("New");
     dao.setGenres(List.of());
     dao.setCoverPhotos(List.of());
+    dao.setBookAddedAt(Instant.now().minusSeconds(3600));
+    dao.setBookUpdatedAt(Instant.now().minusSeconds(1800));
+    dao.setDeleted(false);
     when(bookRepository.findByIdAndIsDeletedFalse("id")).thenReturn(Optional.of(dao));
     Book book = bookService.getBookById("id");
     assertEquals("id", book.getId());
+    assertNotNull(book.getBookAddedAt());
+    assertNotNull(book.getBookUpdatedAt());
+    assertNotNull(book.getOfferedAgo());
   }
 
   @Test
@@ -80,7 +90,7 @@ class BookServiceTest {
   void getAllBooksByFilterReturnsPage() {
     FindAllBooksFilter filter = mock(FindAllBooksFilter.class);
     Pageable pageable = PageRequest.of(0, 10);
-    when(filter.buildSearchAndFilterCriteria(null)).thenReturn(null);
+    when(filter.buildSearchAndFilterCriteria()).thenReturn(null);
     when(bookRepository.findAllBooksByFilter(any(), any())).thenReturn(new PageImpl<>(List.of()));
     Page<Book> result = bookService.getAllBooksByFilter(filter, pageable);
     assertNotNull(result);
@@ -99,6 +109,8 @@ class BookServiceTest {
     book.setCoverPhotos(List.of());
     book.setCoverPhotoFiles(List.of());
     book.setOwner(new User());
+    book.setBookAddedAt(Instant.now().minusSeconds(7200));
+    book.setBookUpdatedAt(Instant.now().minusSeconds(3600));
     UserDao userDao = new UserDao();
     userDao.setId("owner-id");
     userDao.setFirstName("Test");
@@ -108,18 +120,15 @@ class BookServiceTest {
     userDao.setSalt("salt");
     userDao.setEmailVerified(true);
     when(userRepository.findByIdAndIsEmailVerifiedTrue(any())).thenReturn(Optional.of(userDao));
-    var bookDao = new BookDao();
-    bookDao.setId("id");
-    bookDao.setSwapCondition(
-        new SwapConditionDao("OpenForOffers", false, true, null, null));
-    bookDao.setOwner(userDao);
-    bookDao.setLanguage("English");
-    bookDao.setCondition("New");
-    bookDao.setGenres(List.of());
-    bookDao.setCoverPhotos(List.of());
+    var bookDao = BookMapper.toDao(book);
+    bookDao.setDeleted(false);
     when(bookRepository.save(any())).thenReturn(bookDao);
     when(bookRepository.findByIdAndIsDeletedFalse(any())).thenReturn(Optional.of(bookDao));
-    assertNotNull(bookService.createBook(book));
+    Book savedBook = bookService.createBook(book);
+    assertNotNull(savedBook);
+    assertNotNull(savedBook.getBookAddedAt());
+    assertNotNull(savedBook.getBookUpdatedAt());
+    assertNotNull(savedBook.getOfferedAgo());
   }
 
   @Test
@@ -135,6 +144,8 @@ class BookServiceTest {
     book.setCoverPhotos(List.of());
     book.setCoverPhotoFiles(List.of());
     book.setOwner(new User());
+    book.setBookAddedAt(java.time.Instant.now().minusSeconds(7200));
+    book.setBookUpdatedAt(java.time.Instant.now().minusSeconds(3600));
     var dao = new BookDao();
     dao.setId("id");
     dao.setSwapCondition(
@@ -144,9 +155,16 @@ class BookServiceTest {
     dao.setCondition("New");
     dao.setGenres(List.of());
     dao.setCoverPhotos(List.of());
+    dao.setBookAddedAt(Instant.now().minusSeconds(7200));
+    dao.setBookUpdatedAt(Instant.now().minusSeconds(3600));
+    dao.setDeleted(false);
     when(bookRepository.findByIdAndIsDeletedFalse("id")).thenReturn(Optional.of(dao));
     when(bookRepository.save(any())).thenReturn(dao);
-    assertNotNull(bookService.updateBook(book));
+    Book updatedBook = bookService.updateBook(book);
+    assertNotNull(updatedBook);
+    assertNotNull(updatedBook.getBookAddedAt());
+    assertNotNull(updatedBook.getBookUpdatedAt());
+    assertNotNull(updatedBook.getOfferedAgo());
   }
 
   @Test
@@ -200,7 +218,7 @@ class BookServiceTest {
     Pageable pageable = PageRequest.of(0, 10);
     Criteria mockCriteria = mock(Criteria.class);
 
-    when(filter.buildSearchAndFilterCriteria(userId)).thenReturn(mockCriteria);
+    when(filter.buildSearchAndFilterCriteria()).thenReturn(mockCriteria);
     when(bookRepository.findAllBooksByFilter(eq(mockCriteria), any(Pageable.class)))
         .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
@@ -208,7 +226,40 @@ class BookServiceTest {
 
     assertNotNull(result);
     assertEquals(0, result.getTotalElements());
-    verify(filter).buildSearchAndFilterCriteria(userId);
+    verify(filter).buildSearchAndFilterCriteria();
     verify(bookRepository).findAllBooksByFilter(eq(mockCriteria), any(Pageable.class));
+  }
+
+  @Test
+  @DisplayName("getAllBooksByFilter returns books with owner info populated")
+  void getAllBooksByFilterReturnsBooksWithOwnerInfo() {
+    UserDao ownerDao = new UserDao();
+    ownerDao.setId("owner-123");
+    ownerDao.setFirstName("Alice");
+    ownerDao.setLastName("Smith");
+    BookDao bookDao = new BookDao();
+    bookDao.setId("book-1");
+    bookDao.setTitle("Book Title");
+    bookDao.setAuthor("Author");
+    bookDao.setGenres(List.of());
+    bookDao.setLanguage("English");
+    bookDao.setCondition("New");
+    bookDao.setCoverPhotos(List.of("cover-url"));
+    bookDao.setOwner(ownerDao);
+    SwapConditionDao swapConditionDao = new SwapConditionDao();
+    swapConditionDao.setSwapType("OpenForOffers");
+    bookDao.setSwapCondition(swapConditionDao);
+    FindAllBooksFilter filter = mock(FindAllBooksFilter.class);
+    Pageable pageable = PageRequest.of(0, 10);
+    when(filter.buildSearchAndFilterCriteria()).thenReturn(null);
+    when(bookRepository.findAllBooksByFilter(any(), any())).thenReturn(new PageImpl<>(List.of(bookDao), pageable, 1));
+    when(photoService.getBookCoverPhoto(any())).thenReturn("dummy-url");
+    Page<Book> result = bookService.getAllBooksByFilter(filter, pageable);
+    assertEquals(1, result.getTotalElements());
+    Book book = result.getContent().getFirst();
+    assertNotNull(book.getOwner());
+    assertEquals("owner-123", book.getOwner().getId());
+    assertEquals("Alice", book.getOwner().getFirstName());
+    assertEquals("Smith", book.getOwner().getLastName());
   }
 }

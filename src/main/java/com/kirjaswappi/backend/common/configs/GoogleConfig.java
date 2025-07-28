@@ -2,7 +2,7 @@
  * Copyright (c) 2025 KirjaSwappi or KirjaSwappi affiliate company. All rights reserved.
  * Author: Mahiuddin Al Kamal <mahiuddinalkamal>
  */
-package com.kirjaswappi.backend.config;
+package com.kirjaswappi.backend.common.configs;
 
 import java.util.Collections;
 

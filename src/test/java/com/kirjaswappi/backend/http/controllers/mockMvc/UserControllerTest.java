@@ -228,7 +228,7 @@ public class UserControllerTest {
     book.setTitle("Test");
     book.setAuthor("Test Author");
     book.setGenres(new ArrayList<>());
-    book.setLanguage(Language.BENGALI);
+    book.setLanguage(Language.ENGLISH);
     book.setCondition(Condition.FAIR);
     book.setOwner(user);
 
