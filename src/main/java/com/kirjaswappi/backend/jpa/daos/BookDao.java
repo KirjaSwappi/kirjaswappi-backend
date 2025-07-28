@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.jpa.daos;
 
+import java.time.Instant;
 import java.util.List;
 
 import jakarta.validation.constraints.NotNull;
@@ -56,6 +57,15 @@ public class BookDao {
 
   @NotNull
   private SwapConditionDao swapCondition;
+
+  @NotNull
+  private Instant bookAddedAt = Instant.now();
+
+  @NotNull
+  private Instant bookUpdatedAt = Instant.now();
+
+  @Nullable
+  private Instant bookDeletedAt;
 
   @NotNull
   private boolean isDeleted = false;

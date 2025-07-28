@@ -103,9 +103,10 @@ public class BookController {
   }
 
   @GetMapping
-  @Operation(summary = "Search for books with (optional) filter properties.", responses = {
+  @Operation(summary = "Search for books with (optional) filter properties, including optional userId.", responses = {
       @ApiResponse(responseCode = "200", description = "List of Books.") })
-  public ResponseEntity<PagedModel<BookListResponse>> findAllBooks(@Valid @ParameterObject FindAllBooksFilter filter,
+  public ResponseEntity<PagedModel<BookListResponse>> findAllBooks(
+      @Valid @ParameterObject FindAllBooksFilter filter,
       @PageableDefault() Pageable pageable) {
     Page<Book> books = bookService.getAllBooksByFilter(filter, pageable);
     Page<BookListResponse> response = books.map(BookListResponse::new);
