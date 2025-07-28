@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -158,6 +159,8 @@ public class BookService {
     setValidSwappableGenresIfExists(updatedBook);
     keepOldSwappableBooksForReferenceIfExists(updatedBook, existingBookDao);
     existingBookDao.setSwapCondition(SwapConditionMapper.toDao(updatedBook.getSwapCondition()));
+    existingBookDao.setBookUpdatedAt(Instant.now());
+    existingBookDao.setOfferedAgo(existingBookDao.getOfferedAgo());
   }
 
   // also, keeping the photos for reference
