@@ -42,17 +42,19 @@ public class BookListResponse {
     this.condition = entity.getCondition().getCode();
     this.coverPhotoUrl = entity.getCoverPhotos() != null ? entity.getCoverPhotos().getFirst() : null;
     this.bookLocation = entity.getOwner() != null ? entity.getOwner().getCity() : null;
-    this.offeredAgo = this.getOfferedAgoHumanReadable(entity.getOfferedAgo());
+    Instant now = Instant.now();
+    Duration duration = entity.getOfferedAgo() != null ? Duration.between(entity.getOfferedAgo(), now) : null;
+    this.offeredAgo = this.getOfferedAgoHumanReadable(duration);
     this.ownerId = entity.getOwner() != null ? entity.getOwner().getId() : null;
     this.offeredBy = entity.getOwner() != null
         ? entity.getOwner().getFirstName() + " " + entity.getOwner().getLastName()
         : null;
   }
 
-  private String getOfferedAgoHumanReadable(Instant offeredAgo) {
-    if (offeredAgo == null)
+  private String getOfferedAgoHumanReadable(Duration duration) {
+    if (duration == null)
       return "";
-    long seconds = offeredAgo.getEpochSecond();
+    long seconds = duration.getSeconds();
     if (seconds < 60) {
       return seconds + " seconds ago";
     } else if (seconds < 3600) {
