@@ -412,7 +412,7 @@ class BookControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$._embedded.books.length()").value(1))
         .andExpect(jsonPath("$._embedded.books[0].ownerId").value("owner-1"))
-        .andExpect(jsonPath("$._embedded.books[0].ownerName").value("Alice Smith"));
+        .andExpect(jsonPath("$._embedded.books[0].offeredBy").value("Alice Smith"));
   }
 
   @Test
