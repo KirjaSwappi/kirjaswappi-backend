@@ -68,12 +68,12 @@ public class BookDao {
   private Instant bookDeletedAt;
 
   @NotNull
-  private Instant offeredAgo;
+  private Duration offeredAgo;
 
-  public Instant getOfferedAgo() {
+  public Duration getOfferedAgo() {
     Instant now = Instant.now();
     Instant latest = (bookUpdatedAt != null && bookUpdatedAt.isAfter(bookAddedAt)) ? bookUpdatedAt : bookAddedAt;
-    return Instant.ofEpochMilli(now.toEpochMilli() - latest.toEpochMilli());
+    return Duration.between(latest, now);
   }
 
   @NotNull
