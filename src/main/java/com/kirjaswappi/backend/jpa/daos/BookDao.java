@@ -4,7 +4,6 @@
  */
 package com.kirjaswappi.backend.jpa.daos;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -62,20 +61,11 @@ public class BookDao {
   @NotNull
   private Instant bookAddedAt = Instant.now();
 
-  @Nullable
-  private Instant bookUpdatedAt;
+  @NotNull
+  private Instant bookUpdatedAt = Instant.now();
 
   @Nullable
   private Instant bookDeletedAt;
-
-  @NotNull
-  private Duration offeredAgo;
-
-  public Duration getOfferedAgo() {
-    Instant now = Instant.now();
-    Instant latest = (bookUpdatedAt != null && bookUpdatedAt.isAfter(bookAddedAt)) ? bookUpdatedAt : bookAddedAt;
-    return Duration.between(latest, now);
-  }
 
   @NotNull
   private boolean isDeleted = false;

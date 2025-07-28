@@ -52,7 +52,7 @@ public class BookService {
   private PhotoService photoService;
 
   private static final List<String> ALLOWED_SORT_FIELDS = Arrays.asList("title", "author", "language", "condition",
-      "genres.name", "offeredAgo");
+      "genres.name", "bookUpdatedAt");
 
   public Book createBook(Book book) {
     setValidSwappableGenresIfExists(book);
@@ -160,7 +160,6 @@ public class BookService {
     keepOldSwappableBooksForReferenceIfExists(updatedBook, existingBookDao);
     existingBookDao.setSwapCondition(SwapConditionMapper.toDao(updatedBook.getSwapCondition()));
     existingBookDao.setBookUpdatedAt(Instant.now());
-    existingBookDao.setOfferedAgo(existingBookDao.getOfferedAgo());
   }
 
   // also, keeping the photos for reference
@@ -244,7 +243,7 @@ public class BookService {
     if (!pageable.getSort().isSorted()) {
       // if no sorting is provided, then add default sorting by offeredAgo
       pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
-          Sort.by(Sort.Direction.DESC, "offeredAgo"));
+          Sort.by(Sort.Direction.DESC, "bookUpdatedAt"));
       return pageable;
     }
 

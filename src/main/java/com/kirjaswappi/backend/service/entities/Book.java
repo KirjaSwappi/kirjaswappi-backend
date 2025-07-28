@@ -35,12 +35,10 @@ public class Book {
   private User owner;
   private SwapCondition swapCondition;
   private Instant bookAddedAt = Instant.now();
-  private Instant bookUpdatedAt;
+  private Instant bookUpdatedAt = Instant.now();
   private Instant bookDeletedAt;
 
   public Duration getOfferedAgo() {
-    Instant now = Instant.now();
-    Instant latest = (bookUpdatedAt != null && bookUpdatedAt.isAfter(bookAddedAt)) ? bookUpdatedAt : bookAddedAt;
-    return Duration.between(latest, now);
+    return Duration.between(bookUpdatedAt, Instant.now());
   }
 }

@@ -76,7 +76,6 @@ class BookServiceTest {
     dao.setCoverPhotos(List.of());
     dao.setBookAddedAt(Instant.now().minusSeconds(3600));
     dao.setBookUpdatedAt(Instant.now().minusSeconds(1800));
-    dao.setOfferedAgo(dao.getOfferedAgo());
     dao.setDeleted(false);
     when(bookRepository.findByIdAndIsDeletedFalse("id")).thenReturn(Optional.of(dao));
     Book book = bookService.getBookById("id");
@@ -158,7 +157,6 @@ class BookServiceTest {
     dao.setCoverPhotos(List.of());
     dao.setBookAddedAt(Instant.now().minusSeconds(7200));
     dao.setBookUpdatedAt(Instant.now().minusSeconds(3600));
-    dao.setOfferedAgo(dao.getOfferedAgo());
     dao.setDeleted(false);
     when(bookRepository.findByIdAndIsDeletedFalse("id")).thenReturn(Optional.of(dao));
     when(bookRepository.save(any())).thenReturn(dao);

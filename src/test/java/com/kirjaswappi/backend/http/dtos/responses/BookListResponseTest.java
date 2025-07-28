@@ -38,7 +38,7 @@ class BookListResponseTest {
     book.setCoverPhotos(List.of("url"));
     book.setOwner(owner);
     book.setBookAddedAt(Instant.now().minusSeconds(3600)); // 1 hour ago
-    book.setBookUpdatedAt(null);
+    book.setBookUpdatedAt(Instant.now().minusSeconds(3600)); // 1 hour ago
     // Act
     BookListResponse response = new BookListResponse(book);
     // Assert
@@ -70,6 +70,7 @@ class BookListResponseTest {
     book.setCoverPhotos(List.of("U"));
     book.setOwner(null);
     book.setBookAddedAt(Instant.now().minusSeconds(60)); // 1 min ago
+    book.setBookUpdatedAt(Instant.now().minusSeconds(60)); // 1 min ago
     // Act
     BookListResponse response = new BookListResponse(book);
     // Assert
@@ -98,6 +99,7 @@ class BookListResponseTest {
     book.setCoverPhotos(List.of("u"));
     book.setOwner(owner);
     book.setBookAddedAt(Instant.now().minusSeconds(86400)); // 1 day ago
+    book.setBookUpdatedAt(Instant.now().minusSeconds(86400)); // 1 day ago
     // Act
     BookListResponse response = new BookListResponse(book);
     // Assert
@@ -120,7 +122,8 @@ class BookListResponseTest {
     book.setCondition(Condition.GOOD);
     book.setCoverPhotos(List.of("url"));
     book.setOwner(null);
-    book.setBookAddedAt(Instant.now().minusSeconds(2592000)); // 1 month ago
+    book.setBookAddedAt(Instant.now().minusSeconds(2592000));
+    book.setBookUpdatedAt(Instant.now().minusSeconds(2592000)); // 1 month ago
     // Act
     BookListResponse response = new BookListResponse(book);
     // Assert
@@ -156,32 +159,32 @@ class BookListResponseTest {
 
     // Test seconds ago
     book.setBookAddedAt(Instant.now().minusSeconds(45));
-    book.setBookUpdatedAt(null);
+    book.setBookUpdatedAt(Instant.now().minusSeconds(45));
     BookListResponse respSec = new BookListResponse(book);
     assertTrue(respSec.getOfferedAgo().contains("seconds ago"));
 
     // Test minutes ago
-    book.setBookAddedAt(Instant.now().minusSeconds(120));
+    book.setBookUpdatedAt(Instant.now().minusSeconds(120));
     BookListResponse respMin = new BookListResponse(book);
     assertTrue(respMin.getOfferedAgo().contains("mins ago"));
 
     // Test hours ago
-    book.setBookAddedAt(Instant.now().minusSeconds(7200));
+    book.setBookUpdatedAt(Instant.now().minusSeconds(7200));
     BookListResponse respHour = new BookListResponse(book);
     assertTrue(respHour.getOfferedAgo().contains("hours ago"));
 
     // Test days ago
-    book.setBookAddedAt(Instant.now().minusSeconds(172800));
+    book.setBookUpdatedAt(Instant.now().minusSeconds(172800));
     BookListResponse respDay = new BookListResponse(book);
     assertTrue(respDay.getOfferedAgo().contains("days ago"));
 
     // Test months ago
-    book.setBookAddedAt(Instant.now().minusSeconds(2592000 * 3)); // 3 months
+    book.setBookUpdatedAt(Instant.now().minusSeconds(2592000 * 3)); // 3 months
     BookListResponse respMonth = new BookListResponse(book);
     assertTrue(respMonth.getOfferedAgo().contains("months ago"));
 
     // Test years ago
-    book.setBookAddedAt(Instant.now().minusSeconds(31536000 * 2)); // 2 years
+    book.setBookUpdatedAt(Instant.now().minusSeconds(31536000 * 2)); // 2 years
     BookListResponse respYear = new BookListResponse(book);
     assertTrue(respYear.getOfferedAgo().contains("years ago"));
 

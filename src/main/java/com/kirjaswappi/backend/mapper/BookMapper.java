@@ -65,7 +65,6 @@ public class BookMapper {
     dao.setBookAddedAt(entity.getBookAddedAt());
     dao.setBookUpdatedAt(entity.getBookUpdatedAt());
     dao.setBookDeletedAt(entity.getBookDeletedAt());
-    dao.setOfferedAgo(entity.getOfferedAgo());
     return dao;
   }
 }
