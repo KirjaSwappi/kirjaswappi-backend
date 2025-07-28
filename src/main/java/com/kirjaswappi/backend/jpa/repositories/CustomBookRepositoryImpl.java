@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.jpa.repositories;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -146,6 +147,7 @@ public class CustomBookRepositoryImpl implements CustomBookRepository {
   public void deleteLogically(String id) {
     Query query = new Query(Criteria.where("_id").is(id));
     Update update = new Update().set("isDeleted", true);
+    update.set("bookDeletedAt", Instant.now());
     mongoTemplate.updateFirst(query, update, BookDao.class);
   }
 }
