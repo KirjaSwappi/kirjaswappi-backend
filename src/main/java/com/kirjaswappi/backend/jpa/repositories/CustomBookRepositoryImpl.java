@@ -68,9 +68,6 @@ public class CustomBookRepositoryImpl implements CustomBookRepository {
     // Add matching criteria (includes owner._id if passed in the criteria)
     operations.add(Aggregation.match(criteria));
 
-    // Log the raw criteria to debug the filter
-    logger.debug("Raw match criteria: {}", criteria.getCriteriaObject().toJson());
-
     // Add projection operation to select required fields
     operations.add(createProjectionOperation());
 
@@ -100,9 +97,6 @@ public class CustomBookRepositoryImpl implements CustomBookRepository {
     countOperations.add(Aggregation.count().as("totalBooks"));
 
     Aggregation countAggregation = Aggregation.newAggregation(countOperations);
-
-    // Log the count query
-    logger.debug("MongoDB count query: {}", countAggregation);
 
     CountResult countResult = mongoTemplate.aggregate(countAggregation, COLLECTION_NAME, CountResult.class)
         .getUniqueMappedResult();
