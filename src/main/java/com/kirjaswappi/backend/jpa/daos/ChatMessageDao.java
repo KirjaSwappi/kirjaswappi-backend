@@ -17,53 +17,28 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import com.mongodb.lang.Nullable;
-
-@Document(collection = "swap_requests")
+@Document(collection = "chat_messages")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SwapRequestDao {
+public class ChatMessageDao {
   @Id
   private String id;
+
+  @NotNull
+  private String swapRequestId;
 
   @NotNull
   @DBRef
   private UserDao sender;
 
   @NotNull
-  @DBRef
-  private UserDao receiver;
+  private String message;
 
   @NotNull
-  @DBRef
-  private BookDao bookToSwapWith;
+  private Instant sentAt;
 
   @NotNull
-  private String swapType;
-
-  @Nullable // can be null for: GiveAway/OpenForOffers
-  private SwapOfferDao swapOfferDao;
-
-  @NotNull
-  private boolean askForGiveaway;
-
-  @NotNull
-  private String swapStatus;
-
-  @Nullable
-  private String note;
-
-  @NotNull
-  private Instant requestedAt;
-
-  @NotNull
-  private Instant updatedAt;
-
-  @Nullable
-  private Instant readByReceiverAt;
-
-  @Nullable
-  private Instant readBySenderAt;
+  private boolean readByReceiver;
 }

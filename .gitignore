@@ -25,6 +25,7 @@ replay_pid*
 
 # IntelIJ
 .idea
+.kiro
 
 # VS Code
 .vscode

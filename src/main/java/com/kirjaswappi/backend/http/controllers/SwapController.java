@@ -18,9 +18,11 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import com.kirjaswappi.backend.http.dtos.requests.CreateSwapRequest;
+import com.kirjaswappi.backend.http.dtos.requests.UpdateSwapStatusRequest;
 import com.kirjaswappi.backend.http.dtos.responses.SwapRequestResponse;
 import com.kirjaswappi.backend.service.SwapService;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
+import com.kirjaswappi.backend.service.enums.SwapStatus;
 
 @RestController
 @RequestMapping(API_BASE + SWAP_REQUESTS)
@@ -43,5 +45,24 @@ public class SwapController {
   public ResponseEntity<Void> deleteAllSwapRequests() {
     swapService.deleteAllSwapRequests();
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+  }
+
+  @PutMapping("/{id}/status")
+  @Operation(summary = "Update swap request status.", description = "Update the status of a swap request. Only the receiver can change the status.", responses = {
+      @ApiResponse(responseCode = "200", description = "Swap request status updated successfully."),
+      @ApiResponse(responseCode = "400", description = "Invalid status transition or user not authorized."),
+      @ApiResponse(responseCode = "404", description = "Swap request not found.") })
+  public ResponseEntity<SwapRequestResponse> updateSwapRequestStatus(
+      @PathVariable String id,
+      @Valid @RequestBody UpdateSwapStatusRequest request,
+      @RequestHeader("X-User-Id") String userId) {
+
+    // Validate the request
+    request.validate();
+
+    SwapStatus newStatus = SwapStatus.fromCode(request.getStatus());
+    SwapRequest updatedSwapRequest = swapService.updateSwapRequestStatus(id, newStatus, userId);
+
+    return ResponseEntity.ok(new SwapRequestResponse(updatedSwapRequest));
   }
 }

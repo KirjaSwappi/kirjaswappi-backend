@@ -17,7 +17,9 @@ import com.kirjaswappi.backend.mapper.SwapRequestMapper;
 import com.kirjaswappi.backend.service.entities.*;
 import com.kirjaswappi.backend.service.enums.SwapStatus;
 import com.kirjaswappi.backend.service.exceptions.IllegalSwapRequestException;
+import com.kirjaswappi.backend.service.exceptions.InvalidStatusTransitionException;
 import com.kirjaswappi.backend.service.exceptions.SwapRequestExistsAlreadyException;
+import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 
 @Service
 @Transactional
@@ -101,5 +103,45 @@ public class SwapService {
 
   public void deleteAllSwapRequests() {
     swapRequestRepository.deleteAll();
+  }
+
+  public SwapRequest updateSwapRequestStatus(String swapRequestId, SwapStatus newStatus, String userId) {
+    // Find the swap request
+    Optional<SwapRequestDao> swapRequestDaoOpt = swapRequestRepository.findById(swapRequestId);
+    if (swapRequestDaoOpt.isEmpty()) {
+      throw new SwapRequestNotFoundException(swapRequestId);
+    }
+
+    SwapRequestDao swapRequestDao = swapRequestDaoOpt.get();
+    SwapRequest swapRequest = SwapRequestMapper.toEntity(swapRequestDao);
+
+    // Validate that the user is the receiver (only receivers can change status)
+    if (!swapRequest.getReceiver().getId().equals(userId)) {
+      throw new IllegalSwapRequestException("onlyReceiverCanChangeStatus");
+    }
+
+    SwapStatus currentStatus = swapRequest.getSwapStatus();
+
+    // Validate status transition
+    if (!isValidStatusTransition(currentStatus, newStatus)) {
+      throw new InvalidStatusTransitionException(currentStatus.getCode(), newStatus.getCode());
+    }
+
+    // Update the status
+    swapRequest.setSwapStatus(newStatus);
+    swapRequestDao = SwapRequestMapper.toDao(swapRequest);
+    SwapRequestDao updatedDao = swapRequestRepository.save(swapRequestDao);
+
+    return SwapRequestMapper.toEntity(updatedDao);
+  }
+
+  private boolean isValidStatusTransition(SwapStatus currentStatus, SwapStatus newStatus) {
+    // Only allow transitions from PENDING to ACCEPTED or REJECTED
+    if (currentStatus == SwapStatus.PENDING) {
+      return newStatus == SwapStatus.ACCEPTED || newStatus == SwapStatus.REJECTED;
+    }
+
+    // No other transitions are allowed
+    return false;
   }
 }
