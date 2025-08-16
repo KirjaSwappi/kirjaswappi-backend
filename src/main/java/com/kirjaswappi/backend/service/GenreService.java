@@ -24,7 +24,6 @@ import com.kirjaswappi.backend.service.exceptions.GenreNotFoundException;
 public class GenreService {
   @Autowired
   GenreRepository genreRepository;
-
   @Autowired
   UserRepository userRepository;
 

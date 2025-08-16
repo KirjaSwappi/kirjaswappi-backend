@@ -50,6 +50,26 @@ public class GlobalExceptionHandler {
     return errorUtils.buildErrorResponse(exception, webRequest);
   }
 
+  @ExceptionHandler(SwapRequestNotFoundException.class)
+  @ResponseStatus(HttpStatus.NOT_FOUND)
+  public ErrorResponse handleSwapRequestNotFoundException(SwapRequestNotFoundException exception,
+      WebRequest webRequest) {
+    return errorUtils.buildErrorResponse(exception, webRequest);
+  }
+
+  @ExceptionHandler(ChatAccessDeniedException.class)
+  @ResponseStatus(HttpStatus.FORBIDDEN)
+  public ErrorResponse handleChatAccessDeniedException(ChatAccessDeniedException exception, WebRequest webRequest) {
+    return errorUtils.buildErrorResponse(exception, webRequest);
+  }
+
+  @ExceptionHandler(InvalidStatusTransitionException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorResponse handleInvalidStatusTransitionException(InvalidStatusTransitionException exception,
+      WebRequest webRequest) {
+    return errorUtils.buildErrorResponse(exception, webRequest);
+  }
+
   @ExceptionHandler(ImageUploadFailureException.class)
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
   public ErrorResponse handleImageUploadFailureException(ImageUploadFailureException exception, WebRequest webRequest) {

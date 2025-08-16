@@ -22,12 +22,13 @@ import com.google.common.cache.CacheBuilder;
 public class CacheConfig {
   @Bean
   public CacheManager cacheManager() {
-    return new ConcurrentMapCacheManager("imageUrls") {
+    return new ConcurrentMapCacheManager("imageUrls", "unreadCounts") {
       @NotNull
       @Override
       protected Cache createConcurrentMapCache(@NotNull final String name) {
         return new ConcurrentMapCache(name, CacheBuilder.newBuilder()
-            .expireAfterWrite(7, TimeUnit.DAYS)
+            .expireAfterWrite(name.equals("unreadCounts") ? 5 : 7,
+                name.equals("unreadCounts") ? TimeUnit.MINUTES : TimeUnit.DAYS)
             .build().asMap(), false);
       }
     };

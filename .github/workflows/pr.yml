@@ -23,7 +23,7 @@ jobs:
           java-version: '24'
 
       - name: Run Tests and Generate Coverage Report
-        run: mvn test jacoco:report -Dspring.profiles.active=local
+        run: mvn test jacoco:report -Dspring.profiles.active=test
 
       - name: Generate JaCoCo badge and summary
         id: jacoco

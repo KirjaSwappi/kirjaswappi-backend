@@ -21,19 +21,11 @@ public class CustomMockMvcConfiguration {
   @MockBean
   private ErrorUtils errorUtils;
 
-  @Profile("local")
+  @Profile("test")
   @Bean
   public MockMvc mockMvcLocal(WebApplicationContext webApplicationContext) {
     return MockMvcBuilders.webAppContextSetup(webApplicationContext)
         .defaultRequest(get("/").header("Host", "localhost:8080"))
-        .build();
-  }
-
-  @Profile("cloud")
-  @Bean
-  public MockMvc mockMvcCloud(WebApplicationContext webApplicationContext) {
-    return MockMvcBuilders.webAppContextSetup(webApplicationContext)
-        .defaultRequest(get("/").header("Host", "localhost:10000"))
         .build();
   }
 }

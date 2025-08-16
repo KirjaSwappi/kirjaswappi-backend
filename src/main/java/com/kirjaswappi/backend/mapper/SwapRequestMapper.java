@@ -33,6 +33,8 @@ public class SwapRequestMapper {
     entity.setNote(dao.getNote());
     entity.setRequestedAt(dao.getRequestedAt());
     entity.setUpdatedAt(dao.getUpdatedAt());
+    entity.setReadByReceiverAt(dao.getReadByReceiverAt());
+    entity.setReadBySenderAt(dao.getReadBySenderAt());
     return entity;
   }
 
@@ -52,6 +54,8 @@ public class SwapRequestMapper {
     var currentTime = Instant.now();
     dao.setRequestedAt(entity.getRequestedAt() == null ? currentTime : entity.getRequestedAt());
     dao.setUpdatedAt(entity.getUpdatedAt() == null ? currentTime : entity.getUpdatedAt());
+    dao.setReadByReceiverAt(entity.getReadByReceiverAt());
+    dao.setReadBySenderAt(entity.getReadBySenderAt());
     return dao;
   }
 }

@@ -28,4 +28,6 @@ public class SwapRequest {
   private String note;
   private Instant requestedAt;
   private Instant updatedAt;
+  private Instant readByReceiverAt;
+  private Instant readBySenderAt;
 }
