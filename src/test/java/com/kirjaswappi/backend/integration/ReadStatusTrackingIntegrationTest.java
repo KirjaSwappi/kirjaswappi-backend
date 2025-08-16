@@ -113,7 +113,7 @@ public class ReadStatusTrackingIntegrationTest {
 
     SwapRequest swapRequest = receivedRequests.getFirst();
     assertTrue(inboxService.isInboxItemUnread(swapRequest, receiverUser.getId()));
-    assertFalse(inboxService.isInboxItemUnread(swapRequest, senderUser.getId())); // Sender hasn't viewed it yet
+    assertTrue(inboxService.isInboxItemUnread(swapRequest, senderUser.getId())); // Sender hasn't viewed it yet
 
     // Mark as read by receiver
     inboxService.markInboxItemAsRead(testSwapRequest.getId(), receiverUser.getId());

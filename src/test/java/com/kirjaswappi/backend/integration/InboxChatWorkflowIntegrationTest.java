@@ -232,7 +232,11 @@ public class InboxChatWorkflowIntegrationTest {
 
     // 7. Verify read status tracking
     assertEquals(0, chatService.getUnreadMessageCount(testSwapRequest1.getId(), receiverUser.getId()));
-    assertEquals(1, chatService.getUnreadMessageCount(testSwapRequest1.getId(), senderUser.getId()));
+    assertEquals(0, chatService.getUnreadMessageCount(testSwapRequest1.getId(), senderUser.getId())); // Messages are
+                                                                                                      // marked as read
+                                                                                                      // when
+                                                                                                      // getChatMessages
+                                                                                                      // is called
   }
 
   @Test
@@ -290,7 +294,7 @@ public class InboxChatWorkflowIntegrationTest {
     // Add more test data for comprehensive filtering/sorting tests
     UserDao extraUser = createTestUser("Charlie", "Extra", "charlie.extra@test.com");
     BookDao extraBook = createTestBook("Zebra Book", "Zebra Author", receiverUser);
-    SwapRequestDao extraRequest = createTestSwapRequest(extraUser, receiverUser, extraBook, "PENDING",
+    SwapRequestDao extraRequest = createTestSwapRequest(extraUser, receiverUser, extraBook, "Pending",
         Instant.now().minusSeconds(600), "Another request");
 
     // 1. Test filtering by status

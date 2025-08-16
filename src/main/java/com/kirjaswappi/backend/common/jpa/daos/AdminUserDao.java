@@ -22,10 +22,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class AdminUserDao {
   @Id
   String id;
+
   @NotNull
   String username;
+
   @NotNull
   String password;
+
   @NotNull
   String role;
 }

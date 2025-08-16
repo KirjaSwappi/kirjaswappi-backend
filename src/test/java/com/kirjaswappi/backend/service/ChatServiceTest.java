@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,12 +53,12 @@ class ChatServiceTest {
 
     // Create test users
     senderDao = new UserDao();
-    senderDao.setId("sender123");
+    senderDao.setId("64e8f5d1a2b3c4d5e6f78905");
     senderDao.setFirstName("John");
     senderDao.setLastName("Sender");
 
     receiverDao = new UserDao();
-    receiverDao.setId("receiver123");
+    receiverDao.setId("64e8f5d1a2b3c4d5e6f78901");
     receiverDao.setFirstName("Jane");
     receiverDao.setLastName("Receiver");
 
@@ -91,14 +92,17 @@ class ChatServiceTest {
         .thenReturn(Arrays.asList(chatMessageDao));
 
     // When
-    List<ChatMessage> result = chatService.getChatMessages("swap123", "sender123");
+    List<ChatMessage> result = chatService.getChatMessages("swap123", "64e8f5d1a2b3c4d5e6f78905");
 
     // Then
     assertEquals(1, result.size());
     assertEquals("msg123", result.get(0).getId());
     assertEquals("Hello, is this book still available?", result.get(0).getMessage());
-    verify(swapRequestRepository).findById("swap123");
-    verify(chatMessageRepository).findBySwapRequestIdOrderBySentAtAsc("swap123");
+    verify(swapRequestRepository, times(2)).findById("swap123"); // Called twice: once in getChatMessages, once in
+                                                                 // markMessagesAsRead
+    verify(chatMessageRepository, times(2)).findBySwapRequestIdOrderBySentAtAsc("swap123"); // Called twice: once for
+                                                                                            // getting messages, once
+                                                                                            // for marking as read
   }
 
   @Test
@@ -132,17 +136,17 @@ class ChatServiceTest {
   void shouldSendMessageWhenUserHasAccess() {
     // Given
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
-    when(userService.getUser("sender123")).thenReturn(senderEntity);
+    when(userService.getUser("64e8f5d1a2b3c4d5e6f78905")).thenReturn(senderEntity);
     when(chatMessageRepository.save(any(ChatMessageDao.class))).thenReturn(chatMessageDao);
 
     // When
-    ChatMessage result = chatService.sendMessage("swap123", "sender123", "Hello there!");
+    ChatMessage result = chatService.sendMessage("swap123", "64e8f5d1a2b3c4d5e6f78905", "Hello there!");
 
     // Then
     assertNotNull(result);
     assertEquals("msg123", result.getId());
     verify(swapRequestRepository).findById("swap123");
-    verify(userService).getUser("sender123");
+    verify(userService).getUser("64e8f5d1a2b3c4d5e6f78905");
     verify(chatMessageRepository).save(any(ChatMessageDao.class));
   }
 
@@ -154,11 +158,11 @@ class ChatServiceTest {
 
     // When & Then
     assertThrows(IllegalArgumentException.class,
-        () -> chatService.sendMessage("swap123", "sender123", ""));
+        () -> chatService.sendMessage("swap123", "64e8f5d1a2b3c4d5e6f78905", ""));
     assertThrows(IllegalArgumentException.class,
-        () -> chatService.sendMessage("swap123", "sender123", "   "));
+        () -> chatService.sendMessage("swap123", "64e8f5d1a2b3c4d5e6f78905", "   "));
     assertThrows(IllegalArgumentException.class,
-        () -> chatService.sendMessage("swap123", "sender123", null));
+        () -> chatService.sendMessage("swap123", "64e8f5d1a2b3c4d5e6f78905", null));
 
     verify(swapRequestRepository, times(3)).findById("swap123");
     verifyNoInteractions(userService);
@@ -194,7 +198,7 @@ class ChatServiceTest {
     when(chatMessageRepository.save(any(ChatMessageDao.class))).thenReturn(unreadMessage);
 
     // When - receiver marks messages as read
-    chatService.markMessagesAsRead("swap123", "receiver123");
+    chatService.markMessagesAsRead("swap123", "64e8f5d1a2b3c4d5e6f78901");
 
     // Then
     verify(swapRequestRepository).findById("swap123");
@@ -208,16 +212,19 @@ class ChatServiceTest {
   void shouldGetUnreadMessageCountWhenUserHasAccess() {
     // Given
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
-    when(chatMessageRepository.countBySwapRequestIdAndSenderIdNotAndReadByReceiverFalse("swap123", "receiver123"))
+    String receiverHex = "64e8f5d1a2b3c4d5e6f78901";
+    ObjectId receiverId = new ObjectId(receiverHex);
+
+    when(chatMessageRepository.countUnreadMessagesNotSentByMe("swap123", receiverId))
         .thenReturn(3L);
 
     // When
-    long count = chatService.getUnreadMessageCount("swap123", "receiver123");
+    long count = chatService.getUnreadMessageCount("swap123", receiverHex);
 
     // Then
     assertEquals(3L, count);
     verify(swapRequestRepository).findById("swap123");
-    verify(chatMessageRepository).countBySwapRequestIdAndSenderIdNotAndReadByReceiverFalse("swap123", "receiver123");
+    verify(chatMessageRepository).countUnreadMessagesNotSentByMe("swap123", receiverId);
   }
 
   @Test
@@ -242,11 +249,14 @@ class ChatServiceTest {
         .thenReturn(Arrays.asList(chatMessageDao));
 
     // When
-    List<ChatMessage> result = chatService.getChatMessages("swap123", "receiver123");
+    List<ChatMessage> result = chatService.getChatMessages("swap123", "64e8f5d1a2b3c4d5e6f78901");
 
     // Then
     assertEquals(1, result.size());
-    verify(swapRequestRepository).findById("swap123");
-    verify(chatMessageRepository).findBySwapRequestIdOrderBySentAtAsc("swap123");
+    verify(swapRequestRepository, times(2)).findById("swap123"); // Called twice: once in getChatMessages, once in
+                                                                 // markMessagesAsRead
+    verify(chatMessageRepository, times(2)).findBySwapRequestIdOrderBySentAtAsc("swap123"); // Called twice: once for
+                                                                                            // getting messages, once
+                                                                                            // for marking as read
   }
 }

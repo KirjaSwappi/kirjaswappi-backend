@@ -47,7 +47,7 @@ public class SwapController {
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 
-  @PutMapping("/{id}/status")
+  @PutMapping(ID + STATUS)
   @Operation(summary = "Update swap request status.", description = "Update the status of a swap request. Only the receiver can change the status.", responses = {
       @ApiResponse(responseCode = "200", description = "Swap request status updated successfully."),
       @ApiResponse(responseCode = "400", description = "Invalid status transition or user not authorized."),

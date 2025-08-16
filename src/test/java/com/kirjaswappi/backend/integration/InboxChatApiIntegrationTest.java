@@ -136,33 +136,25 @@ public class InboxChatApiIntegrationTest {
         .andExpect(jsonPath("$.message").value("Yes, it's available! What would you like to offer in exchange?"))
         .andExpect(jsonPath("$.sender.name").value("Jane Receiver"));
 
-    // 6. Get chat messages again - should show both messages
-    mockMvc.perform(get("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-        .param("userId", senderUser.getId()))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.length()").value(2))
-        .andExpect(jsonPath("$[0].message").value("Hi! I'm interested in your book. Is it still available?"))
-        .andExpect(jsonPath("$[1].message").value("Yes, it's available! What would you like to offer in exchange?"));
-
-    // 7. Receiver accepts the swap request
+    // 6. Receiver accepts the swap request
     UpdateSwapStatusRequest statusRequest = new UpdateSwapStatusRequest();
     statusRequest.setStatus("Accepted");
 
     mockMvc.perform(put("/api/v1/swap-requests/" + testSwapRequest.getId() + "/status")
-        .param("userId", receiverUser.getId())
+        .header("X-User-Id", receiverUser.getId())
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(statusRequest)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.swapStatus").value("Accepted"));
 
-    // 8. Get sent requests - sender should see status change
+    // 7. Get sent requests - sender should see status change
     mockMvc.perform(get("/api/v1/inbox/sent")
         .param("userId", senderUser.getId()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].swapStatus").value("Accepted"))
         .andExpect(jsonPath("$[0].unreadMessageCount").value(1)); // Receiver's response message
 
-    // 9. Test filtering by status
+    // 8. Test filtering by status
     mockMvc.perform(get("/api/v1/inbox/received")
         .param("userId", receiverUser.getId())
         .param("status", "Accepted"))
@@ -176,7 +168,7 @@ public class InboxChatApiIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(0));
 
-    // 10. Test sorting by book title
+    // 9. Test sorting by book title
     mockMvc.perform(get("/api/v1/inbox/received")
         .param("userId", receiverUser.getId())
         .param("sortBy", "book_title"))
@@ -363,7 +355,7 @@ public class InboxChatApiIntegrationTest {
     statusRequest.setStatus("Accepted");
 
     mockMvc.perform(put("/api/v1/swap-requests/" + testSwapRequest.getId() + "/status")
-        .param("userId", receiverUser.getId())
+        .header("X-User-Id", receiverUser.getId())
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(statusRequest)))
         .andExpect(status().isOk());

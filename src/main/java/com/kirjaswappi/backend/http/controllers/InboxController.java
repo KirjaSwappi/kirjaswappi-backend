@@ -22,7 +22,7 @@ import com.kirjaswappi.backend.service.InboxService;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
 
 @RestController
-@RequestMapping(API_BASE + "/inbox")
+@RequestMapping(API_BASE + INBOX)
 @Validated
 public class InboxController {
   @Autowired
@@ -49,8 +49,6 @@ public class InboxController {
           // Set notification indicators
           item.setUnread(inboxService.isInboxItemUnread(swapRequest, userId));
           item.setHasNewMessages(unreadCount > 0);
-          // Mark inbox item as read when viewed
-          inboxService.markInboxItemAsRead(swapRequest.getId(), userId);
           return item;
         })
         .toList();
@@ -79,8 +77,6 @@ public class InboxController {
           // Set notification indicators
           item.setUnread(inboxService.isInboxItemUnread(swapRequest, userId));
           item.setHasNewMessages(unreadCount > 0);
-          // Mark inbox item as read when viewed
-          inboxService.markInboxItemAsRead(swapRequest.getId(), userId);
           return item;
         })
         .toList();

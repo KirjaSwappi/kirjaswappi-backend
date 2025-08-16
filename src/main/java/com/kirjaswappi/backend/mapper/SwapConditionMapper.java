@@ -4,6 +4,8 @@
  */
 package com.kirjaswappi.backend.mapper;
 
+import java.util.List;
+
 import lombok.NoArgsConstructor;
 
 import org.springframework.stereotype.Component;
@@ -37,8 +39,12 @@ public class SwapConditionMapper {
     dao.setSwapType(entity.getSwapType().getCode());
     dao.setGiveAway(entity.isGiveAway());
     dao.setOpenForOffers(entity.isOpenForOffers());
-    dao.setSwappableGenres(entity.getSwappableGenres().stream().map(GenreMapper::toDao).toList());
-    dao.setSwappableBooks(entity.getSwappableBooks().stream().map(SwappableBookMapper::toDao).toList());
+    dao.setSwappableGenres(
+        entity.getSwappableGenres() != null ? entity.getSwappableGenres().stream().map(GenreMapper::toDao).toList()
+            : List.of());
+    dao.setSwappableBooks(entity.getSwappableBooks() != null
+        ? entity.getSwappableBooks().stream().map(SwappableBookMapper::toDao).toList()
+        : List.of());
     return dao;
   }
 }

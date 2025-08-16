@@ -23,8 +23,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class OTPDao {
   @NotNull
   private String email;
+
   @NotNull
   private String otp;
+
   @NotNull
   private Instant createdAt;
 }

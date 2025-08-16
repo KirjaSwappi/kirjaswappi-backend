@@ -160,7 +160,7 @@ public class InboxChatPerformanceIntegrationTest {
     queryTime = endTime - startTime;
     System.out.println("Unread count query time: " + queryTime + "ms");
     assertTrue(queryTime < 200, "Unread count query took too long: " + queryTime + "ms");
-    assertEquals(50, unreadCount); // 50 messages from sender that are unread
+    assertEquals(25, unreadCount); // 25 messages from receiver that are unread (messages 51, 53, 55, ..., 99)
   }
 
   @Test

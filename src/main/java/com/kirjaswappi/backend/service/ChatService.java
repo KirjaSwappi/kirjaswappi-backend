@@ -7,6 +7,7 @@ package com.kirjaswappi.backend.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -46,6 +47,9 @@ public class ChatService {
       throw new ChatAccessDeniedException();
     }
 
+    // Automatically mark messages as read when user accesses chat
+    markMessagesAsRead(swapRequestId, userId);
+
     // Get chat messages ordered by sent time
     List<ChatMessageDao> messageDaos = chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc(swapRequestId);
 
@@ -80,6 +84,7 @@ public class ChatService {
     ChatMessage chatMessage = new ChatMessage();
     chatMessage.setSwapRequestId(swapRequestId);
     chatMessage.setSender(sender);
+    // TODO: filter explicit or dangerous words in message
     chatMessage.setMessage(message.trim());
     chatMessage.setReadByReceiver(false);
 
@@ -87,11 +92,14 @@ public class ChatService {
     ChatMessageDao messageDao = ChatMessageMapper.toDao(chatMessage);
     ChatMessageDao savedDao = chatMessageRepository.save(messageDao);
 
-    // Clear unread count cache for the receiver
+    // Clear unread count cache for both users to ensure consistency
     String receiverId = swapRequest.getSender().getId().equals(senderId)
         ? swapRequest.getReceiver().getId()
         : swapRequest.getSender().getId();
+
+    // Clear cache for both sender and receiver to avoid stale data
     clearUnreadCountCache(receiverId, swapRequestId);
+    clearUnreadCountCache(senderId, swapRequestId);
 
     return ChatMessageMapper.toEntity(savedDao);
   }
@@ -112,7 +120,8 @@ public class ChatService {
 
     // Get all messages in this chat that are not from the current user and are
     // unread
-    List<ChatMessageDao> unreadMessages = chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc(swapRequestId)
+    List<ChatMessageDao> allMessages = chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc(swapRequestId);
+    List<ChatMessageDao> unreadMessages = allMessages
         .stream()
         .filter(msg -> !msg.getSender().getId().equals(userId) && !msg.isReadByReceiver())
         .toList();
@@ -123,7 +132,7 @@ public class ChatService {
       chatMessageRepository.save(message);
     }
 
-    // Clear unread count cache for the user
+    // Clear unread count cache AFTER marking messages as read to ensure consistency
     clearUnreadCountCache(userId, swapRequestId);
   }
 
@@ -142,12 +151,16 @@ public class ChatService {
     }
 
     // Count unread messages not sent by the current user
-    return chatMessageRepository.countBySwapRequestIdAndSenderIdNotAndReadByReceiverFalse(swapRequestId, userId);
+    var debug = chatMessageRepository.findAll();
+    var count = chatMessageRepository.countUnreadMessagesNotSentByMe(swapRequestId, new ObjectId(userId));
+    return count;
   }
 
-  @CacheEvict(value = "unreadCounts", key = "#userId + '_' + #swapRequestId")
+  @CacheEvict(value = "unreadCounts", allEntries = true, beforeInvocation = true)
   public void clearUnreadCountCache(String userId, String swapRequestId) {
     // Cache eviction method - implementation is handled by Spring AOP
+    String cacheKey = userId + "_" + swapRequestId;
+    // Debug logging removed
   }
 
   private boolean hasAccessToChat(SwapRequestDao swapRequest, String userId) {
