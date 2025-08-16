@@ -40,3 +40,7 @@ de:
     mongodb:
       embedded:
         version: 7.0.14
+
+google:
+  api:
+    clientId: 43921547457-06chtojpprgds80g1gq5tprmn5qg0hmq.apps.googleusercontent.com
