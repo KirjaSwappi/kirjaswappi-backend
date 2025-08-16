@@ -151,16 +151,16 @@ public class ChatService {
     }
 
     // Count unread messages not sent by the current user
-    var debug = chatMessageRepository.findAll();
-    var count = chatMessageRepository.countUnreadMessagesNotSentByMe(swapRequestId, new ObjectId(userId));
-    return count;
+    return chatMessageRepository.countUnreadMessagesNotSentByMe(swapRequestId, new ObjectId(userId));
   }
 
-  @CacheEvict(value = "unreadCounts", allEntries = true, beforeInvocation = true)
+  @CacheEvict(value = "unreadCounts", key = "#userId + '_' + #swapRequestId", beforeInvocation = true)
   public void clearUnreadCountCache(String userId, String swapRequestId) {
-    // Cache eviction method - implementation is handled by Spring AOP
-    String cacheKey = userId + "_" + swapRequestId;
-    // Debug logging removed
+    // This method is used to clear the cache for unread message counts.
+    // The @CacheEvict annotation ensures that the cache is cleared before the
+    // method
+    // is invoked.
+    // No implementation needed here, as the annotation handles the cache eviction.
   }
 
   private boolean hasAccessToChat(SwapRequestDao swapRequest, String userId) {

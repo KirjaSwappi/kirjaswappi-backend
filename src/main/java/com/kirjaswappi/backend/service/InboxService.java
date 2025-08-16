@@ -112,10 +112,7 @@ public class InboxService {
 
   @Cacheable(value = "unreadCounts", key = "#userId + '_' + #swapRequestId", condition = "!@environment.matchesProfiles('test')")
   public long getUnreadMessageCount(String userId, String swapRequestId) {
-    String cacheKey = userId + "_" + swapRequestId;
-    long count = chatService.getUnreadMessageCount(swapRequestId, userId);
-    // Debug logging removed
-    return count;
+    return chatService.getUnreadMessageCount(swapRequestId, userId);
   }
 
   public void markInboxItemAsRead(String swapRequestId, String userId) {
@@ -153,11 +150,12 @@ public class InboxService {
     return false;
   }
 
-  @CacheEvict(value = "unreadCounts", allEntries = true, beforeInvocation = true)
+  @CacheEvict(value = "unreadCounts", key = "#userId + '_' + #swapRequestId", beforeInvocation = true)
   public void clearUnreadCountCache(String userId, String swapRequestId) {
-    // Cache eviction method - implementation is handled by Spring AOP
-    String cacheKey = userId + "_" + swapRequestId;
-    // Debug logging removed
+    // This method is used to clear the cache for unread message counts.
+    // The @CacheEvict annotation ensures that the cache is cleared before the
+    // method is invoked.
+    // No implementation needed here, just the annotation is sufficient.
   }
 
   private List<SwapRequest> applySorting(List<SwapRequest> swapRequests, String sortBy) {
