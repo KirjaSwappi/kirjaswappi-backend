@@ -309,4 +309,146 @@ class InboxControllerTest {
     verify(inboxService).getSentSwapRequests("sender123", "Rejected", "book_title");
     verify(inboxService).getUnreadMessageCount("sender123", "swap1");
   }
+
+  @Test
+  @DisplayName("Should return unified inbox successfully")
+  void shouldReturnUnifiedInboxSuccessfully() throws Exception {
+    // Given
+    User sender = new User();
+    sender.setId("sender123");
+    sender.setFirstName("John");
+    sender.setLastName("Doe");
+
+    User receiver = new User();
+    receiver.setId("receiver123");
+    receiver.setFirstName("Jane");
+    receiver.setLastName("Smith");
+
+    Book book = new Book();
+    book.setId("book123");
+    book.setTitle("Test Book");
+    book.setAuthor("Test Author");
+    book.setCondition(Condition.GOOD);
+
+    // Received swap request
+    SwapRequest receivedSwap = new SwapRequest();
+    receivedSwap.setId("received1");
+    receivedSwap.setSender(sender);
+    receivedSwap.setReceiver(receiver);
+    receivedSwap.setBookToSwapWith(book);
+    receivedSwap.setSwapType(SwapType.BY_BOOKS);
+    receivedSwap.setSwapStatus(SwapStatus.PENDING);
+    receivedSwap.setRequestedAt(Instant.parse("2025-01-01T10:00:00Z"));
+    receivedSwap.setUpdatedAt(Instant.parse("2025-01-01T10:00:00Z"));
+    receivedSwap.setAskForGiveaway(false);
+
+    // Sent swap request
+    SwapRequest sentSwap = new SwapRequest();
+    sentSwap.setId("sent1");
+    sentSwap.setSender(receiver);
+    sentSwap.setReceiver(sender);
+    sentSwap.setBookToSwapWith(book);
+    sentSwap.setSwapType(SwapType.GIVE_AWAY);
+    sentSwap.setSwapStatus(SwapStatus.ACCEPTED);
+    sentSwap.setRequestedAt(Instant.parse("2025-01-02T10:00:00Z"));
+    sentSwap.setUpdatedAt(Instant.parse("2025-01-02T10:00:00Z"));
+    sentSwap.setAskForGiveaway(true);
+
+    List<SwapRequest> unifiedInbox = Arrays.asList(sentSwap, receivedSwap); // Newer first
+    when(inboxService.getUnifiedInbox("receiver123", null, null)).thenReturn(unifiedInbox);
+    when(inboxService.getUnreadMessageCount("receiver123", "received1")).thenReturn(2L);
+    when(inboxService.getUnreadMessageCount("receiver123", "sent1")).thenReturn(0L);
+
+    // When & Then
+    mockMvc.perform(get(API_PATH)
+        .param("userId", "receiver123"))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$.length()").value(2))
+        .andExpect(jsonPath("$[0].id").value("sent1"))
+        .andExpect(jsonPath("$[0].conversationType").value("sent"))
+        .andExpect(jsonPath("$[0].swapType").value("GiveAway"))
+        .andExpect(jsonPath("$[0].swapStatus").value("Accepted"))
+        .andExpect(jsonPath("$[0].unreadMessageCount").value(0))
+        .andExpect(jsonPath("$[1].id").value("received1"))
+        .andExpect(jsonPath("$[1].conversationType").value("received"))
+        .andExpect(jsonPath("$[1].swapType").value("ByBooks"))
+        .andExpect(jsonPath("$[1].swapStatus").value("Pending"))
+        .andExpect(jsonPath("$[1].unreadMessageCount").value(2));
+
+    verify(inboxService).getUnifiedInbox("receiver123", null, null);
+    verify(inboxService).getUnreadMessageCount("receiver123", "received1");
+    verify(inboxService).getUnreadMessageCount("receiver123", "sent1");
+  }
+
+  @Test
+  @DisplayName("Should return unified inbox with status filter")
+  void shouldReturnUnifiedInboxWithStatusFilter() throws Exception {
+    // Given
+    User sender = new User();
+    sender.setId("sender123");
+    sender.setFirstName("John");
+    sender.setLastName("Doe");
+
+    User receiver = new User();
+    receiver.setId("receiver123");
+    receiver.setFirstName("Jane");
+    receiver.setLastName("Smith");
+
+    Book book = new Book();
+    book.setId("book123");
+    book.setTitle("Test Book");
+    book.setAuthor("Test Author");
+    book.setCondition(Condition.GOOD);
+
+    SwapRequest pendingSwap = new SwapRequest();
+    pendingSwap.setId("pending1");
+    pendingSwap.setSender(sender);
+    pendingSwap.setReceiver(receiver);
+    pendingSwap.setBookToSwapWith(book);
+    pendingSwap.setSwapType(SwapType.BY_BOOKS);
+    pendingSwap.setSwapStatus(SwapStatus.PENDING);
+    pendingSwap.setRequestedAt(Instant.parse("2025-01-01T10:00:00Z"));
+    pendingSwap.setUpdatedAt(Instant.parse("2025-01-01T10:00:00Z"));
+    pendingSwap.setAskForGiveaway(false);
+
+    List<SwapRequest> filteredInbox = Arrays.asList(pendingSwap);
+    when(inboxService.getUnifiedInbox("receiver123", "Pending", "date")).thenReturn(filteredInbox);
+    when(inboxService.getUnreadMessageCount("receiver123", "pending1")).thenReturn(1L);
+
+    // When & Then
+    mockMvc.perform(get(API_PATH)
+        .param("userId", "receiver123")
+        .param("status", "Pending")
+        .param("sortBy", "date"))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].id").value("pending1"))
+        .andExpect(jsonPath("$[0].conversationType").value("received"))
+        .andExpect(jsonPath("$[0].swapStatus").value("Pending"))
+        .andExpect(jsonPath("$[0].unreadMessageCount").value(1));
+
+    verify(inboxService).getUnifiedInbox("receiver123", "Pending", "date");
+    verify(inboxService).getUnreadMessageCount("receiver123", "pending1");
+  }
+
+  @Test
+  @DisplayName("Should return 400 when invalid status provided to unified inbox")
+  void shouldReturn400WhenInvalidStatusProvidedToUnifiedInbox() throws Exception {
+    // Given
+    when(inboxService.getUnifiedInbox("receiver123", "InvalidStatus", null))
+        .thenThrow(new BadRequestException("invalidSwapStatus", "InvalidStatus"));
+
+    // When & Then
+    mockMvc.perform(get(API_PATH)
+        .param("userId", "receiver123")
+        .param("status", "InvalidStatus"))
+        .andExpect(status().isBadRequest());
+
+    verify(inboxService).getUnifiedInbox("receiver123", "InvalidStatus", null);
+    verifyNoMoreInteractions(inboxService);
+  }
 }

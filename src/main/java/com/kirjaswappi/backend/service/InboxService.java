@@ -5,6 +5,7 @@
 package com.kirjaswappi.backend.service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,43 @@ public class InboxService {
   private UserService userService;
   @Autowired
   private ChatService chatService;
+
+  public List<SwapRequest> getUnifiedInbox(String userId, String status, String sortBy) {
+    // Validate user exists
+    userService.getUser(userId);
+
+    List<SwapRequestDao> allSwapRequestDaos = new ArrayList<>();
+
+    if (status != null && !status.trim().isEmpty()) {
+      // Validate status
+      SwapStatus.fromCode(status); // This will throw BadRequestException if invalid
+
+      // Get both sent and received with status filter
+      List<SwapRequestDao> receivedDaos = swapRequestRepository
+          .findByReceiverIdAndSwapStatusOrderByRequestedAtDesc(userId, status);
+      List<SwapRequestDao> sentDaos = swapRequestRepository.findBySenderIdAndSwapStatusOrderByRequestedAtDesc(userId,
+          status);
+
+      allSwapRequestDaos.addAll(receivedDaos);
+      allSwapRequestDaos.addAll(sentDaos);
+    } else {
+      // Get all sent and received without status filter
+      List<SwapRequestDao> receivedDaos = swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc(userId);
+      List<SwapRequestDao> sentDaos = swapRequestRepository.findBySenderIdOrderByRequestedAtDesc(userId);
+
+      allSwapRequestDaos.addAll(receivedDaos);
+      allSwapRequestDaos.addAll(sentDaos);
+    }
+
+    // Remove duplicates (shouldn't happen, but safety check) and convert to
+    // entities
+    List<SwapRequest> swapRequests = allSwapRequestDaos.stream()
+        .distinct()
+        .map(SwapRequestMapper::toEntity)
+        .toList();
+
+    return applySorting(swapRequests, sortBy);
+  }
 
   public List<SwapRequest> getReceivedSwapRequests(String userId, String status, String sortBy) {
     // Validate user exists
