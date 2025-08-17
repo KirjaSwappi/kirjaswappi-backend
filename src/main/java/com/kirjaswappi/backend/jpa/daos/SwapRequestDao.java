@@ -60,4 +60,10 @@ public class SwapRequestDao {
 
   @NotNull
   private Instant updatedAt;
+
+  @Nullable
+  private Instant readByReceiverAt;
+
+  @Nullable
+  private Instant readBySenderAt;
 }

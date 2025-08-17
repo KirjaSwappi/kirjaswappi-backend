@@ -1,0 +1,46 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  data:
+    mongodb:
+      database: kirjaswappi_test
+      uri: mongodb://localhost:27017/kirjaswappi_test
+      autoIndexCreation: true
+
+  mail:
+    host: smtp.example.com
+    port: 587
+    username: test@example.com
+    password: test
+    from-email: test@example.com
+    properties:
+      mail:
+        smtp:
+          from: test@example.com
+          ssl:
+            trust: smtp.example.com
+
+server:
+  port: 8080
+
+s3:
+  url: http://localhost:9000
+  bucket: kirjaswappi
+  accessKey: test
+  secretKey: test
+
+jwt:
+  secret: abcdefghijklmnopqrstuvwxyz1234567890
+  expiration: 300000
+
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 7.0.14
+
+google:
+  api:
+    clientId: 43921547457-06chtojpprgds80g1gq5tprmn5qg0hmq.apps.googleusercontent.com

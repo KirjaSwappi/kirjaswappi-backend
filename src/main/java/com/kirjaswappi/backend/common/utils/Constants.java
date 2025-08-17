@@ -43,4 +43,7 @@ public class Constants {
   public static final String SUPPORTED_CONDITIONS = "/supported-conditions";
   public static final String SUPPORTED_SWAP_TYPES = "/supported-swap-types";
   public static final String SUPPORTED_COVER_PHOTOS = "/supported-cover-photos";
+  public static final String INBOX = "/inbox";
+  public static final String CHAT = "/chat";
+  public static final String STATUS = "/status";
 }

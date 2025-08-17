@@ -170,6 +170,15 @@
 			<version>1.47.1</version>
 		</dependency>
 
+		<!-- Embedded MongoDB for Integration Tests -->
+        <dependency>
+            <groupId>de.flapdoodle.embed</groupId>
+            <artifactId>de.flapdoodle.embed.mongo.spring3x</artifactId>
+            <version>4.21.0</version>
+            <scope>test</scope>
+        </dependency>
+
+
 	</dependencies>
 
 	<dependencyManagement>

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.*;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +38,9 @@ import com.kirjaswappi.backend.service.enums.Language;
 import com.kirjaswappi.backend.service.enums.SwapStatus;
 import com.kirjaswappi.backend.service.enums.SwapType;
 import com.kirjaswappi.backend.service.exceptions.IllegalSwapRequestException;
+import com.kirjaswappi.backend.service.exceptions.InvalidStatusTransitionException;
 import com.kirjaswappi.backend.service.exceptions.SwapRequestExistsAlreadyException;
+import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 
 class SwapServiceTest {
   @Mock
@@ -346,5 +349,271 @@ class SwapServiceTest {
     when(mockSwapRequestDao2.getUpdatedAt()).thenReturn(java.time.Instant.now());
     when(swapRequestRepository.save(any())).thenReturn(mockSwapRequestDao2);
     assertDoesNotThrow(() -> swapService.createSwapRequest(swapRequest));
+  }
+
+  @Test
+  @DisplayName("Should throw SwapRequestNotFoundException when swap request does not exist")
+  void updateSwapRequestStatusThrowsWhenSwapRequestNotFound() {
+    // Given
+    String swapRequestId = "nonexistent123";
+    String userId = "user123";
+    SwapStatus newStatus = SwapStatus.ACCEPTED;
+
+    when(swapRequestRepository.findById(swapRequestId)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(SwapRequestNotFoundException.class,
+        () -> swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId));
+    verify(swapRequestRepository).findById(swapRequestId);
+  }
+
+  @Test
+  @DisplayName("Should throw IllegalSwapRequestException when user is not the receiver")
+  void updateSwapRequestStatusThrowsWhenUserIsNotReceiver() {
+    // Given
+    String swapRequestId = "swap123";
+    String userId = "wrongUser123";
+    SwapStatus newStatus = SwapStatus.ACCEPTED;
+
+    var mockSwapRequestDao = mock(SwapRequestDao.class);
+    var mockSenderDao = mock(UserDao.class);
+    var mockReceiverDao = mock(UserDao.class);
+    var mockBookDao = mock(BookDao.class);
+    var mockSwapOfferDao = mock(SwapOfferDao.class);
+    var mockOwnerDao = mock(UserDao.class);
+    var mockSwapConditionDao = mock(SwapConditionDao.class);
+    var mockSwappableBookDao = mock(SwappableBookDao.class);
+
+    // Mock SwapRequestDao
+    when(mockSwapRequestDao.getSender()).thenReturn(mockSenderDao);
+    when(mockSwapRequestDao.getReceiver()).thenReturn(mockReceiverDao);
+    when(mockSwapRequestDao.getBookToSwapWith()).thenReturn(mockBookDao);
+    when(mockSwapRequestDao.getSwapOfferDao()).thenReturn(mockSwapOfferDao);
+    when(mockSwapRequestDao.getSwapType()).thenReturn("ByBooks");
+    when(mockSwapRequestDao.getSwapStatus()).thenReturn("Pending");
+    when(mockSwapRequestDao.getRequestedAt()).thenReturn(Instant.now());
+    when(mockSwapRequestDao.getUpdatedAt()).thenReturn(Instant.now());
+
+    // Mock UserDao
+    when(mockSenderDao.getId()).thenReturn("sender123");
+    when(mockReceiverDao.getId()).thenReturn("receiver123");
+
+    // Mock BookDao
+    when(mockBookDao.getId()).thenReturn("bookId");
+    when(mockBookDao.getTitle()).thenReturn("Test Book");
+    when(mockBookDao.getAuthor()).thenReturn("Test Author");
+    when(mockBookDao.getDescription()).thenReturn("Test Description");
+    when(mockBookDao.getLanguage()).thenReturn("English");
+    when(mockBookDao.getCondition()).thenReturn("Good");
+    when(mockBookDao.getGenres()).thenReturn(List.of());
+    when(mockBookDao.getCoverPhotos()).thenReturn(List.of());
+    when(mockBookDao.getOwner()).thenReturn(mockOwnerDao);
+    when(mockBookDao.getSwapCondition()).thenReturn(mockSwapConditionDao);
+
+    // Mock SwapConditionDao
+    when(mockSwapConditionDao.getSwapType()).thenReturn("ByBooks");
+    when(mockSwapConditionDao.isGiveAway()).thenReturn(false);
+    when(mockSwapConditionDao.isOpenForOffers()).thenReturn(false);
+    when(mockSwapConditionDao.getSwappableGenres()).thenReturn(List.of());
+    when(mockSwapConditionDao.getSwappableBooks()).thenReturn(List.of());
+
+    // Mock SwapOfferDao
+    when(mockSwapOfferDao.getOfferedBook()).thenReturn(mockSwappableBookDao);
+    when(mockSwapOfferDao.getOfferedGenre()).thenReturn(null);
+
+    when(swapRequestRepository.findById(swapRequestId)).thenReturn(Optional.of(mockSwapRequestDao));
+
+    // When & Then
+    assertThrows(IllegalSwapRequestException.class,
+        () -> swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId));
+    verify(swapRequestRepository).findById(swapRequestId);
+  }
+
+  @Test
+  @DisplayName("Should throw InvalidStatusTransitionException when trying invalid status transition")
+  void updateSwapRequestStatusThrowsWhenInvalidStatusTransition() {
+    // Given
+    String swapRequestId = "swap123";
+    String userId = "receiver123";
+    SwapStatus newStatus = SwapStatus.PENDING; // Invalid: can't go from ACCEPTED back to PENDING
+
+    var mockSwapRequestDao = mock(SwapRequestDao.class);
+    var mockSenderDao = mock(UserDao.class);
+    var mockReceiverDao = mock(UserDao.class);
+    var mockBookDao = mock(BookDao.class);
+    var mockSwapOfferDao = mock(SwapOfferDao.class);
+    var mockOwnerDao = mock(UserDao.class);
+    var mockSwapConditionDao = mock(SwapConditionDao.class);
+    var mockSwappableBookDao = mock(SwappableBookDao.class);
+
+    // Mock SwapRequestDao
+    when(mockSwapRequestDao.getSender()).thenReturn(mockSenderDao);
+    when(mockSwapRequestDao.getReceiver()).thenReturn(mockReceiverDao);
+    when(mockSwapRequestDao.getBookToSwapWith()).thenReturn(mockBookDao);
+    when(mockSwapRequestDao.getSwapOfferDao()).thenReturn(mockSwapOfferDao);
+    when(mockSwapRequestDao.getSwapType()).thenReturn("ByBooks");
+    when(mockSwapRequestDao.getSwapStatus()).thenReturn("Accepted"); // Current status is ACCEPTED
+    when(mockSwapRequestDao.getRequestedAt()).thenReturn(Instant.now());
+    when(mockSwapRequestDao.getUpdatedAt()).thenReturn(Instant.now());
+
+    // Mock UserDao
+    when(mockSenderDao.getId()).thenReturn("sender123");
+    when(mockReceiverDao.getId()).thenReturn(userId);
+
+    // Mock BookDao
+    when(mockBookDao.getId()).thenReturn("bookId");
+    when(mockBookDao.getTitle()).thenReturn("Test Book");
+    when(mockBookDao.getAuthor()).thenReturn("Test Author");
+    when(mockBookDao.getDescription()).thenReturn("Test Description");
+    when(mockBookDao.getLanguage()).thenReturn("English");
+    when(mockBookDao.getCondition()).thenReturn("Good");
+    when(mockBookDao.getGenres()).thenReturn(List.of());
+    when(mockBookDao.getCoverPhotos()).thenReturn(List.of());
+    when(mockBookDao.getOwner()).thenReturn(mockOwnerDao);
+    when(mockBookDao.getSwapCondition()).thenReturn(mockSwapConditionDao);
+
+    // Mock SwapConditionDao
+    when(mockSwapConditionDao.getSwapType()).thenReturn("ByBooks");
+    when(mockSwapConditionDao.isGiveAway()).thenReturn(false);
+    when(mockSwapConditionDao.isOpenForOffers()).thenReturn(false);
+    when(mockSwapConditionDao.getSwappableGenres()).thenReturn(List.of());
+    when(mockSwapConditionDao.getSwappableBooks()).thenReturn(List.of());
+
+    // Mock SwapOfferDao
+    when(mockSwapOfferDao.getOfferedBook()).thenReturn(mockSwappableBookDao);
+    when(mockSwapOfferDao.getOfferedGenre()).thenReturn(null);
+
+    when(swapRequestRepository.findById(swapRequestId)).thenReturn(Optional.of(mockSwapRequestDao));
+
+    // When & Then
+    assertThrows(InvalidStatusTransitionException.class,
+        () -> swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId));
+    verify(swapRequestRepository).findById(swapRequestId);
+  }
+
+  @Test
+  @DisplayName("Should successfully update status from PENDING to ACCEPTED")
+  void updateSwapRequestStatusSuccessfullyFromPendingToAccepted() {
+    // Given
+    String swapRequestId = "swap123";
+    String userId = "receiver123";
+    SwapStatus newStatus = SwapStatus.ACCEPTED;
+
+    var mockSwapRequestDao = mock(SwapRequestDao.class);
+    var mockSenderDao = mock(UserDao.class);
+    var mockReceiverDao = mock(UserDao.class);
+    var mockBookDao = mock(BookDao.class);
+    var mockSwapOfferDao = mock(SwapOfferDao.class);
+    var mockOwnerDao = mock(UserDao.class);
+    var mockSwapConditionDao = mock(SwapConditionDao.class);
+    var mockSwappableBookDao = mock(SwappableBookDao.class);
+
+    // Mock SwapRequestDao
+    when(mockSwapRequestDao.getSender()).thenReturn(mockSenderDao);
+    when(mockSwapRequestDao.getReceiver()).thenReturn(mockReceiverDao);
+    when(mockSwapRequestDao.getBookToSwapWith()).thenReturn(mockBookDao);
+    when(mockSwapRequestDao.getSwapOfferDao()).thenReturn(mockSwapOfferDao);
+    when(mockSwapRequestDao.getSwapType()).thenReturn("ByBooks");
+    when(mockSwapRequestDao.getSwapStatus()).thenReturn("Pending");
+    when(mockSwapRequestDao.getRequestedAt()).thenReturn(Instant.now());
+    when(mockSwapRequestDao.getUpdatedAt()).thenReturn(Instant.now());
+
+    // Mock UserDao
+    when(mockSenderDao.getId()).thenReturn("sender123");
+    when(mockReceiverDao.getId()).thenReturn(userId);
+
+    // Mock BookDao
+    when(mockBookDao.getId()).thenReturn("bookId");
+    when(mockBookDao.getTitle()).thenReturn("Test Book");
+    when(mockBookDao.getAuthor()).thenReturn("Test Author");
+    when(mockBookDao.getDescription()).thenReturn("Test Description");
+    when(mockBookDao.getLanguage()).thenReturn("English");
+    when(mockBookDao.getCondition()).thenReturn("Good");
+    when(mockBookDao.getGenres()).thenReturn(List.of());
+    when(mockBookDao.getCoverPhotos()).thenReturn(List.of());
+    when(mockBookDao.getOwner()).thenReturn(mockOwnerDao);
+    when(mockBookDao.getSwapCondition()).thenReturn(mockSwapConditionDao);
+
+    // Mock SwapConditionDao
+    when(mockSwapConditionDao.getSwapType()).thenReturn("ByBooks");
+    when(mockSwapConditionDao.isGiveAway()).thenReturn(false);
+    when(mockSwapConditionDao.isOpenForOffers()).thenReturn(false);
+    when(mockSwapConditionDao.getSwappableGenres()).thenReturn(List.of());
+    when(mockSwapConditionDao.getSwappableBooks()).thenReturn(List.of());
+
+    // Mock SwapOfferDao
+    when(mockSwapOfferDao.getOfferedBook()).thenReturn(mockSwappableBookDao);
+    when(mockSwapOfferDao.getOfferedGenre()).thenReturn(null);
+
+    when(swapRequestRepository.findById(swapRequestId)).thenReturn(Optional.of(mockSwapRequestDao));
+    when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(mockSwapRequestDao);
+
+    // When & Then
+    assertDoesNotThrow(() -> swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId));
+    verify(swapRequestRepository).findById(swapRequestId);
+    verify(swapRequestRepository).save(any(SwapRequestDao.class));
+  }
+
+  @Test
+  @DisplayName("Should successfully update status from PENDING to REJECTED")
+  void updateSwapRequestStatusSuccessfullyFromPendingToRejected() {
+    // Given
+    String swapRequestId = "swap123";
+    String userId = "receiver123";
+    SwapStatus newStatus = SwapStatus.REJECTED;
+
+    var mockSwapRequestDao = mock(SwapRequestDao.class);
+    var mockSenderDao = mock(UserDao.class);
+    var mockReceiverDao = mock(UserDao.class);
+    var mockBookDao = mock(BookDao.class);
+    var mockSwapOfferDao = mock(SwapOfferDao.class);
+    var mockOwnerDao = mock(UserDao.class);
+    var mockSwapConditionDao = mock(SwapConditionDao.class);
+    var mockSwappableBookDao = mock(SwappableBookDao.class);
+
+    // Mock SwapRequestDao
+    when(mockSwapRequestDao.getSender()).thenReturn(mockSenderDao);
+    when(mockSwapRequestDao.getReceiver()).thenReturn(mockReceiverDao);
+    when(mockSwapRequestDao.getBookToSwapWith()).thenReturn(mockBookDao);
+    when(mockSwapRequestDao.getSwapOfferDao()).thenReturn(mockSwapOfferDao);
+    when(mockSwapRequestDao.getSwapType()).thenReturn("ByBooks");
+    when(mockSwapRequestDao.getSwapStatus()).thenReturn("Pending");
+    when(mockSwapRequestDao.getRequestedAt()).thenReturn(Instant.now());
+    when(mockSwapRequestDao.getUpdatedAt()).thenReturn(Instant.now());
+
+    // Mock UserDao
+    when(mockSenderDao.getId()).thenReturn("sender123");
+    when(mockReceiverDao.getId()).thenReturn(userId);
+
+    // Mock BookDao
+    when(mockBookDao.getId()).thenReturn("bookId");
+    when(mockBookDao.getTitle()).thenReturn("Test Book");
+    when(mockBookDao.getAuthor()).thenReturn("Test Author");
+    when(mockBookDao.getDescription()).thenReturn("Test Description");
+    when(mockBookDao.getLanguage()).thenReturn("English");
+    when(mockBookDao.getCondition()).thenReturn("Good");
+    when(mockBookDao.getGenres()).thenReturn(List.of());
+    when(mockBookDao.getCoverPhotos()).thenReturn(List.of());
+    when(mockBookDao.getOwner()).thenReturn(mockOwnerDao);
+    when(mockBookDao.getSwapCondition()).thenReturn(mockSwapConditionDao);
+
+    // Mock SwapConditionDao
+    when(mockSwapConditionDao.getSwapType()).thenReturn("ByBooks");
+    when(mockSwapConditionDao.isGiveAway()).thenReturn(false);
+    when(mockSwapConditionDao.isOpenForOffers()).thenReturn(false);
+    when(mockSwapConditionDao.getSwappableGenres()).thenReturn(List.of());
+    when(mockSwapConditionDao.getSwappableBooks()).thenReturn(List.of());
+
+    // Mock SwapOfferDao
+    when(mockSwapOfferDao.getOfferedBook()).thenReturn(mockSwappableBookDao);
+    when(mockSwapOfferDao.getOfferedGenre()).thenReturn(null);
+
+    when(swapRequestRepository.findById(swapRequestId)).thenReturn(Optional.of(mockSwapRequestDao));
+    when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(mockSwapRequestDao);
+
+    // When & Then
+    assertDoesNotThrow(() -> swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId));
+    verify(swapRequestRepository).findById(swapRequestId);
+    verify(swapRequestRepository).save(any(SwapRequestDao.class));
   }
 }

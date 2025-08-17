@@ -28,13 +28,10 @@ import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 public class OTPService {
   @Autowired
   private OTPRepository otpRepository;
-
   @Autowired
   private OTPMapper otpMapper;
-
   @Autowired
   private UserService userService;
-
   @Autowired
   private EmailService emailService;
 
