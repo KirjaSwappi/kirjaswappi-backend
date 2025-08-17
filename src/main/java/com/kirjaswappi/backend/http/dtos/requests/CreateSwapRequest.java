@@ -71,12 +71,11 @@ public class CreateSwapRequest {
     if (swapOffer != null) {
       boolean hasBook = swapOffer.getOfferedBookId() != null;
       boolean hasGenre = swapOffer.getOfferedGenreId() != null;
-      if (hasBook == hasGenre) { // true == true or false == false
-        if (hasBook) {
-          throw new BadRequestException("onlyOneOfTheSwapOfferCanBePresent");
-        } else {
-          throw new BadRequestException("oneOfTheSwapOfferMustBePresent");
-        }
+      if (hasBook && hasGenre) {
+        throw new BadRequestException("onlyOneOfTheSwapOfferCanBePresent");
+      }
+      if (!hasBook && !hasGenre) {
+        throw new BadRequestException("oneOfTheSwapOfferMustBePresent");
       }
     }
 
@@ -85,10 +84,10 @@ public class CreateSwapRequest {
   @Getter
   @Setter
   public static class SwapOfferRequest {
-    @Schema(description = "The ID of the book offered for swap request.", example = "123456")
+    @Schema(description = "The ID of the book offered for swap request.", example = "123456", nullable = true)
     private String offeredBookId;
 
-    @Schema(description = "The ID of the genre offered for swap request.", example = "123456")
+    @Schema(description = "The ID of the genre offered for swap request.", example = "123456", nullable = true)
     private String offeredGenreId;
 
     public SwapOffer toEntity() {
