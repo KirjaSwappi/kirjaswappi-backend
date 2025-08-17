@@ -81,8 +81,8 @@ public class InboxChatApiIntegrationTest {
 
   @Test
   void testCompleteInboxChatApiWorkflow() throws Exception {
-    // 1. Get received swap requests (inbox) - should return 1 request
-    mockMvc.perform(get("/api/v1/inbox/received")
+    // 1. Get unified inbox - should return 1 request
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId()))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -92,7 +92,8 @@ public class InboxChatApiIntegrationTest {
         .andExpect(jsonPath("$[0].swapStatus").value("Pending"))
         .andExpect(jsonPath("$[0].unreadMessageCount").value(0))
         .andExpect(jsonPath("$[0].sender.name").value("John Sender"))
-        .andExpect(jsonPath("$[0].bookToSwapWith.title").value("Test Book"));
+        .andExpect(jsonPath("$[0].bookToSwapWith.title").value("Test Book"))
+        .andExpect(jsonPath("$[0].conversationType").value("received"));
 
     // 2. Sender sends a chat message
     SendMessageRequest messageRequest = new SendMessageRequest();
@@ -108,8 +109,8 @@ public class InboxChatApiIntegrationTest {
         .andExpect(jsonPath("$.sender.name").value("John Sender"))
         .andExpect(jsonPath("$.readByReceiver").value(false));
 
-    // 3. Get received requests again - should show unread message count
-    mockMvc.perform(get("/api/v1/inbox/received")
+    // 3. Get unified inbox again - should show unread message count
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].unreadMessageCount").value(1));
@@ -147,29 +148,30 @@ public class InboxChatApiIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.swapStatus").value("Accepted"));
 
-    // 7. Get sent requests - sender should see status change
-    mockMvc.perform(get("/api/v1/inbox/sent")
+    // 7. Get unified inbox for sender - should see status change
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", senderUser.getId()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].swapStatus").value("Accepted"))
+        .andExpect(jsonPath("$[0].conversationType").value("sent"))
         .andExpect(jsonPath("$[0].unreadMessageCount").value(1)); // Receiver's response message
 
     // 8. Test filtering by status
-    mockMvc.perform(get("/api/v1/inbox/received")
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId())
         .param("status", "Accepted"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].swapStatus").value("Accepted"));
 
-    mockMvc.perform(get("/api/v1/inbox/received")
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId())
         .param("status", "Pending"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(0));
 
     // 9. Test sorting by book title
-    mockMvc.perform(get("/api/v1/inbox/received")
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId())
         .param("sortBy", "book_title"))
         .andExpect(status().isOk())
@@ -191,26 +193,26 @@ public class InboxChatApiIntegrationTest {
     swapRequestRepository.save(request2);
 
     // 1. Test no filters - should return all 3 requests
-    mockMvc.perform(get("/api/v1/inbox/received")
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(3));
 
     // 2. Test status filtering
-    mockMvc.perform(get("/api/v1/inbox/received")
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId())
         .param("status", "Pending"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(2));
 
-    mockMvc.perform(get("/api/v1/inbox/received")
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId())
         .param("status", "Accepted"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(1));
 
     // 3. Test sorting by book title
-    mockMvc.perform(get("/api/v1/inbox/received")
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId())
         .param("sortBy", "book_title"))
         .andExpect(status().isOk())
@@ -219,7 +221,7 @@ public class InboxChatApiIntegrationTest {
         .andExpect(jsonPath("$[2].bookToSwapWith.title").value("Zebra Book"));
 
     // 4. Test sorting by sender name
-    mockMvc.perform(get("/api/v1/inbox/received")
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId())
         .param("sortBy", "sender_name"))
         .andExpect(status().isOk())
@@ -228,7 +230,7 @@ public class InboxChatApiIntegrationTest {
         .andExpect(jsonPath("$[2].sender.name").value("John Sender"));
 
     // 5. Test combined filtering and sorting
-    mockMvc.perform(get("/api/v1/inbox/received")
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId())
         .param("status", "Pending")
         .param("sortBy", "book_title"))
@@ -306,7 +308,7 @@ public class InboxChatApiIntegrationTest {
         .andExpect(status().isCreated());
 
     // 2. Check inbox shows unread message
-    mockMvc.perform(get("/api/v1/inbox/received")
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].unreadMessageCount").value(1));
@@ -317,7 +319,7 @@ public class InboxChatApiIntegrationTest {
         .andExpect(status().isOk());
 
     // 4. Check inbox again - unread count should be 0
-    mockMvc.perform(get("/api/v1/inbox/received")
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].unreadMessageCount").value(0));
@@ -367,7 +369,7 @@ public class InboxChatApiIntegrationTest {
         .andExpect(jsonPath("$.length()").value(5));
 
     // 5. Verify inbox consistency
-    mockMvc.perform(get("/api/v1/inbox/received")
+    mockMvc.perform(get("/api/v1/inbox")
         .param("userId", receiverUser.getId()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].swapStatus").value("Accepted"));

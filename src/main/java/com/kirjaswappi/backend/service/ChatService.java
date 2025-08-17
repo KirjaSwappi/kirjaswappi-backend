@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -153,7 +154,7 @@ public class ChatService {
     }
 
     // Count unread messages not sent by the current user
-    return chatMessageRepository.countUnreadMessagesNotSentByMe(swapRequestId, new ObjectId(userId));
+    return chatMessageRepository.countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot(swapRequestId, userId);
   }
 
   @CacheEvict(value = "unreadCounts", key = "#userId + '_' + #swapRequestId", beforeInvocation = true)
@@ -163,6 +164,11 @@ public class ChatService {
     // method
     // is invoked.
     // No implementation needed here, as the annotation handles the cache eviction.
+  }
+
+  public Optional<Instant> getLatestMessageTimestamp(String swapRequestId) {
+    return chatMessageRepository.findFirstBySwapRequestIdOrderBySentAtDesc(swapRequestId)
+        .map(ChatMessageDao::getSentAt);
   }
 
   public SwapRequest getSwapRequestForChat(String swapRequestId, String userId) {

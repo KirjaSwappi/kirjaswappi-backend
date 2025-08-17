@@ -213,9 +213,8 @@ class ChatServiceTest {
     // Given
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     String receiverHex = "64e8f5d1a2b3c4d5e6f78901";
-    ObjectId receiverId = new ObjectId(receiverHex);
 
-    when(chatMessageRepository.countUnreadMessagesNotSentByMe("swap123", receiverId))
+    when(chatMessageRepository.countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot("swap123", receiverHex))
         .thenReturn(3L);
 
     // When
@@ -224,7 +223,7 @@ class ChatServiceTest {
     // Then
     assertEquals(3L, count);
     verify(swapRequestRepository).findById("swap123");
-    verify(chatMessageRepository).countUnreadMessagesNotSentByMe("swap123", receiverId);
+    verify(chatMessageRepository).countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot("swap123", receiverHex);
   }
 
   @Test
