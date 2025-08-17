@@ -71,12 +71,11 @@ public class CreateSwapRequest {
     if (swapOffer != null) {
       boolean hasBook = swapOffer.getOfferedBookId() != null;
       boolean hasGenre = swapOffer.getOfferedGenreId() != null;
-      if (hasBook == hasGenre) { // true == true or false == false
-        if (hasBook) {
-          throw new BadRequestException("onlyOneOfTheSwapOfferCanBePresent");
-        } else {
-          throw new BadRequestException("oneOfTheSwapOfferMustBePresent");
-        }
+      if (hasBook && hasGenre) {
+        throw new BadRequestException("onlyOneOfTheSwapOfferCanBePresent");
+      }
+      if (!hasBook && !hasGenre) {
+        throw new BadRequestException("oneOfTheSwapOfferMustBePresent");
       }
     }
 
