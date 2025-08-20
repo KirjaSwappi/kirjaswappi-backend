@@ -29,7 +29,7 @@ public class InboxItemResponse {
   private long unreadMessageCount;
   private boolean isUnread;
   private boolean hasNewMessages;
-  private String conversationType; // "sent" or "received" for UI display
+  private String conversationType; // "sent" or "received"
 
   public InboxItemResponse(SwapRequest entity) {
     this.id = entity.getId();
