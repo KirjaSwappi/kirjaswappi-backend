@@ -29,7 +29,7 @@ public class InboxController {
   private InboxService inboxService;
 
   @GetMapping
-  @Operation(summary = "Get unified inbox", description = "Retrieve all swap requests for the user (both sent and received) in a unified Facebook-like inbox sorted by latest messages with optional filtering and sorting", responses = {
+  @Operation(summary = "Get unified inbox", description = "Retrieve all swap requests for the user (both sent and received) in a unified inbox sorted by latest messages with optional filtering and sorting", responses = {
       @ApiResponse(responseCode = "200", description = "Unified inbox retrieved successfully"),
       @ApiResponse(responseCode = "400", description = "Invalid status or sort parameter"),
       @ApiResponse(responseCode = "404", description = "User not found")
