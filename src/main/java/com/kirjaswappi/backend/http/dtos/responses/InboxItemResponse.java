@@ -29,6 +29,7 @@ public class InboxItemResponse {
   private long unreadMessageCount;
   private boolean isUnread;
   private boolean hasNewMessages;
+  private String conversationType; // "sent" or "received"
 
   public InboxItemResponse(SwapRequest entity) {
     this.id = entity.getId();
@@ -45,6 +46,15 @@ public class InboxItemResponse {
     this.unreadMessageCount = 0; // Will be set separately by service
     this.isUnread = false; // Will be set separately by service
     this.hasNewMessages = false; // Will be set separately by service
+    this.conversationType = null; // Will be set separately by service
+  }
+
+  public void setConversationType(String conversationType) {
+    this.conversationType = conversationType;
+  }
+
+  public String getConversationType() {
+    return conversationType;
   }
 
   @Getter

@@ -26,10 +26,13 @@ import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 public class SwapService {
   @Autowired
   private UserService userService;
+
   @Autowired
   private BookService bookService;
+
   @Autowired
   private GenreService genreService;
+
   @Autowired
   private SwapRequestRepository swapRequestRepository;
 
@@ -38,6 +41,11 @@ public class SwapService {
     if (swapRequestRepository.existsAlready(swapRequest.getSender().getId(),
         swapRequest.getReceiver().getId(), swapRequest.getBookToSwapWith().getId())) {
       throw new SwapRequestExistsAlreadyException();
+    }
+
+    // validation: check if the user is trying to swap their own book
+    if (swapRequest.getSender().getId().equals(swapRequest.getReceiver().getId())) {
+      throw new IllegalSwapRequestException("senderAndReceiverCannotBeSame");
     }
 
     // set sender:
@@ -98,9 +106,12 @@ public class SwapService {
     swapRequest.setSwapStatus(SwapStatus.PENDING);
     SwapRequestDao dao = SwapRequestMapper.toDao(swapRequest);
     SwapRequestDao createdDao = swapRequestRepository.save(dao);
+
+    // TODO: notify the receiver about the swap request
     return SwapRequestMapper.toEntity(createdDao);
   }
 
+  // Used only by admin
   public void deleteAllSwapRequests() {
     swapRequestRepository.deleteAll();
   }
@@ -132,6 +143,7 @@ public class SwapService {
     swapRequestDao = SwapRequestMapper.toDao(swapRequest);
     SwapRequestDao updatedDao = swapRequestRepository.save(swapRequestDao);
 
+    // TODO: notify the sender about the status change
     return SwapRequestMapper.toEntity(updatedDao);
   }
 

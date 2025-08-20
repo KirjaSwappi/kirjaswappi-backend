@@ -21,7 +21,9 @@ public class ChatMessageResponse {
   private String message;
   private Instant sentAt;
   private boolean readByReceiver;
-  private boolean isOwnMessage;
+  private boolean ownMessage;
+
+  private SwapContextResponse swapContext; // Book information for the swap
 
   public ChatMessageResponse(ChatMessage entity) {
     this.id = entity.getId();
@@ -30,7 +32,8 @@ public class ChatMessageResponse {
     this.message = entity.getMessage();
     this.sentAt = entity.getSentAt();
     this.readByReceiver = entity.isReadByReceiver();
-    this.isOwnMessage = false; // Will be set separately
+    this.ownMessage = false; // Will be set separately
+    this.swapContext = null; // Will be set separately
   }
 
   public ChatMessageResponse(ChatMessage entity, String currentUserId) {
@@ -40,7 +43,12 @@ public class ChatMessageResponse {
     this.message = entity.getMessage();
     this.sentAt = entity.getSentAt();
     this.readByReceiver = entity.isReadByReceiver();
-    this.isOwnMessage = entity.getSender().getId().equals(currentUserId);
+    this.ownMessage = entity.getSender().getId().equals(currentUserId);
+    this.swapContext = null; // Will be set separately
+  }
+
+  public boolean isOwnMessage() {
+    return ownMessage;
   }
 
   @Getter
@@ -52,6 +60,45 @@ public class ChatMessageResponse {
     public SenderResponse(User entity) {
       this.id = entity.getId();
       this.name = entity.getFirstName() + " " + entity.getLastName();
+    }
+  }
+
+  @Getter
+  @Setter
+  public static class SwapContextResponse {
+    private BookInfoResponse requestedBook; // Book that was requested for swap
+    private BookInfoResponse offeredBook; // Book that was offered in return (if any)
+    private String offeredGenreName; // Genre offered (if no specific book)
+    private String swapType;
+    private String swapStatus;
+    private boolean askForGiveaway;
+
+    @Getter
+    @Setter
+    public static class BookInfoResponse {
+      private String id;
+      private String title;
+      private String author;
+      private String condition;
+      private String coverPhotoUrl;
+
+      public BookInfoResponse(com.kirjaswappi.backend.service.entities.Book entity) {
+        this.id = entity.getId();
+        this.title = entity.getTitle();
+        this.author = entity.getAuthor();
+        this.condition = entity.getCondition() != null ? entity.getCondition().getCode() : null;
+        this.coverPhotoUrl = entity.getCoverPhotos() != null && !entity.getCoverPhotos().isEmpty()
+            ? entity.getCoverPhotos().get(0)
+            : null;
+      }
+
+      public BookInfoResponse(com.kirjaswappi.backend.service.entities.SwappableBook entity) {
+        this.id = entity.getId();
+        this.title = entity.getTitle();
+        this.author = entity.getAuthor();
+        this.condition = null; // SwappableBook doesn't have condition
+        this.coverPhotoUrl = entity.getCoverPhoto();
+      }
     }
   }
 }

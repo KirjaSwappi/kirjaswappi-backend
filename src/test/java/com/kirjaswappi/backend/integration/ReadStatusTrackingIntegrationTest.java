@@ -108,7 +108,7 @@ public class ReadStatusTrackingIntegrationTest {
   @Test
   void testInboxItemReadStatusTracking() {
     // Initially, the swap request should be unread for the receiver
-    List<SwapRequest> receivedRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), null, null);
+    List<SwapRequest> receivedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
     assertEquals(1, receivedRequests.size());
 
     SwapRequest swapRequest = receivedRequests.getFirst();
@@ -124,7 +124,7 @@ public class ReadStatusTrackingIntegrationTest {
     assertNull(updatedRequest.getReadBySenderAt());
 
     // Verify the service method reflects this
-    SwapRequest updatedEntity = inboxService.getReceivedSwapRequests(receiverUser.getId(), null, null).getFirst();
+    SwapRequest updatedEntity = inboxService.getUnifiedInbox(receiverUser.getId(), null, null).getFirst();
     assertFalse(inboxService.isInboxItemUnread(updatedEntity, receiverUser.getId()));
 
     // Mark as read by sender
@@ -178,7 +178,7 @@ public class ReadStatusTrackingIntegrationTest {
     chatService.sendMessage(testSwapRequest.getId(), senderUser.getId(), "Test message");
 
     // Get inbox items for receiver
-    List<SwapRequest> receivedRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), null, null);
+    List<SwapRequest> receivedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
     SwapRequest swapRequest = receivedRequests.getFirst();
 
     // Create response DTO and set indicators
@@ -197,7 +197,7 @@ public class ReadStatusTrackingIntegrationTest {
     inboxService.markInboxItemAsRead(testSwapRequest.getId(), receiverUser.getId());
 
     // Update response
-    SwapRequest updatedSwapRequest = inboxService.getReceivedSwapRequests(receiverUser.getId(), null, null).getFirst();
+    SwapRequest updatedSwapRequest = inboxService.getUnifiedInbox(receiverUser.getId(), null, null).getFirst();
     response = new InboxItemResponse(updatedSwapRequest);
     unreadCount = inboxService.getUnreadMessageCount(receiverUser.getId(), updatedSwapRequest.getId());
     response.setUnreadMessageCount(unreadCount);
@@ -244,7 +244,7 @@ public class ReadStatusTrackingIntegrationTest {
   @Test
   void testReadStatusWorkflowIntegration() {
     // 1. Sender creates swap request - receiver should see it as unread
-    List<SwapRequest> receivedRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), null, null);
+    List<SwapRequest> receivedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
     SwapRequest swapRequest = receivedRequests.getFirst();
     assertTrue(inboxService.isInboxItemUnread(swapRequest, receiverUser.getId()));
 
@@ -254,7 +254,7 @@ public class ReadStatusTrackingIntegrationTest {
 
     // 3. Receiver views inbox - item should be marked as read but still have unread
     // messages
-    receivedRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), null, null);
+    receivedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
     swapRequest = receivedRequests.getFirst();
 
     InboxItemResponse inboxResponse = new InboxItemResponse(swapRequest);
@@ -278,7 +278,7 @@ public class ReadStatusTrackingIntegrationTest {
     assertEquals(1, chatService.getUnreadMessageCount(testSwapRequest.getId(), senderUser.getId()));
 
     // 7. Sender views sent requests - should see unread message indicator
-    List<SwapRequest> sentRequests = inboxService.getSentSwapRequests(senderUser.getId(), null, null);
+    List<SwapRequest> sentRequests = inboxService.getUnifiedInbox(senderUser.getId(), null, null);
     SwapRequest sentRequest = sentRequests.getFirst();
 
     InboxItemResponse sentResponse = new InboxItemResponse(sentRequest);
