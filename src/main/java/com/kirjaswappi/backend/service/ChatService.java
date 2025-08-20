@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -31,8 +30,10 @@ import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 public class ChatService {
   @Autowired
   private ChatMessageRepository chatMessageRepository;
+
   @Autowired
   private SwapRequestRepository swapRequestRepository;
+
   @Autowired
   private UserService userService;
 
@@ -153,8 +154,9 @@ public class ChatService {
       throw new ChatAccessDeniedException();
     }
 
-    // Count unread messages not sent by the current user
-    return chatMessageRepository.countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot(swapRequestId, userId);
+    // Use the updated repository query method that takes String userId
+    return chatMessageRepository.countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot(
+        swapRequestId, userId);
   }
 
   @CacheEvict(value = "unreadCounts", key = "#userId + '_' + #swapRequestId", beforeInvocation = true)

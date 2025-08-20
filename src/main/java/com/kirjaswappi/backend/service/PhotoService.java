@@ -31,8 +31,10 @@ public class PhotoService {
 
   @Autowired
   private ImageService imageService;
+
   @Autowired
   private UserRepository userRepository;
+
   @Autowired
   private PhotoRepository photoRepository;
 

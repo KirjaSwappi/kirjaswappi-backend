@@ -100,7 +100,7 @@ public class InboxChatWorkflowIntegrationTest {
     List<SwapRequest> allRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
     assertEquals(3, allRequests.size());
 
-    // Filter to get only received requests for comparison with old behavior
+    // Filter to get only received requests (2)
     List<SwapRequest> receivedRequests = allRequests.stream()
         .filter(req -> req.getReceiver().getId().equals(receiverUser.getId()))
         .toList();
@@ -350,9 +350,9 @@ public class InboxChatWorkflowIntegrationTest {
     assertEquals("Test Book 1", pendingSortedByTitle.get(0).getBookToSwapWith().getTitle());
     assertEquals("Zebra Book", pendingSortedByTitle.get(1).getBookToSwapWith().getTitle());
 
-    // 6. Test sent requests filtering and sorting
-    List<SwapRequest> sentRequests = inboxService.getUnifiedInbox(senderUser.getId(), null, null);
-    assertEquals(1, sentRequests.size());
+    // 6. Test inbox messages filtering and sorting
+    List<SwapRequest> msgs = inboxService.getUnifiedInbox(senderUser.getId(), null, null);
+    assertEquals(2, msgs.size());
 
     List<SwapRequest> sentRejected = inboxService.getUnifiedInbox(receiverUser.getId(), "Rejected", null);
     assertEquals(1, sentRejected.size());

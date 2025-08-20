@@ -80,7 +80,6 @@ public class InboxChatPerformanceIntegrationTest {
     long endTime = System.currentTimeMillis();
 
     long queryTime = endTime - startTime;
-    System.out.println("Inbox query time for " + allRequests.size() + " requests: " + queryTime + "ms");
 
     // Should complete within reasonable time (adjust threshold as needed)
     assertTrue(queryTime < 1000, "Inbox query took too long: " + queryTime + "ms");
@@ -93,7 +92,6 @@ public class InboxChatPerformanceIntegrationTest {
     endTime = System.currentTimeMillis();
 
     queryTime = endTime - startTime;
-    System.out.println("Filtered inbox query time: " + queryTime + "ms");
     assertTrue(queryTime < 1000, "Filtered inbox query took too long: " + queryTime + "ms");
 
     // Test sorted query performance
@@ -103,7 +101,6 @@ public class InboxChatPerformanceIntegrationTest {
     endTime = System.currentTimeMillis();
 
     queryTime = endTime - startTime;
-    System.out.println("Sorted inbox query time: " + queryTime + "ms");
     assertTrue(queryTime < 1000, "Sorted inbox query took too long: " + queryTime + "ms");
 
     // Verify sorting is correct
@@ -355,9 +352,6 @@ public class InboxChatPerformanceIntegrationTest {
 
     long memoryAfter = runtime.totalMemory() - runtime.freeMemory();
     long memoryUsed = memoryAfter - memoryBefore;
-
-    System.out.println("Memory used for large result sets: " + (memoryUsed / 1024) + " KB");
-    System.out.println("Requests loaded: " + allRequests.size());
 
     // Memory usage should be reasonable (adjust threshold as needed)
     assertTrue(memoryUsed < 50 * 1024 * 1024, "Memory usage too high: " + (memoryUsed / 1024 / 1024) + " MB");

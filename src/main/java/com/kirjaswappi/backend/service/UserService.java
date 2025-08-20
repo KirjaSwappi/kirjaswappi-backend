@@ -30,10 +30,13 @@ import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 public class UserService {
   @Autowired
   UserRepository userRepository;
+
   @Autowired
   GenreRepository genreRepository;
+
   @Autowired
   PhotoService photoService;
+
   @Autowired
   private BookRepository bookRepository;
 

@@ -12,7 +12,6 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,8 +27,10 @@ import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 public class InboxService {
   @Autowired
   private SwapRequestRepository swapRequestRepository;
+
   @Autowired
   private UserService userService;
+
   @Autowired
   private ChatService chatService;
 
@@ -60,10 +61,7 @@ public class InboxService {
       allSwapRequestDaos.addAll(sentDaos);
     }
 
-    // Remove duplicates (shouldn't happen, but safety check) and convert to
-    // entities
     List<SwapRequest> swapRequests = allSwapRequestDaos.stream()
-        .distinct()
         .map(SwapRequestMapper::toEntity)
         .toList();
 
@@ -106,7 +104,7 @@ public class InboxService {
     return SwapRequestMapper.toEntity(updatedDao);
   }
 
-  @Cacheable(value = "unreadCounts", key = "#userId + '_' + #swapRequestId", condition = "!@environment.matchesProfiles('test')")
+  // @Cacheable(value = "unreadCounts", key = "#userId + '_' + #swapRequestId")
   public long getUnreadMessageCount(String userId, String swapRequestId) {
     return chatService.getUnreadMessageCount(swapRequestId, userId);
   }

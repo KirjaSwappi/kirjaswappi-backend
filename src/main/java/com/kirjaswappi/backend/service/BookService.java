@@ -41,10 +41,13 @@ import com.kirjaswappi.backend.service.filters.FindAllBooksFilter;
 public class BookService {
   @Autowired
   private BookRepository bookRepository;
+
   @Autowired
   private UserRepository userRepository;
+
   @Autowired
   private GenreService genreService;
+
   @Autowired
   private PhotoService photoService;
 
