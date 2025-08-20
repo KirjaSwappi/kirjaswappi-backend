@@ -57,8 +57,7 @@ public class ChatController {
     List<ChatMessageResponse> response = messages.stream()
         .map(message -> {
           ChatMessageResponse chatResponse = new ChatMessageResponse(message, userId);
-          // Include swap context only in the first message for efficiency,
-          // or you can include it in all messages based on UI requirements
+          // Include swap context only in the first message for efficiency
           if (messages.indexOf(message) == 0) {
             chatResponse.setSwapContext(swapContext);
           }
