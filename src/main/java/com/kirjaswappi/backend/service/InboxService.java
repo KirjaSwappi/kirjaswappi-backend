@@ -104,7 +104,6 @@ public class InboxService {
     return SwapRequestMapper.toEntity(updatedDao);
   }
 
-  // @Cacheable(value = "unreadCounts", key = "#userId + '_' + #swapRequestId")
   public long getUnreadMessageCount(String userId, String swapRequestId) {
     return chatService.getUnreadMessageCount(swapRequestId, userId);
   }
