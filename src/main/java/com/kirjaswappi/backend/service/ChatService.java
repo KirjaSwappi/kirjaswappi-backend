@@ -154,7 +154,7 @@ public class ChatService {
       throw new ChatAccessDeniedException();
     }
 
-    // Use the updated repository query method that takes String userId
+    // Count unread messages not sent by the current user
     return chatMessageRepository.countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot(
         swapRequestId, userId);
   }
