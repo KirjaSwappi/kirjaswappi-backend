@@ -203,7 +203,32 @@ public class InboxService {
           return sr2.getRequestedAt().compareTo(sr1.getRequestedAt());
         })
         .toList();
+    default -> sortByLatestMessage(swapRequests);
     };
+  }
+
+  /**
+   * Sorts swap requests by latest message timestamp (descending), falling back to request date if no messages.
+   */
+  private List<SwapRequest> sortByLatestMessage(List<SwapRequest> swapRequests) {
+    return swapRequests.stream()
+        .sorted((sr1, sr2) -> {
+          Optional<Instant> timestamp1 = chatService.getLatestMessageTimestamp(sr1.getId());
+          Optional<Instant> timestamp2 = chatService.getLatestMessageTimestamp(sr2.getId());
+
+          // If both have messages, compare by latest message timestamp (desc)
+          if (timestamp1.isPresent() && timestamp2.isPresent()) {
+            return timestamp2.get().compareTo(timestamp1.get());
+          }
+          // If only one has messages, prioritize the one with messages
+          if (timestamp1.isPresent())
+            return -1;
+          if (timestamp2.isPresent())
+            return 1;
+          // If neither has messages, sort by request date (desc)
+          return sr2.getRequestedAt().compareTo(sr1.getRequestedAt());
+        })
+        .toList();
   }
 
   private boolean canUpdateStatus(SwapRequestDao swapRequest, String userId, SwapStatus newStatus) {
