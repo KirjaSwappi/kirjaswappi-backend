@@ -188,27 +188,13 @@ public class InboxService {
     case "status" -> swapRequests.stream()
         .sorted(Comparator.comparing(sr -> sr.getSwapStatus().getCode(), String.CASE_INSENSITIVE_ORDER))
         .toList();
-    default -> swapRequests.stream()
-        .sorted((sr1, sr2) -> {
-          Optional<Instant> timestamp1 = chatService.getLatestMessageTimestamp(sr1.getId());
-          Optional<Instant> timestamp2 = chatService.getLatestMessageTimestamp(sr2.getId());
-
-          if (timestamp1.isPresent() && timestamp2.isPresent()) {
-            return timestamp2.get().compareTo(timestamp1.get());
-          }
-          if (timestamp1.isPresent())
-            return -1;
-          if (timestamp2.isPresent())
-            return 1;
-          return sr2.getRequestedAt().compareTo(sr1.getRequestedAt());
-        })
-        .toList();
     default -> sortByLatestMessage(swapRequests);
     };
   }
 
   /**
-   * Sorts swap requests by latest message timestamp (descending), falling back to request date if no messages.
+   * Sorts swap requests by latest message timestamp (descending), falling back to
+   * request date if no messages.
    */
   private List<SwapRequest> sortByLatestMessage(List<SwapRequest> swapRequests) {
     return swapRequests.stream()

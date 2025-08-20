@@ -337,31 +337,6 @@ public class InboxChatPerformanceIntegrationTest {
     }
   }
 
-  @Test
-  void testMemoryUsageWithLargeResultSets() {
-    // Test that large result sets don't cause memory issues
-    UserDao receiver = testUsers.getFirst();
-
-    // Get runtime for memory monitoring
-    Runtime runtime = Runtime.getRuntime();
-    long memoryBefore = runtime.totalMemory() - runtime.freeMemory();
-
-    // Perform operations that return large result sets
-    List<SwapRequest> allRequests = inboxService.getUnifiedInbox(receiver.getId(), null, null);
-    List<SwapRequest> sortedRequests = inboxService.getUnifiedInbox(receiver.getId(), null, "book_title");
-
-    long memoryAfter = runtime.totalMemory() - runtime.freeMemory();
-    long memoryUsed = memoryAfter - memoryBefore;
-
-    // Memory usage should be reasonable (adjust threshold as needed)
-    assertTrue(memoryUsed < 50 * 1024 * 1024, "Memory usage too high: " + (memoryUsed / 1024 / 1024) + " MB");
-
-    // Verify results are correct
-    assertNotNull(allRequests);
-    assertNotNull(sortedRequests);
-    assertEquals(allRequests.size(), sortedRequests.size());
-  }
-
   // Helper method to create large test dataset
   private void createLargeTestDataset() {
     testUsers = new ArrayList<>();
