@@ -21,6 +21,7 @@ import com.kirjaswappi.backend.jpa.repositories.PhotoRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.mapper.PhotoMapper;
 import com.kirjaswappi.backend.service.entities.Photo;
+import com.kirjaswappi.backend.service.exceptions.PhotoNotFoundException;
 import com.kirjaswappi.backend.service.exceptions.ResourceNotFoundException;
 import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 
@@ -61,12 +62,16 @@ public class PhotoService {
   public String getPhotoByUserEmail(String email, boolean isProfilePhoto) {
     var user = userRepository.findByEmailAndIsEmailVerified(email, true).orElseThrow(UserNotFoundException::new);
     var uniqueId = isProfilePhoto ? user.getProfilePhoto() : user.getCoverPhoto();
+    if (uniqueId == null)
+      throw new PhotoNotFoundException();
     return imageService.getDownloadUrl(uniqueId);
   }
 
   public String getPhotoByUserId(String userId, boolean isProfilePhoto) {
     var user = userRepository.findByIdAndIsEmailVerifiedTrue(userId).orElseThrow(UserNotFoundException::new);
     var uniqueId = isProfilePhoto ? user.getProfilePhoto() : user.getCoverPhoto();
+    if (uniqueId == null)
+      throw new PhotoNotFoundException();
     return imageService.getDownloadUrl(uniqueId);
   }
 
@@ -82,6 +87,8 @@ public class PhotoService {
 
   public String getBookCoverPhoto(String uniqueId) {
     logger.debug("Fetching cover photo URL for book with uniqueId: {}", uniqueId);
+    if (uniqueId == null)
+      throw new PhotoNotFoundException();
     return imageService.getDownloadUrl(uniqueId);
   }
 
@@ -101,6 +108,8 @@ public class PhotoService {
   private void deleteUserPhoto(String userId, boolean isProfilePhoto) {
     var userDao = userRepository.findByIdAndIsEmailVerifiedTrue(userId).orElseThrow(UserNotFoundException::new);
     var uniqueId = isProfilePhoto ? userDao.getProfilePhoto() : userDao.getCoverPhoto();
+    if (uniqueId == null)
+      throw new PhotoNotFoundException();
     imageService.deleteImage(uniqueId);
     if (isProfilePhoto) {
       userDao.setProfilePhoto(null);
@@ -120,7 +129,6 @@ public class PhotoService {
   public String addSupportedCoverPhoto(MultipartFile file) {
     var id = UUID.randomUUID().toString();
     var uniqueId = id + "-Supported-Cover-Photo";
-
     imageService.uploadImage(file, uniqueId);
 
     var photo = new PhotoDao(id, uniqueId);
@@ -132,6 +140,8 @@ public class PhotoService {
   public List<Photo> findSupportedCoverPhoto() {
     List<Photo> supportedPhotos = new ArrayList<>();
     for (PhotoDao supportedPhoto : photoRepository.findAll()) {
+      if (supportedPhoto.getCoverPhoto() == null)
+        throw new PhotoNotFoundException();
       supportedPhotos.add(PhotoMapper.toEntity(supportedPhoto.getId(),
           imageService.getDownloadUrl(supportedPhoto.getCoverPhoto())));
     }
