@@ -59,6 +59,7 @@ class ChatMessageDaoTest {
         "swap123",
         userDao,
         "Hello, is this book still available?",
+        null, // imageIds
         sentAt,
         false);
 
@@ -67,6 +68,7 @@ class ChatMessageDaoTest {
     assertEquals("swap123", chatMessageDao.getSwapRequestId());
     assertEquals(userDao, chatMessageDao.getSender());
     assertEquals("Hello, is this book still available?", chatMessageDao.getMessage());
+    assertNull(chatMessageDao.getImageIds()); // Test the new field
     assertEquals(sentAt, chatMessageDao.getSentAt());
     assertFalse(chatMessageDao.isReadByReceiver());
   }

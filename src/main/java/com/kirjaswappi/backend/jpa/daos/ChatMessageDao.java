@@ -5,6 +5,7 @@
 package com.kirjaswappi.backend.jpa.daos;
 
 import java.time.Instant;
+import java.util.List;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -33,8 +34,9 @@ public class ChatMessageDao {
   @DBRef
   private UserDao sender;
 
-  @NotNull
-  private String message;
+  private String message; // Make nullable since message can be empty if only images
+
+  private List<String> imageIds; // Store unique IDs, not URLs
 
   @NotNull
   private Instant sentAt;

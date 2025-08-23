@@ -5,14 +5,18 @@
 package com.kirjaswappi.backend.service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.kirjaswappi.backend.common.service.ImageService;
 import com.kirjaswappi.backend.jpa.daos.ChatMessageDao;
 import com.kirjaswappi.backend.jpa.daos.SwapRequestDao;
 import com.kirjaswappi.backend.jpa.repositories.ChatMessageRepository;
@@ -37,6 +41,9 @@ public class ChatService {
   @Autowired
   private UserService userService;
 
+  @Autowired
+  private ImageService imageService;
+
   public List<ChatMessage> getChatMessages(String swapRequestId, String userId) {
     // Validate swap request exists
     Optional<SwapRequestDao> swapRequestOpt = swapRequestRepository.findById(swapRequestId);
@@ -57,8 +64,12 @@ public class ChatService {
     // Get chat messages ordered by sent time
     List<ChatMessageDao> messageDaos = chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc(swapRequestId);
 
+    // Convert each message with image IDs converted to URLs
     return messageDaos.stream()
-        .map(ChatMessageMapper::toEntity)
+        .map(dao -> {
+          List<String> imageUrls = convertImageIdsToUrls(dao.getImageIds());
+          return ChatMessageMapper.toEntity(dao, imageUrls);
+        })
         .toList();
   }
 
@@ -106,6 +117,67 @@ public class ChatService {
     clearUnreadCountCache(senderId, swapRequestId);
 
     return ChatMessageMapper.toEntity(savedDao);
+  }
+
+  public ChatMessage sendMessage(String swapRequestId, String senderId, String message, List<MultipartFile> images) {
+    // Validate that either message or images are provided
+    boolean hasMessage = message != null && !message.trim().isEmpty();
+    boolean hasImages = images != null && !images.isEmpty();
+
+    if (!hasMessage && !hasImages) {
+      throw new IllegalArgumentException("Either message text or images must be provided");
+    }
+
+    // Validate swap request exists
+    Optional<SwapRequestDao> swapRequestOpt = swapRequestRepository.findById(swapRequestId);
+    if (swapRequestOpt.isEmpty()) {
+      throw new SwapRequestNotFoundException();
+    }
+
+    SwapRequestDao swapRequest = swapRequestOpt.get();
+
+    // Validate user has access to this chat (must be sender or receiver)
+    if (!hasAccessToChat(swapRequest, senderId)) {
+      throw new ChatAccessDeniedException();
+    }
+
+    // Get sender user
+    User sender = userService.getUser(senderId);
+
+    // Upload images and get unique IDs
+    List<String> imageIds = new ArrayList<>();
+    if (images != null && !images.isEmpty()) {
+      for (MultipartFile image : images) {
+        String uniqueId = UUID.randomUUID().toString();
+        imageService.uploadImage(image, uniqueId);
+        imageIds.add(uniqueId);
+      }
+    }
+
+    // Create chat message
+    ChatMessage chatMessage = new ChatMessage();
+    chatMessage.setSwapRequestId(swapRequestId);
+    chatMessage.setSender(sender);
+    chatMessage.setMessage(message != null && !message.trim().isEmpty() ? message.trim() : null);
+    chatMessage.setImageIds(imageIds.isEmpty() ? null : imageIds);
+    chatMessage.setReadByReceiver(false);
+
+    // Save message
+    ChatMessageDao messageDao = ChatMessageMapper.toDao(chatMessage);
+    ChatMessageDao savedDao = chatMessageRepository.save(messageDao);
+
+    // Clear unread count cache for both users to ensure consistency
+    String receiverId = swapRequest.getSender().getId().equals(senderId)
+        ? swapRequest.getReceiver().getId()
+        : swapRequest.getSender().getId();
+
+    // Clear cache for both sender and receiver to avoid stale data
+    clearUnreadCountCache(receiverId, swapRequestId);
+    clearUnreadCountCache(senderId, swapRequestId);
+
+    // Convert image IDs to URLs for response
+    List<String> imageUrls = convertImageIdsToUrls(imageIds);
+    return ChatMessageMapper.toEntity(savedDao, imageUrls);
   }
 
   public void markMessagesAsRead(String swapRequestId, String userId) {
@@ -193,5 +265,15 @@ public class ChatService {
   private boolean hasAccessToChat(SwapRequestDao swapRequest, String userId) {
     return swapRequest.getSender().getId().equals(userId) ||
         swapRequest.getReceiver().getId().equals(userId);
+  }
+
+  private List<String> convertImageIdsToUrls(List<String> imageIds) {
+    if (imageIds == null || imageIds.isEmpty()) {
+      return null;
+    }
+
+    return imageIds.stream()
+        .map(imageService::getDownloadUrl)
+        .toList();
   }
 }

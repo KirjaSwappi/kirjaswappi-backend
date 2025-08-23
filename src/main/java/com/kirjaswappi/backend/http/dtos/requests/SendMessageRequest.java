@@ -4,18 +4,29 @@
  */
 package com.kirjaswappi.backend.http.dtos.requests;
 
-import jakarta.validation.constraints.NotBlank;
+import java.util.List;
+
 import jakarta.validation.constraints.Size;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
+import org.springframework.web.multipart.MultipartFile;
+
 @Getter
 @Setter
 public class SendMessageRequest {
-  @NotBlank(message = "Message cannot be blank")
   @Size(max = 1000, message = "Message cannot exceed 1000 characters")
   @Schema(description = "The message content to send", example = "Hello, is this book still available?")
   private String message;
+
+  @Schema(description = "Images to attach to the message (optional)", nullable = true)
+  private List<MultipartFile> images;
+
+  // Custom validation method
+  public boolean isValid() {
+    return (message != null && !message.trim().isEmpty()) ||
+        (images != null && !images.isEmpty());
+  }
 }
