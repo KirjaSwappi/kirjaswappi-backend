@@ -9,6 +9,7 @@ import static com.kirjaswappi.backend.common.utils.Constants.*;
 import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,7 +54,7 @@ public class SwapController {
       @ApiResponse(responseCode = "400", description = "Invalid status transition or user not authorized."),
       @ApiResponse(responseCode = "404", description = "Swap request not found.") })
   public ResponseEntity<SwapRequestResponse> updateSwapRequestStatus(
-      @PathVariable String id,
+      @Parameter(description = "SwapRequest ID.") @PathVariable String id,
       @Valid @RequestBody UpdateSwapStatusRequest request,
       @RequestHeader("X-User-Id") String userId) {
 
