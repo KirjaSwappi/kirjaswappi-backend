@@ -5,7 +5,9 @@
 package com.kirjaswappi.backend.http.dtos.requests;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
+import java.util.List;
 import java.util.Set;
 
 import jakarta.validation.ConstraintViolation;
@@ -16,6 +18,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.multipart.MultipartFile;
 
 class SendMessageRequestTest {
 
@@ -39,61 +42,82 @@ class SendMessageRequestTest {
 
     // Then
     assertTrue(violations.isEmpty());
+    assertTrue(request.isValid());
     assertEquals("Hello, is this book still available?", request.getMessage());
   }
 
   @Test
-  @DisplayName("Should fail validation with blank message")
-  void shouldFailValidationWithBlankMessage() {
+  @DisplayName("Should pass validation with blank message when images are present")
+  void shouldPassValidationWithBlankMessageWhenImagesPresent() {
     // Given
     SendMessageRequest request = new SendMessageRequest();
     request.setMessage("");
+    request.setImages(List.of(mock(MultipartFile.class)));
 
     // When
     Set<ConstraintViolation<SendMessageRequest>> violations = validator.validate(request);
 
     // Then
-    assertFalse(violations.isEmpty());
-    assertEquals(1, violations.size());
-    ConstraintViolation<SendMessageRequest> violation = violations.iterator().next();
-    assertEquals("Message cannot be blank", violation.getMessage());
-    assertEquals("message", violation.getPropertyPath().toString());
+    assertTrue(violations.isEmpty());
+    assertTrue(request.isValid());
   }
 
   @Test
-  @DisplayName("Should fail validation with null message")
-  void shouldFailValidationWithNullMessage() {
+  @DisplayName("Should pass validation with null message when images are present")
+  void shouldPassValidationWithNullMessageWhenImagesPresent() {
     // Given
     SendMessageRequest request = new SendMessageRequest();
     request.setMessage(null);
+    request.setImages(List.of(mock(MultipartFile.class)));
 
     // When
     Set<ConstraintViolation<SendMessageRequest>> violations = validator.validate(request);
 
     // Then
-    assertFalse(violations.isEmpty());
-    assertEquals(1, violations.size());
-    ConstraintViolation<SendMessageRequest> violation = violations.iterator().next();
-    assertEquals("Message cannot be blank", violation.getMessage());
-    assertEquals("message", violation.getPropertyPath().toString());
+    assertTrue(violations.isEmpty());
+    assertTrue(request.isValid());
   }
 
   @Test
-  @DisplayName("Should fail validation with whitespace-only message")
-  void shouldFailValidationWithWhitespaceOnlyMessage() {
+  @DisplayName("Should fail validation with whitespace-only message and no images")
+  void shouldFailValidationWithWhitespaceOnlyMessageAndNoImages() {
     // Given
     SendMessageRequest request = new SendMessageRequest();
     request.setMessage("   ");
 
     // When
-    Set<ConstraintViolation<SendMessageRequest>> violations = validator.validate(request);
+    boolean isValid = request.isValid();
 
     // Then
-    assertFalse(violations.isEmpty());
-    assertEquals(1, violations.size());
-    ConstraintViolation<SendMessageRequest> violation = violations.iterator().next();
-    assertEquals("Message cannot be blank", violation.getMessage());
-    assertEquals("message", violation.getPropertyPath().toString());
+    assertFalse(isValid);
+  }
+
+  @Test
+  @DisplayName("Should fail validation with null message and no images")
+  void shouldFailValidationWithNullMessageAndNoImages() {
+    // Given
+    SendMessageRequest request = new SendMessageRequest();
+    request.setMessage(null);
+
+    // When
+    boolean isValid = request.isValid();
+
+    // Then
+    assertFalse(isValid);
+  }
+
+  @Test
+  @DisplayName("Should fail validation with empty message and no images")
+  void shouldFailValidationWithEmptyMessageAndNoImages() {
+    // Given
+    SendMessageRequest request = new SendMessageRequest();
+    request.setMessage("");
+
+    // When
+    boolean isValid = request.isValid();
+
+    // Then
+    assertFalse(isValid);
   }
 
   @Test

@@ -21,7 +21,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kirjaswappi.backend.http.dtos.requests.SendMessageRequest;
 import com.kirjaswappi.backend.http.dtos.requests.UpdateSwapStatusRequest;
 import com.kirjaswappi.backend.jpa.daos.*;
 import com.kirjaswappi.backend.jpa.repositories.*;
@@ -96,13 +95,9 @@ public class InboxChatApiIntegrationTest {
         .andExpect(jsonPath("$[0].conversationType").value("received"));
 
     // 2. Sender sends a chat message
-    SendMessageRequest messageRequest = new SendMessageRequest();
-    messageRequest.setMessage("Hi! I'm interested in your book. Is it still available?");
-
-    mockMvc.perform(post("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
+    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
         .param("userId", senderUser.getId())
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(objectMapper.writeValueAsString(messageRequest)))
+        .param("message", "Hi! I'm interested in your book. Is it still available?"))
         .andExpect(status().isCreated())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.message").value("Hi! I'm interested in your book. Is it still available?"))
@@ -126,13 +121,9 @@ public class InboxChatApiIntegrationTest {
         .andExpect(jsonPath("$[0].sender.name").value("John Sender"));
 
     // 5. Receiver responds with a message
-    SendMessageRequest responseMessage = new SendMessageRequest();
-    responseMessage.setMessage("Yes, it's available! What would you like to offer in exchange?");
-
-    mockMvc.perform(post("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
+    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
         .param("userId", receiverUser.getId())
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(objectMapper.writeValueAsString(responseMessage)))
+        .param("message", "Yes, it's available! What would you like to offer in exchange?"))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.message").value("Yes, it's available! What would you like to offer in exchange?"))
         .andExpect(jsonPath("$.sender.name").value("Jane Receiver"));
@@ -250,13 +241,9 @@ public class InboxChatApiIntegrationTest {
         .andExpect(status().isForbidden());
 
     // 2. Test unauthorized message sending
-    SendMessageRequest messageRequest = new SendMessageRequest();
-    messageRequest.setMessage("This should fail");
-
-    mockMvc.perform(post("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
+    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
         .param("userId", unauthorizedUser.getId())
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(objectMapper.writeValueAsString(messageRequest)))
+        .param("message", "This should fail"))
         .andExpect(status().isForbidden());
 
     // 3. Test invalid swap request ID
@@ -264,14 +251,9 @@ public class InboxChatApiIntegrationTest {
         .param("userId", senderUser.getId()))
         .andExpect(status().isNotFound());
 
-    // 4. Test empty message validation
-    SendMessageRequest emptyMessage = new SendMessageRequest();
-    emptyMessage.setMessage("");
-
-    mockMvc.perform(post("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-        .param("userId", senderUser.getId())
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(objectMapper.writeValueAsString(emptyMessage)))
+    // 4. Test empty message validation - should work with multipart but no content
+    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
+        .param("userId", senderUser.getId()))
         .andExpect(status().isBadRequest());
 
     // 5. Test invalid status update
@@ -298,13 +280,9 @@ public class InboxChatApiIntegrationTest {
   @Test
   void testReadStatusTrackingThroughApi() throws Exception {
     // 1. Send a message
-    SendMessageRequest messageRequest = new SendMessageRequest();
-    messageRequest.setMessage("Test message for read tracking");
-
-    mockMvc.perform(post("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
+    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
         .param("userId", senderUser.getId())
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(objectMapper.writeValueAsString(messageRequest)))
+        .param("message", "Test message for read tracking"))
         .andExpect(status().isCreated());
 
     // 2. Check inbox shows unread message
@@ -323,11 +301,6 @@ public class InboxChatApiIntegrationTest {
         .param("userId", receiverUser.getId()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].unreadMessageCount").value(0));
-
-    // 5. Test explicit mark as read endpoint
-    mockMvc.perform(put("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat/mark-read")
-        .param("userId", receiverUser.getId()))
-        .andExpect(status().isNoContent());
   }
 
   @Test
@@ -336,13 +309,9 @@ public class InboxChatApiIntegrationTest {
 
     // 1. Send multiple messages rapidly
     for (int i = 1; i <= 5; i++) {
-      SendMessageRequest messageRequest = new SendMessageRequest();
-      messageRequest.setMessage("Message " + i);
-
-      mockMvc.perform(post("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
+      mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
           .param("userId", i % 2 == 0 ? senderUser.getId() : receiverUser.getId())
-          .contentType(MediaType.APPLICATION_JSON)
-          .content(objectMapper.writeValueAsString(messageRequest)))
+          .param("message", "Message " + i))
           .andExpect(status().isCreated());
     }
 

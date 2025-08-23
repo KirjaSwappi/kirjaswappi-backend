@@ -43,9 +43,6 @@ public class ChatController {
       @Parameter(description = "Swap request ID", required = true) @PathVariable String id,
       @Parameter(description = "User ID", required = true) @RequestParam String userId) {
 
-    // Mark messages as read BEFORE getting them to ensure cache is cleared
-    chatService.markMessagesAsRead(id, userId);
-
     List<ChatMessage> messages = chatService.getChatMessages(id, userId);
 
     // Get swap request details for context
@@ -69,18 +66,23 @@ public class ChatController {
   }
 
   @PostMapping(ID + CHAT)
-  @Operation(summary = "Send a chat message", description = "Send a new message in the chat for a specific swap request with book swap context. User must be sender or receiver.", responses = {
+  @Operation(summary = "Send a chat message", description = "Send a new message in the chat for a specific swap request with book swap context. User must be sender or receiver. Supports text message, images, or both.", responses = {
       @ApiResponse(responseCode = "201", description = "Message sent successfully"),
-      @ApiResponse(responseCode = "400", description = "Invalid message content"),
+      @ApiResponse(responseCode = "400", description = "Invalid message content or images"),
       @ApiResponse(responseCode = "403", description = "Access denied - user not authorized to send messages in this chat"),
       @ApiResponse(responseCode = "404", description = "Swap request not found")
   })
   public ResponseEntity<ChatMessageResponse> sendMessage(
       @Parameter(description = "Swap request ID", required = true) @PathVariable String id,
       @Parameter(description = "User ID", required = true) @RequestParam String userId,
-      @Valid @RequestBody SendMessageRequest request) {
+      @Valid @ModelAttribute SendMessageRequest request) {
 
-    ChatMessage message = chatService.sendMessage(id, userId, request.getMessage());
+    // Validate that either message or images are provided
+    if (!request.isValid()) {
+      return ResponseEntity.badRequest().build();
+    }
+
+    ChatMessage message = chatService.sendMessage(id, userId, request.getMessage(), request.getImages());
 
     // Get swap request details for context
     SwapRequest swapRequest = chatService.getSwapRequestForChat(id, userId);
@@ -89,21 +91,6 @@ public class ChatController {
     response.setSwapContext(createSwapContext(swapRequest));
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
-  }
-
-  @PutMapping(ID + CHAT + "/mark-read")
-  @Operation(summary = "Mark messages as read", description = "Mark all unread messages in the chat as read for the current user.", responses = {
-      @ApiResponse(responseCode = "204", description = "Messages marked as read successfully"),
-      @ApiResponse(responseCode = "403", description = "Access denied - user not authorized to access this chat"),
-      @ApiResponse(responseCode = "404", description = "Swap request not found")
-  })
-  public ResponseEntity<Void> markMessagesAsRead(
-      @Parameter(description = "Swap request ID", required = true) @PathVariable String id,
-      @Parameter(description = "User ID", required = true) @RequestParam String userId) {
-
-    chatService.markMessagesAsRead(id, userId);
-
-    return ResponseEntity.noContent().build();
   }
 
   private ChatMessageResponse.SwapContextResponse createSwapContext(SwapRequest swapRequest) {

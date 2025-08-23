@@ -5,6 +5,7 @@
 package com.kirjaswappi.backend.mapper;
 
 import java.time.Instant;
+import java.util.List;
 
 import lombok.NoArgsConstructor;
 
@@ -22,8 +23,15 @@ public class ChatMessageMapper {
     entity.setSwapRequestId(dao.getSwapRequestId());
     entity.setSender(UserMapper.toEntity(dao.getSender()));
     entity.setMessage(dao.getMessage());
+    entity.setImageIds(dao.getImageIds()); // Map image IDs
     entity.setSentAt(dao.getSentAt());
     entity.setReadByReceiver(dao.isReadByReceiver());
+    return entity;
+  }
+
+  public static ChatMessage toEntity(ChatMessageDao dao, List<String> imageUrls) {
+    var entity = toEntity(dao);
+    entity.setImageIds(imageUrls); // Replace IDs with URLs for response
     return entity;
   }
 
@@ -33,6 +41,7 @@ public class ChatMessageMapper {
     dao.setSwapRequestId(entity.getSwapRequestId());
     dao.setSender(UserMapper.toDao(entity.getSender()));
     dao.setMessage(entity.getMessage());
+    dao.setImageIds(entity.getImageIds()); // Map image IDs
     var currentTime = Instant.now();
     dao.setSentAt(entity.getSentAt() == null ? currentTime : entity.getSentAt());
     dao.setReadByReceiver(entity.isReadByReceiver());

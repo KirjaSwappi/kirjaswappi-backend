@@ -5,6 +5,7 @@
 package com.kirjaswappi.backend.http.dtos.responses;
 
 import java.time.Instant;
+import java.util.List;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +20,7 @@ public class ChatMessageResponse {
   private String swapRequestId;
   private SenderResponse sender;
   private String message;
+  private List<String> imageUrls; // New field for image URLs
   private Instant sentAt;
   private boolean readByReceiver;
   private boolean ownMessage;
@@ -30,6 +32,7 @@ public class ChatMessageResponse {
     this.swapRequestId = entity.getSwapRequestId();
     this.sender = new SenderResponse(entity.getSender());
     this.message = entity.getMessage();
+    this.imageUrls = entity.getImageIds(); // This will contain URLs when converted by service
     this.sentAt = entity.getSentAt();
     this.readByReceiver = entity.isReadByReceiver();
     this.ownMessage = false; // Will be set separately
@@ -41,6 +44,7 @@ public class ChatMessageResponse {
     this.swapRequestId = entity.getSwapRequestId();
     this.sender = new SenderResponse(entity.getSender());
     this.message = entity.getMessage();
+    this.imageUrls = entity.getImageIds(); // This will contain URLs when converted by service
     this.sentAt = entity.getSentAt();
     this.readByReceiver = entity.isReadByReceiver();
     this.ownMessage = entity.getSender().getId().equals(currentUserId);
