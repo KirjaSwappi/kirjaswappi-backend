@@ -14,6 +14,8 @@ import lombok.Setter;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Getter
 @Setter
 public class SendMessageRequest {
@@ -25,6 +27,7 @@ public class SendMessageRequest {
   private List<MultipartFile> images;
 
   // Custom validation method
+  @JsonIgnore
   public boolean isValid() {
     return (message != null && !message.trim().isEmpty()) ||
         (images != null && !images.isEmpty());
