@@ -5,13 +5,13 @@
 package com.kirjaswappi.backend.service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,47 +27,41 @@ import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 public class InboxService {
   @Autowired
   private SwapRequestRepository swapRequestRepository;
+
   @Autowired
   private UserService userService;
+
   @Autowired
   private ChatService chatService;
 
-  public List<SwapRequest> getReceivedSwapRequests(String userId, String status, String sortBy) {
+  public List<SwapRequest> getUnifiedInbox(String userId, String status, String sortBy) {
     // Validate user exists
     userService.getUser(userId);
 
-    List<SwapRequestDao> swapRequestDaos;
+    List<SwapRequestDao> allSwapRequestDaos = new ArrayList<>();
 
     if (status != null && !status.trim().isEmpty()) {
       // Validate status
       SwapStatus.fromCode(status); // This will throw BadRequestException if invalid
-      swapRequestDaos = swapRequestRepository.findByReceiverIdAndSwapStatusOrderByRequestedAtDesc(userId, status);
+
+      // Get both sent and received with status filter
+      List<SwapRequestDao> receivedDaos = swapRequestRepository
+          .findByReceiverIdAndSwapStatusOrderByRequestedAtDesc(userId, status);
+      List<SwapRequestDao> sentDaos = swapRequestRepository.findBySenderIdAndSwapStatusOrderByRequestedAtDesc(userId,
+          status);
+
+      allSwapRequestDaos.addAll(receivedDaos);
+      allSwapRequestDaos.addAll(sentDaos);
     } else {
-      swapRequestDaos = swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc(userId);
+      // Get all sent and received without status filter
+      List<SwapRequestDao> receivedDaos = swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc(userId);
+      List<SwapRequestDao> sentDaos = swapRequestRepository.findBySenderIdOrderByRequestedAtDesc(userId);
+
+      allSwapRequestDaos.addAll(receivedDaos);
+      allSwapRequestDaos.addAll(sentDaos);
     }
 
-    List<SwapRequest> swapRequests = swapRequestDaos.stream()
-        .map(SwapRequestMapper::toEntity)
-        .toList();
-
-    return applySorting(swapRequests, sortBy);
-  }
-
-  public List<SwapRequest> getSentSwapRequests(String userId, String status, String sortBy) {
-    // Validate user exists
-    userService.getUser(userId);
-
-    List<SwapRequestDao> swapRequestDaos;
-
-    if (status != null && !status.trim().isEmpty()) {
-      // Validate status
-      SwapStatus.fromCode(status); // This will throw BadRequestException if invalid
-      swapRequestDaos = swapRequestRepository.findBySenderIdAndSwapStatusOrderByRequestedAtDesc(userId, status);
-    } else {
-      swapRequestDaos = swapRequestRepository.findBySenderIdOrderByRequestedAtDesc(userId);
-    }
-
-    List<SwapRequest> swapRequests = swapRequestDaos.stream()
+    List<SwapRequest> swapRequests = allSwapRequestDaos.stream()
         .map(SwapRequestMapper::toEntity)
         .toList();
 
@@ -110,7 +104,6 @@ public class InboxService {
     return SwapRequestMapper.toEntity(updatedDao);
   }
 
-  @Cacheable(value = "unreadCounts", key = "#userId + '_' + #swapRequestId", condition = "!@environment.matchesProfiles('test')")
   public long getUnreadMessageCount(String userId, String swapRequestId) {
     return chatService.getUnreadMessageCount(swapRequestId, userId);
   }
@@ -159,12 +152,32 @@ public class InboxService {
   }
 
   private List<SwapRequest> applySorting(List<SwapRequest> swapRequests, String sortBy) {
-    if (sortBy == null || sortBy.trim().isEmpty()) {
-      return swapRequests; // Already sorted by date desc from repository
+    if (sortBy == null || sortBy.trim().isEmpty() || "latest_message".equalsIgnoreCase(sortBy)) {
+      // Sort by latest message timestamp, fallback to request date if no messages
+      return swapRequests.stream()
+          .sorted((sr1, sr2) -> {
+            Optional<Instant> timestamp1 = chatService.getLatestMessageTimestamp(sr1.getId());
+            Optional<Instant> timestamp2 = chatService.getLatestMessageTimestamp(sr2.getId());
+
+            // If both have messages, compare by latest message timestamp (desc)
+            if (timestamp1.isPresent() && timestamp2.isPresent()) {
+              return timestamp2.get().compareTo(timestamp1.get());
+            }
+            // If only one has messages, prioritize the one with messages
+            if (timestamp1.isPresent())
+              return -1;
+            if (timestamp2.isPresent())
+              return 1;
+            // If neither has messages, sort by request date (desc)
+            return sr2.getRequestedAt().compareTo(sr1.getRequestedAt());
+          })
+          .toList();
     }
 
     return switch (sortBy.toLowerCase()) {
-    case "date" -> swapRequests; // Already sorted by date desc
+    case "date" -> swapRequests.stream()
+        .sorted(Comparator.comparing(SwapRequest::getRequestedAt).reversed())
+        .toList();
     case "book_title" -> swapRequests.stream()
         .sorted(Comparator.comparing(sr -> sr.getBookToSwapWith().getTitle(), String.CASE_INSENSITIVE_ORDER))
         .toList();
@@ -175,8 +188,33 @@ public class InboxService {
     case "status" -> swapRequests.stream()
         .sorted(Comparator.comparing(sr -> sr.getSwapStatus().getCode(), String.CASE_INSENSITIVE_ORDER))
         .toList();
-    default -> swapRequests; // Default to date sorting
+    default -> sortByLatestMessage(swapRequests);
     };
+  }
+
+  /**
+   * Sorts swap requests by latest message timestamp (descending), falling back to
+   * request date if no messages.
+   */
+  private List<SwapRequest> sortByLatestMessage(List<SwapRequest> swapRequests) {
+    return swapRequests.stream()
+        .sorted((sr1, sr2) -> {
+          Optional<Instant> timestamp1 = chatService.getLatestMessageTimestamp(sr1.getId());
+          Optional<Instant> timestamp2 = chatService.getLatestMessageTimestamp(sr2.getId());
+
+          // If both have messages, compare by latest message timestamp (desc)
+          if (timestamp1.isPresent() && timestamp2.isPresent()) {
+            return timestamp2.get().compareTo(timestamp1.get());
+          }
+          // If only one has messages, prioritize the one with messages
+          if (timestamp1.isPresent())
+            return -1;
+          if (timestamp2.isPresent())
+            return 1;
+          // If neither has messages, sort by request date (desc)
+          return sr2.getRequestedAt().compareTo(sr1.getRequestedAt());
+        })
+        .toList();
   }
 
   private boolean canUpdateStatus(SwapRequestDao swapRequest, String userId, SwapStatus newStatus) {

@@ -28,18 +28,18 @@ public class InboxController {
   @Autowired
   private InboxService inboxService;
 
-  @GetMapping("/received")
-  @Operation(summary = "Get received swap requests", description = "Retrieve all swap requests received by the user with optional filtering and sorting", responses = {
-      @ApiResponse(responseCode = "200", description = "Received swap requests retrieved successfully"),
+  @GetMapping
+  @Operation(summary = "Get unified inbox", description = "Retrieve all swap requests for the user (both sent and received) in a unified inbox sorted by latest messages with optional filtering and sorting", responses = {
+      @ApiResponse(responseCode = "200", description = "Unified inbox retrieved successfully"),
       @ApiResponse(responseCode = "400", description = "Invalid status or sort parameter"),
       @ApiResponse(responseCode = "404", description = "User not found")
   })
-  public ResponseEntity<List<InboxItemResponse>> getReceivedSwapRequests(
+  public ResponseEntity<List<InboxItemResponse>> getUnifiedInbox(
       @Parameter(description = "User ID", required = true) @RequestParam String userId,
-      @Parameter(description = "Filter by status", required = false) @RequestParam(required = false) String status,
-      @Parameter(description = "Sort by field (date, book_title, sender_name, status)", required = false) @RequestParam(required = false) String sortBy) {
+      @Parameter(description = "Filter by status") @RequestParam(required = false) String status,
+      @Parameter(description = "Sort by field (latest_message, date, book_title, sender_name, status)") @RequestParam(required = false) String sortBy) {
 
-    List<SwapRequest> swapRequests = inboxService.getReceivedSwapRequests(userId, status, sortBy);
+    List<SwapRequest> swapRequests = inboxService.getUnifiedInbox(userId, status, sortBy);
     List<InboxItemResponse> response = swapRequests.stream()
         .map(swapRequest -> {
           InboxItemResponse item = new InboxItemResponse(swapRequest);
@@ -49,34 +49,8 @@ public class InboxController {
           // Set notification indicators
           item.setUnread(inboxService.isInboxItemUnread(swapRequest, userId));
           item.setHasNewMessages(unreadCount > 0);
-          return item;
-        })
-        .toList();
-
-    return ResponseEntity.ok(response);
-  }
-
-  @GetMapping("/sent")
-  @Operation(summary = "Get sent swap requests", description = "Retrieve all swap requests sent by the user with optional filtering and sorting", responses = {
-      @ApiResponse(responseCode = "200", description = "Sent swap requests retrieved successfully"),
-      @ApiResponse(responseCode = "400", description = "Invalid status or sort parameter"),
-      @ApiResponse(responseCode = "404", description = "User not found")
-  })
-  public ResponseEntity<List<InboxItemResponse>> getSentSwapRequests(
-      @Parameter(description = "User ID", required = true) @RequestParam String userId,
-      @Parameter(description = "Filter by status", required = false) @RequestParam(required = false) String status,
-      @Parameter(description = "Sort by field (date, book_title, sender_name, status)", required = false) @RequestParam(required = false) String sortBy) {
-
-    List<SwapRequest> swapRequests = inboxService.getSentSwapRequests(userId, status, sortBy);
-    List<InboxItemResponse> response = swapRequests.stream()
-        .map(swapRequest -> {
-          InboxItemResponse item = new InboxItemResponse(swapRequest);
-          // Add unread message count using cached version
-          long unreadCount = inboxService.getUnreadMessageCount(userId, swapRequest.getId());
-          item.setUnreadMessageCount(unreadCount);
-          // Set notification indicators
-          item.setUnread(inboxService.isInboxItemUnread(swapRequest, userId));
-          item.setHasNewMessages(unreadCount > 0);
+          // Set conversation type for UI display
+          item.setConversationType(userId.equals(swapRequest.getSender().getId()) ? "sent" : "received");
           return item;
         })
         .toList();

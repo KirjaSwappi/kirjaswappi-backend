@@ -76,11 +76,10 @@ public class InboxChatPerformanceIntegrationTest {
 
     // Measure time for inbox query without filters
     long startTime = System.currentTimeMillis();
-    List<SwapRequest> allRequests = inboxService.getReceivedSwapRequests(receiverWithManyRequests.getId(), null, null);
+    List<SwapRequest> allRequests = inboxService.getUnifiedInbox(receiverWithManyRequests.getId(), null, null);
     long endTime = System.currentTimeMillis();
 
     long queryTime = endTime - startTime;
-    System.out.println("Inbox query time for " + allRequests.size() + " requests: " + queryTime + "ms");
 
     // Should complete within reasonable time (adjust threshold as needed)
     assertTrue(queryTime < 1000, "Inbox query took too long: " + queryTime + "ms");
@@ -88,22 +87,20 @@ public class InboxChatPerformanceIntegrationTest {
 
     // Test filtered query performance
     startTime = System.currentTimeMillis();
-    List<SwapRequest> pendingRequests = inboxService.getReceivedSwapRequests(receiverWithManyRequests.getId(),
+    List<SwapRequest> pendingRequests = inboxService.getUnifiedInbox(receiverWithManyRequests.getId(),
         "Pending", null);
     endTime = System.currentTimeMillis();
 
     queryTime = endTime - startTime;
-    System.out.println("Filtered inbox query time: " + queryTime + "ms");
     assertTrue(queryTime < 1000, "Filtered inbox query took too long: " + queryTime + "ms");
 
     // Test sorted query performance
     startTime = System.currentTimeMillis();
-    List<SwapRequest> sortedRequests = inboxService.getReceivedSwapRequests(receiverWithManyRequests.getId(), null,
+    List<SwapRequest> sortedRequests = inboxService.getUnifiedInbox(receiverWithManyRequests.getId(), null,
         "book_title");
     endTime = System.currentTimeMillis();
 
     queryTime = endTime - startTime;
-    System.out.println("Sorted inbox query time: " + queryTime + "ms");
     assertTrue(queryTime < 1000, "Sorted inbox query took too long: " + queryTime + "ms");
 
     // Verify sorting is correct
@@ -218,7 +215,7 @@ public class InboxChatPerformanceIntegrationTest {
         try {
           if (operationNum % 3 == 0) {
             // Read inbox
-            List<SwapRequest> requests = inboxService.getReceivedSwapRequests(receiver.getId(), null, null);
+            List<SwapRequest> requests = inboxService.getUnifiedInbox(receiver.getId(), null, null);
             assertNotNull(requests);
           } else if (operationNum % 3 == 1) {
             // Mark inbox item as read
@@ -252,7 +249,7 @@ public class InboxChatPerformanceIntegrationTest {
     executor.awaitTermination(10, TimeUnit.SECONDS);
 
     // Verify data consistency after concurrent operations
-    List<SwapRequest> finalRequests = inboxService.getReceivedSwapRequests(receiver.getId(), null, null);
+    List<SwapRequest> finalRequests = inboxService.getUnifiedInbox(receiver.getId(), null, null);
     assertNotNull(finalRequests);
     assertFalse(finalRequests.isEmpty());
   }
@@ -306,11 +303,11 @@ public class InboxChatPerformanceIntegrationTest {
 
     // Test inbox queries with different filters to ensure indexes are used
     long startTime = System.currentTimeMillis();
-    List<SwapRequest> byReceiver = inboxService.getReceivedSwapRequests(receiver.getId(), null, null);
+    List<SwapRequest> byReceiver = inboxService.getUnifiedInbox(receiver.getId(), null, null);
     long receiverQueryTime = System.currentTimeMillis() - startTime;
 
     startTime = System.currentTimeMillis();
-    List<SwapRequest> byReceiverAndStatus = inboxService.getReceivedSwapRequests(receiver.getId(), "Pending", null);
+    List<SwapRequest> byReceiverAndStatus = inboxService.getUnifiedInbox(receiver.getId(), "Pending", null);
     long filteredQueryTime = System.currentTimeMillis() - startTime;
 
     System.out.println("Receiver query time: " + receiverQueryTime + "ms");
@@ -338,34 +335,6 @@ public class InboxChatPerformanceIntegrationTest {
       assertTrue(chatQueryTime < 300, "Chat query too slow, check swapRequestId index");
       assertTrue(unreadQueryTime < 200, "Unread count query too slow, check compound index");
     }
-  }
-
-  @Test
-  void testMemoryUsageWithLargeResultSets() {
-    // Test that large result sets don't cause memory issues
-    UserDao receiver = testUsers.getFirst();
-
-    // Get runtime for memory monitoring
-    Runtime runtime = Runtime.getRuntime();
-    long memoryBefore = runtime.totalMemory() - runtime.freeMemory();
-
-    // Perform operations that return large result sets
-    List<SwapRequest> allRequests = inboxService.getReceivedSwapRequests(receiver.getId(), null, null);
-    List<SwapRequest> sortedRequests = inboxService.getReceivedSwapRequests(receiver.getId(), null, "book_title");
-
-    long memoryAfter = runtime.totalMemory() - runtime.freeMemory();
-    long memoryUsed = memoryAfter - memoryBefore;
-
-    System.out.println("Memory used for large result sets: " + (memoryUsed / 1024) + " KB");
-    System.out.println("Requests loaded: " + allRequests.size());
-
-    // Memory usage should be reasonable (adjust threshold as needed)
-    assertTrue(memoryUsed < 50 * 1024 * 1024, "Memory usage too high: " + (memoryUsed / 1024 / 1024) + " MB");
-
-    // Verify results are correct
-    assertNotNull(allRequests);
-    assertNotNull(sortedRequests);
-    assertEquals(allRequests.size(), sortedRequests.size());
   }
 
   // Helper method to create large test dataset

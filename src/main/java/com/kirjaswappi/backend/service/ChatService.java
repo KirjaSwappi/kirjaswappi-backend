@@ -4,10 +4,10 @@
  */
 package com.kirjaswappi.backend.service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,9 @@ import com.kirjaswappi.backend.jpa.daos.SwapRequestDao;
 import com.kirjaswappi.backend.jpa.repositories.ChatMessageRepository;
 import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
 import com.kirjaswappi.backend.mapper.ChatMessageMapper;
+import com.kirjaswappi.backend.mapper.SwapRequestMapper;
 import com.kirjaswappi.backend.service.entities.ChatMessage;
+import com.kirjaswappi.backend.service.entities.SwapRequest;
 import com.kirjaswappi.backend.service.entities.User;
 import com.kirjaswappi.backend.service.exceptions.ChatAccessDeniedException;
 import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
@@ -28,8 +30,10 @@ import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 public class ChatService {
   @Autowired
   private ChatMessageRepository chatMessageRepository;
+
   @Autowired
   private SwapRequestRepository swapRequestRepository;
+
   @Autowired
   private UserService userService;
 
@@ -151,7 +155,8 @@ public class ChatService {
     }
 
     // Count unread messages not sent by the current user
-    return chatMessageRepository.countUnreadMessagesNotSentByMe(swapRequestId, new ObjectId(userId));
+    return chatMessageRepository.countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot(
+        swapRequestId, userId);
   }
 
   @CacheEvict(value = "unreadCounts", key = "#userId + '_' + #swapRequestId", beforeInvocation = true)
@@ -161,6 +166,28 @@ public class ChatService {
     // method
     // is invoked.
     // No implementation needed here, as the annotation handles the cache eviction.
+  }
+
+  public Optional<Instant> getLatestMessageTimestamp(String swapRequestId) {
+    return chatMessageRepository.findFirstBySwapRequestIdOrderBySentAtDesc(swapRequestId)
+        .map(ChatMessageDao::getSentAt);
+  }
+
+  public SwapRequest getSwapRequestForChat(String swapRequestId, String userId) {
+    // Validate swap request exists
+    Optional<SwapRequestDao> swapRequestOpt = swapRequestRepository.findById(swapRequestId);
+    if (swapRequestOpt.isEmpty()) {
+      throw new SwapRequestNotFoundException();
+    }
+
+    SwapRequestDao swapRequest = swapRequestOpt.get();
+
+    // Validate user has access to this chat (must be sender or receiver)
+    if (!hasAccessToChat(swapRequest, userId)) {
+      throw new ChatAccessDeniedException();
+    }
+
+    return SwapRequestMapper.toEntity(swapRequest);
   }
 
   private boolean hasAccessToChat(SwapRequestDao swapRequest, String userId) {

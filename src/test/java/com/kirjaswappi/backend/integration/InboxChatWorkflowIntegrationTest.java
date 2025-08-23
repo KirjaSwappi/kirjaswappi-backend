@@ -95,12 +95,20 @@ public class InboxChatWorkflowIntegrationTest {
 
   @Test
   void testCompleteInboxWorkflow() {
-    // 1. Receiver views inbox - should see 2 received requests
-    List<SwapRequest> receivedRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), null, null);
+    // 1. Receiver views unified inbox - should see both received requests (2) and
+    // sent request (1) = 3 total
+    List<SwapRequest> allRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
+    assertEquals(3, allRequests.size());
+
+    // Filter to get only received requests (2)
+    List<SwapRequest> receivedRequests = allRequests.stream()
+        .filter(req -> req.getReceiver().getId().equals(receiverUser.getId()))
+        .toList();
     assertEquals(2, receivedRequests.size());
 
-    // Verify requests are ordered by most recent first
-    assertTrue(receivedRequests.get(0).getRequestedAt().isAfter(receivedRequests.get(1).getRequestedAt()));
+    // Verify requests are ordered by most recent first (latest message or request
+    // date)
+    assertTrue(allRequests.get(0).getRequestedAt().isAfter(allRequests.get(2).getRequestedAt()));
 
     // 2. Create inbox item responses with notification indicators
     List<InboxItemResponse> inboxResponses = receivedRequests.stream()
@@ -110,6 +118,7 @@ public class InboxChatWorkflowIntegrationTest {
           response.setUnreadMessageCount(unreadCount);
           response.setUnread(inboxService.isInboxItemUnread(request, receiverUser.getId()));
           response.setHasNewMessages(unreadCount > 0);
+          response.setConversationType("received");
           return response;
         })
         .toList();
@@ -127,7 +136,7 @@ public class InboxChatWorkflowIntegrationTest {
     assertFalse(message1.isReadByReceiver());
 
     // 4. Receiver views inbox again - should see unread message indicator
-    receivedRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), null, null);
+    receivedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
     SwapRequest requestWithMessage = receivedRequests.stream()
         .filter(r -> r.getId().equals(testSwapRequest1.getId()))
         .findFirst()
@@ -155,7 +164,7 @@ public class InboxChatWorkflowIntegrationTest {
     assertEquals(SwapStatus.ACCEPTED, updatedRequest.getSwapStatus());
 
     // 9. Sender views sent requests - should see status change and unread message
-    List<SwapRequest> sentRequests = inboxService.getSentSwapRequests(senderUser.getId(), null, null);
+    List<SwapRequest> sentRequests = inboxService.getUnifiedInbox(senderUser.getId(), null, null);
     SwapRequest sentRequest = sentRequests.stream()
         .filter(r -> r.getId().equals(testSwapRequest1.getId()))
         .findFirst()
@@ -252,14 +261,14 @@ public class InboxChatWorkflowIntegrationTest {
     assertEquals(SwapStatus.ACCEPTED, acceptedRequest.getSwapStatus());
 
     // 3. Verify status change is reflected in both users' views
-    List<SwapRequest> receivedRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), null, null);
+    List<SwapRequest> receivedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
     SwapRequest receiverView = receivedRequests.stream()
         .filter(r -> r.getId().equals(testSwapRequest1.getId()))
         .findFirst()
         .orElseThrow();
     assertEquals(SwapStatus.ACCEPTED, receiverView.getSwapStatus());
 
-    List<SwapRequest> sentRequests = inboxService.getSentSwapRequests(senderUser.getId(), null, null);
+    List<SwapRequest> sentRequests = inboxService.getUnifiedInbox(senderUser.getId(), null, null);
     SwapRequest senderView = sentRequests.stream()
         .filter(r -> r.getId().equals(testSwapRequest1.getId()))
         .findFirst()
@@ -267,10 +276,10 @@ public class InboxChatWorkflowIntegrationTest {
     assertEquals(SwapStatus.ACCEPTED, senderView.getSwapStatus());
 
     // 4. Test status filtering after change
-    List<SwapRequest> acceptedRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), "Accepted", null);
+    List<SwapRequest> acceptedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), "Accepted", null);
     assertEquals(2, acceptedRequests.size()); // testSwapRequest1 (now accepted) + testSwapRequest2 (already accepted)
 
-    List<SwapRequest> pendingRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), "Pending", null);
+    List<SwapRequest> pendingRequests = inboxService.getUnifiedInbox(receiverUser.getId(), "Pending", null);
     assertEquals(0, pendingRequests.size()); // testSwapRequest1 is no longer pending
 
     // 5. Test invalid status transitions
@@ -298,57 +307,60 @@ public class InboxChatWorkflowIntegrationTest {
         Instant.now().minusSeconds(600), "Another request");
 
     // 1. Test filtering by status
-    List<SwapRequest> pendingRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), "Pending", null);
+    List<SwapRequest> pendingRequests = inboxService.getUnifiedInbox(receiverUser.getId(), "Pending", null);
     assertEquals(2, pendingRequests.size()); // testSwapRequest1 + extraRequest
 
-    List<SwapRequest> acceptedRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), "Accepted", null);
+    List<SwapRequest> acceptedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), "Accepted", null);
     assertEquals(1, acceptedRequests.size()); // testSwapRequest2
 
-    List<SwapRequest> rejectedRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), "Rejected", null);
-    assertEquals(0, rejectedRequests.size()); // No rejected received requests
+    List<SwapRequest> rejectedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), "Rejected", null);
+    assertEquals(1, rejectedRequests.size()); // testSwapRequest3 is a sent request that was rejected
 
     // 2. Test sorting by date (default)
-    List<SwapRequest> allRequests = inboxService.getReceivedSwapRequests(receiverUser.getId(), null, "date");
-    assertEquals(3, allRequests.size());
+    List<SwapRequest> allRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, "date");
+    assertEquals(4, allRequests.size()); // 3 received + 1 sent request from receiverUser
     // Should be ordered by most recent first
     assertTrue(allRequests.get(0).getRequestedAt().isAfter(allRequests.get(1).getRequestedAt()));
     assertTrue(allRequests.get(1).getRequestedAt().isAfter(allRequests.get(2).getRequestedAt()));
 
     // 3. Test sorting by book title
-    List<SwapRequest> sortedByTitle = inboxService.getReceivedSwapRequests(receiverUser.getId(), null, "book_title");
-    assertEquals(3, sortedByTitle.size());
+    List<SwapRequest> sortedByTitle = inboxService.getUnifiedInbox(receiverUser.getId(), null, "book_title");
+    assertEquals(4, sortedByTitle.size()); // 3 received + 1 sent request
     assertEquals("Another Book", sortedByTitle.get(0).getBookToSwapWith().getTitle());
     assertEquals("Test Book 1", sortedByTitle.get(1).getBookToSwapWith().getTitle());
-    assertEquals("Zebra Book", sortedByTitle.get(2).getBookToSwapWith().getTitle());
+    assertEquals("Test Book 1", sortedByTitle.get(2).getBookToSwapWith().getTitle()); // This could be the sent request
+    assertEquals("Zebra Book", sortedByTitle.get(3).getBookToSwapWith().getTitle());
 
     // 4. Test sorting by sender name
-    List<SwapRequest> sortedBySender = inboxService.getReceivedSwapRequests(receiverUser.getId(), null, "sender_name");
-    assertEquals(3, sortedBySender.size());
+    List<SwapRequest> sortedBySender = inboxService.getUnifiedInbox(receiverUser.getId(), null, "sender_name");
+    assertEquals(4, sortedBySender.size()); // 3 received + 1 sent request
     assertEquals("Bob Another",
         sortedBySender.get(0).getSender().getFirstName() + " " + sortedBySender.get(0).getSender().getLastName());
     assertEquals("Charlie Extra",
         sortedBySender.get(1).getSender().getFirstName() + " " + sortedBySender.get(1).getSender().getLastName());
-    assertEquals("John Sender",
+    assertEquals("Jane Receiver", // This is the sent request where receiverUser is the sender
         sortedBySender.get(2).getSender().getFirstName() + " " + sortedBySender.get(2).getSender().getLastName());
+    assertEquals("John Sender",
+        sortedBySender.get(3).getSender().getFirstName() + " " + sortedBySender.get(3).getSender().getLastName());
 
     // 5. Test combined filtering and sorting
-    List<SwapRequest> pendingSortedByTitle = inboxService.getReceivedSwapRequests(receiverUser.getId(), "Pending",
+    List<SwapRequest> pendingSortedByTitle = inboxService.getUnifiedInbox(receiverUser.getId(), "Pending",
         "book_title");
     assertEquals(2, pendingSortedByTitle.size());
     assertEquals("Test Book 1", pendingSortedByTitle.get(0).getBookToSwapWith().getTitle());
     assertEquals("Zebra Book", pendingSortedByTitle.get(1).getBookToSwapWith().getTitle());
 
-    // 6. Test sent requests filtering and sorting
-    List<SwapRequest> sentRequests = inboxService.getSentSwapRequests(senderUser.getId(), null, null);
-    assertEquals(1, sentRequests.size());
+    // 6. Test inbox messages filtering and sorting
+    List<SwapRequest> msgs = inboxService.getUnifiedInbox(senderUser.getId(), null, null);
+    assertEquals(2, msgs.size());
 
-    List<SwapRequest> sentRejected = inboxService.getSentSwapRequests(receiverUser.getId(), "Rejected", null);
+    List<SwapRequest> sentRejected = inboxService.getUnifiedInbox(receiverUser.getId(), "Rejected", null);
     assertEquals(1, sentRejected.size());
     assertEquals(testSwapRequest3.getId(), sentRejected.get(0).getId());
 
     // 7. Test invalid filter values
     assertThrows(Exception.class, () -> {
-      inboxService.getReceivedSwapRequests(receiverUser.getId(), "InvalidStatus", null);
+      inboxService.getUnifiedInbox(receiverUser.getId(), "InvalidStatus", null);
     });
   }
 
