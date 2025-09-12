@@ -81,7 +81,7 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>1.18.38</version>
+			<version>1.18.40</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -182,7 +182,7 @@
 		<dependency>
 			<groupId>net.bytebuddy</groupId>
 			<artifactId>byte-buddy-agent</artifactId>
-			<version>1.17.5</version>
+			<version>1.17.7</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -229,7 +229,7 @@
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
-							<version>1.18.38</version>
+							<version>1.18.40</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
