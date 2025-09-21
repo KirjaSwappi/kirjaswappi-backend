@@ -10,7 +10,9 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +29,8 @@ import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMock
 import com.kirjaswappi.backend.http.controllers.GenreController;
 import com.kirjaswappi.backend.http.dtos.requests.CreateGenreRequest;
 import com.kirjaswappi.backend.http.dtos.requests.UpdateGenreRequest;
+import com.kirjaswappi.backend.http.dtos.responses.NestedGenresResponse;
+import com.kirjaswappi.backend.http.dtos.responses.ParentGenreResponse;
 import com.kirjaswappi.backend.service.GenreService;
 import com.kirjaswappi.backend.service.entities.Genre;
 
@@ -51,24 +55,34 @@ class GenreControllerTest {
   }
 
   @Test
-  @DisplayName("Should return all genres")
+  @DisplayName("Should return all genres in nested format")
   void shouldReturnGenres() throws Exception {
-    when(genreService.getGenres()).thenReturn(List.of(genre));
+    // Create a parent genre response with the Fantasy genre
+    ParentGenreResponse parentGenreResponse = new ParentGenreResponse(genre, List.of());
+    Map<String, ParentGenreResponse> parentGenresMap = new HashMap<>();
+    parentGenresMap.put("Fantasy", parentGenreResponse);
+    NestedGenresResponse nestedResponse = new NestedGenresResponse(parentGenresMap);
+
+    when(genreService.getNestedGenres()).thenReturn(nestedResponse);
 
     mockMvc.perform(get("/api/v1/genres"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].id").value("1"))
-        .andExpect(jsonPath("$[0].name").value("Fantasy"));
+        .andExpect(jsonPath("$.parentGenres.Fantasy.id").value("1"))
+        .andExpect(jsonPath("$.parentGenres.Fantasy.name").value("Fantasy"))
+        .andExpect(jsonPath("$.parentGenres.Fantasy.childGenres").isArray())
+        .andExpect(jsonPath("$.parentGenres.Fantasy.childGenres").isEmpty());
   }
 
   @Test
-  @DisplayName("Should return empty genre list")
+  @DisplayName("Should return empty nested genre structure")
   void shouldReturnEmptyList() throws Exception {
-    when(genreService.getGenres()).thenReturn(List.of());
+    NestedGenresResponse emptyResponse = new NestedGenresResponse(new HashMap<>());
+    when(genreService.getNestedGenres()).thenReturn(emptyResponse);
 
     mockMvc.perform(get("/api/v1/genres"))
         .andExpect(status().isOk())
-        .andExpect(content().json("[]"));
+        .andExpect(jsonPath("$.parentGenres").isMap())
+        .andExpect(jsonPath("$.parentGenres").isEmpty());
   }
 
   @Test
