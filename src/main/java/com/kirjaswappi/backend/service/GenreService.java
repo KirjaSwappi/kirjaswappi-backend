@@ -4,12 +4,20 @@
  */
 package com.kirjaswappi.backend.service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.kirjaswappi.backend.http.dtos.responses.NestedGenresResponse;
+import com.kirjaswappi.backend.http.dtos.responses.ParentGenreResponse;
 import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.GenreRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
@@ -22,6 +30,8 @@ import com.kirjaswappi.backend.service.exceptions.GenreNotFoundException;
 @Service
 @Transactional
 public class GenreService {
+  private static final Logger logger = LoggerFactory.getLogger(GenreService.class);
+
   @Autowired
   GenreRepository genreRepository;
 
@@ -32,6 +42,71 @@ public class GenreService {
     // fetch all the genres
     return genreRepository.findAll().stream().map(GenreMapper::toEntity)
         .toList();
+  }
+
+  public NestedGenresResponse getNestedGenres() {
+    // Fetch all genres from the database
+    List<Genre> allGenres = genreRepository.findAll().stream()
+        .map(GenreMapper::toEntity)
+        .toList();
+
+    // Handle empty genre list
+    if (allGenres.isEmpty()) {
+      logger.debug("No genres found in database");
+      return new NestedGenresResponse(new HashMap<>());
+    }
+
+    // Separate parent genres (those with no parent) from child genres
+    List<Genre> parentGenres = allGenres.stream()
+        .filter(genre -> genre.getParent() == null)
+        .toList();
+
+    List<Genre> childGenres = allGenres.stream()
+        .filter(genre -> genre.getParent() != null)
+        .toList();
+
+    // Group child genres by their parent ID for efficient lookup
+    Map<String, List<Genre>> childrenByParentId = childGenres.stream()
+        .collect(Collectors.groupingBy(genre -> genre.getParent().getId()));
+
+    // Build the nested structure
+    Map<String, ParentGenreResponse> parentGenresMap = new HashMap<>();
+
+    for (Genre parentGenre : parentGenres) {
+      // Get children for this parent, or empty list if none
+      List<Genre> children = childrenByParentId.getOrDefault(parentGenre.getId(), new ArrayList<>());
+
+      // Create ParentGenreResponse with children
+      ParentGenreResponse parentResponse = new ParentGenreResponse(parentGenre, children);
+
+      // Use genre name as key in the map
+      parentGenresMap.put(parentGenre.getName(), parentResponse);
+    }
+
+    // Handle orphaned children (children whose parent doesn't exist in the
+    // database)
+    List<String> existingParentIds = parentGenres.stream()
+        .map(Genre::getId)
+        .toList();
+
+    List<Genre> orphanedChildren = childGenres.stream()
+        .filter(child -> !existingParentIds.contains(child.getParent().getId()))
+        .toList();
+
+    if (!orphanedChildren.isEmpty()) {
+      logger.warn("Found {} orphaned child genres (parent doesn't exist): {}",
+          orphanedChildren.size(),
+          orphanedChildren.stream().map(Genre::getName).collect(Collectors.joining(", ")));
+
+      // Treat orphaned children as parent genres with empty child lists
+      for (Genre orphanedChild : orphanedChildren) {
+        ParentGenreResponse orphanResponse = new ParentGenreResponse(orphanedChild, new ArrayList<>());
+        parentGenresMap.put(orphanedChild.getName(), orphanResponse);
+      }
+    }
+
+    logger.debug("Built nested genre structure with {} parent genres", parentGenresMap.size());
+    return new NestedGenresResponse(parentGenresMap);
   }
 
   public Genre addGenre(Genre genre) {

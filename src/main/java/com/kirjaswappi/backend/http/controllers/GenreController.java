@@ -8,12 +8,13 @@ import static com.kirjaswappi.backend.common.utils.Constants.API_BASE;
 import static com.kirjaswappi.backend.common.utils.Constants.GENRES;
 import static com.kirjaswappi.backend.common.utils.Constants.ID;
 
-import java.util.List;
-
 import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.kirjaswappi.backend.http.dtos.requests.CreateGenreRequest;
 import com.kirjaswappi.backend.http.dtos.requests.UpdateGenreRequest;
 import com.kirjaswappi.backend.http.dtos.responses.GenreResponse;
+import com.kirjaswappi.backend.http.dtos.responses.NestedGenresResponse;
 import com.kirjaswappi.backend.service.GenreService;
 import com.kirjaswappi.backend.service.entities.Genre;
 import com.kirjaswappi.backend.service.exceptions.BadRequestException;
@@ -44,11 +46,41 @@ public class GenreController {
   private GenreService genreService;
 
   @GetMapping
-  @Operation(summary = "Find all genres.", responses = {
-      @ApiResponse(responseCode = "200", description = "List of genres.") })
-  public ResponseEntity<List<GenreResponse>> findGenres() {
-    var genreListResponses = genreService.getGenres().stream().map(GenreResponse::new).toList();
-    return ResponseEntity.status(HttpStatus.OK).body(genreListResponses);
+  @Operation(summary = "Find all genres in nested hierarchical format.", description = "Returns genres organized in a nested structure where parent genres contain their child genres. Parent genres are returned as top-level keys with their children nested inside.", responses = {
+      @ApiResponse(responseCode = "200", description = "Nested structure of genres with parent genres as keys and child genres nested inside.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = NestedGenresResponse.class), examples = @ExampleObject(name = "Nested Genres Example", value = """
+          {
+            "parentGenres": {
+              "Fiction": {
+                "id": "1",
+                "name": "Fiction",
+                "childGenres": [
+                  {
+                    "id": "2",
+                    "name": "Science Fiction"
+                  },
+                  {
+                    "id": "3",
+                    "name": "Fantasy"
+                  }
+                ]
+              },
+              "Non-Fiction": {
+                "id": "4",
+                "name": "Non-Fiction",
+                "childGenres": [
+                  {
+                    "id": "5",
+                    "name": "Biography"
+                  }
+                ]
+              }
+            }
+          }
+          """)))
+  })
+  public ResponseEntity<NestedGenresResponse> findGenres() {
+    NestedGenresResponse nestedGenresResponse = genreService.getNestedGenres();
+    return ResponseEntity.status(HttpStatus.OK).body(nestedGenresResponse);
   }
 
   @PostMapping
