@@ -29,7 +29,7 @@ jobs:
       - name: Build and run Spring Boot app
         run: |
           mvn spring-boot:run &
-          sleep 30
+          sleep 60
 
       - name: Download OpenAPI spec
         run: |
