@@ -18,7 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.context.ApplicationEventPublisher;
 
+import com.kirjaswappi.backend.events.InboxUpdateEvent;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.SwapRequestDao;
 import com.kirjaswappi.backend.jpa.daos.UserDao;
@@ -36,6 +38,8 @@ class InboxServiceTest {
   private UserService userService;
   @Mock
   private ChatService chatService;
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
   @InjectMocks
   private InboxService inboxService;
 
@@ -260,6 +264,8 @@ class InboxServiceTest {
     assertEquals(SwapStatus.ACCEPTED.getCode(), receivedSwapRequest.getSwapStatus());
     verify(swapRequestRepository).findById("received1");
     verify(swapRequestRepository).save(receivedSwapRequest);
+    // Verify events are published for both sender and receiver
+    verify(eventPublisher, times(2)).publishEvent(any(InboxUpdateEvent.class));
   }
 
   @Test
