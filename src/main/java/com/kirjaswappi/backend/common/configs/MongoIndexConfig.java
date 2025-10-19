@@ -59,20 +59,26 @@ public class MongoIndexConfig {
    * Embedded MongoDB may need time to fully initialize.
    */
   private void createIndexesWithDelay() {
-    try {
-      // Small delay to allow embedded MongoDB to fully initialize
-      Thread.sleep(1000);
-      createIndexesInternal();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      logger.warn("Index creation was interrupted: {}", e.getMessage());
-    } catch (Exception e) {
-      logger.warn("Failed to create indexes after delay: {}", e.getMessage());
-      // Try once more without delay
+    final int maxAttempts = 5;
+    long delay = 500; // initial delay in ms
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         createIndexesInternal();
-      } catch (Exception retryException) {
-        logger.warn("Second attempt to create indexes also failed: {}", retryException.getMessage());
+        return; // Success
+      } catch (Exception e) {
+        if (attempt == maxAttempts) {
+          logger.warn("Failed to create indexes after {} attempts: {}", maxAttempts, e.getMessage());
+        } else {
+          logger.info("Attempt {} to create indexes failed: {}. Retrying in {} ms...", attempt, e.getMessage(), delay);
+          try {
+            Thread.sleep(delay);
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            logger.warn("Index creation retry was interrupted: {}", ie.getMessage());
+            return;
+          }
+          delay *= 2; // Exponential backoff
+        }
       }
     }
   }
