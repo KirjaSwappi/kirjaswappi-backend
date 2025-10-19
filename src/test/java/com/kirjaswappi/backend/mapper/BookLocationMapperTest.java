@@ -94,7 +94,7 @@ public class BookLocationMapperTest {
     // Test hasCoordinates - should be false initially
     assertFalse(location.hasCoordinates());
 
-    // Set coordinates
+    // Set valid coordinates
     location.setLatitude(60.1699);
     location.setLongitude(24.9384);
     assertTrue(location.hasCoordinates());
@@ -113,5 +113,42 @@ public class BookLocationMapperTest {
     // Test with whitespace-only address
     location.setAddress("   ");
     assertFalse(location.hasAddress());
+  }
+
+  @Test
+  public void testBookLocation_CoordinateValidation() {
+    // Test valid coordinates
+    assertTrue(BookLocation.isValidLatitude(60.1699));
+    assertTrue(BookLocation.isValidLatitude(-60.1699));
+    assertTrue(BookLocation.isValidLatitude(0.0));
+    assertTrue(BookLocation.isValidLatitude(85.0));
+    assertTrue(BookLocation.isValidLatitude(-85.0));
+
+    assertTrue(BookLocation.isValidLongitude(24.9384));
+    assertTrue(BookLocation.isValidLongitude(-24.9384));
+    assertTrue(BookLocation.isValidLongitude(0.0));
+    assertTrue(BookLocation.isValidLongitude(180.0));
+    assertTrue(BookLocation.isValidLongitude(-180.0));
+
+    // Test invalid coordinates
+    assertFalse(BookLocation.isValidLatitude(null));
+    assertFalse(BookLocation.isValidLatitude(90.0));
+    assertFalse(BookLocation.isValidLatitude(-90.0));
+    assertFalse(BookLocation.isValidLatitude(100.0));
+
+    assertFalse(BookLocation.isValidLongitude(null));
+    assertFalse(BookLocation.isValidLongitude(181.0));
+    assertFalse(BookLocation.isValidLongitude(-181.0));
+    assertFalse(BookLocation.isValidLongitude(200.0));
+
+    // Test hasCoordinates with invalid coordinates
+    BookLocation location = new BookLocation();
+    location.setLatitude(90.0); // Invalid - too close to pole
+    location.setLongitude(24.9384);
+    assertFalse(location.hasCoordinates());
+
+    location.setLatitude(60.1699);
+    location.setLongitude(181.0); // Invalid - out of range
+    assertFalse(location.hasCoordinates());
   }
 }

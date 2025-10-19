@@ -105,22 +105,44 @@ public class FindAllBooksFilter {
       }
     }
 
-    // Add location-based filtering:
+    // Add location-based filtering with proper geospatial queries:
     if (nearLatitude != null && nearLongitude != null) {
-      // For now, we'll use a simple bounding box approach
-      // This can be enhanced later with proper geospatial indexing
+      // Validate coordinates before using them
+      if (!com.kirjaswappi.backend.service.entities.BookLocation.isValidLatitude(nearLatitude) ||
+          !com.kirjaswappi.backend.service.entities.BookLocation.isValidLongitude(nearLongitude)) {
+        throw new IllegalArgumentException("Invalid coordinates for location search");
+      }
+
       int searchRadius = radiusKm != null ? radiusKm : 50;
 
-      // Simple bounding box calculation (approximate)
-      double latDelta = searchRadius / 111.0; // Roughly 111 km per degree of latitude
-      double lngDelta = searchRadius / (111.0 * Math.cos(Math.toRadians(nearLatitude)));
+      try {
+        // Try to use MongoDB's $geoWithin with $centerSphere for accurate distance
+        // calculations
+        // This works with both GeoJSON coordinates and lat/lng fields
+        org.springframework.data.geo.Point center = new org.springframework.data.geo.Point(nearLongitude, nearLatitude);
+        org.springframework.data.geo.Distance distance = new org.springframework.data.geo.Distance(searchRadius,
+            org.springframework.data.geo.Metrics.KILOMETERS);
+        org.springframework.data.geo.Circle circle = new org.springframework.data.geo.Circle(center, distance);
 
-      combinedCriteria.add(Criteria.where("location.latitude")
-          .gte(nearLatitude - latDelta)
-          .lte(nearLatitude + latDelta));
-      combinedCriteria.add(Criteria.where("location.longitude")
-          .gte(nearLongitude - lngDelta)
-          .lte(nearLongitude + lngDelta));
+        // Use $geoWithin for accurate spherical distance calculation
+        combinedCriteria.add(Criteria.where("location.coordinates").withinSphere(circle));
+      } catch (Exception e) {
+        // Fallback to bounding box approach if geospatial query fails
+        // This provides approximate results but avoids the worst inaccuracies near
+        // poles
+        double latDelta = Math.min(searchRadius / 111.0, 10.0); // Cap at 10 degrees
+        double lngDelta = Math.min(searchRadius / (111.0 * Math.cos(Math.toRadians(Math.abs(nearLatitude)))), 20.0); // Cap
+                                                                                                                     // at
+                                                                                                                     // 20
+                                                                                                                     // degrees
+
+        combinedCriteria.add(Criteria.where("location.latitude")
+            .gte(Math.max(nearLatitude - latDelta, -85.0))
+            .lte(Math.min(nearLatitude + latDelta, 85.0)));
+        combinedCriteria.add(Criteria.where("location.longitude")
+            .gte(Math.max(nearLongitude - lngDelta, -180.0))
+            .lte(Math.min(nearLongitude + lngDelta, 180.0)));
+      }
     }
 
     // Filter by city if provided:

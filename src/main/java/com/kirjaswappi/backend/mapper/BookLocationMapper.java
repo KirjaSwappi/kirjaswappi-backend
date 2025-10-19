@@ -32,6 +32,11 @@ public class BookLocationMapper {
     dao.setPostalCode(entity.getPostalCode());
     dao.setRadiusKm(entity.getRadiusKm());
 
+    // Set GeoJSON coordinates if both lat/lng are valid
+    if (entity.hasCoordinates()) {
+      dao.setCoordinates(new Double[] { entity.getLongitude(), entity.getLatitude() });
+    }
+
     return dao;
   }
 
@@ -54,6 +59,13 @@ public class BookLocationMapper {
     entity.setCountry(dao.getCountry());
     entity.setPostalCode(dao.getPostalCode());
     entity.setRadiusKm(dao.getRadiusKm());
+
+    // If coordinates are missing but GeoJSON coordinates exist, use those
+    if ((entity.getLatitude() == null || entity.getLongitude() == null) && dao.getCoordinates() != null
+        && dao.getCoordinates().length == 2) {
+      entity.setLongitude(dao.getCoordinates()[0]);
+      entity.setLatitude(dao.getCoordinates()[1]);
+    }
 
     return entity;
   }

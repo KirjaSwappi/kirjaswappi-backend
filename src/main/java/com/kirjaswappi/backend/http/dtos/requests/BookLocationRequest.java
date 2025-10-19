@@ -42,8 +42,17 @@ public class BookLocationRequest {
    * Converts this request DTO to a BookLocation entity.
    *
    * @return BookLocation entity
+   * @throws IllegalArgumentException if coordinates are invalid
    */
   public BookLocation toEntity() {
+    // Validate coordinates if provided
+    if (latitude != null && !BookLocation.isValidLatitude(latitude)) {
+      throw new IllegalArgumentException("Invalid latitude: " + latitude + ". Must be between -85 and 85 degrees.");
+    }
+    if (longitude != null && !BookLocation.isValidLongitude(longitude)) {
+      throw new IllegalArgumentException("Invalid longitude: " + longitude + ". Must be between -180 and 180 degrees.");
+    }
+
     var location = new BookLocation();
     location.setLatitude(this.latitude);
     location.setLongitude(this.longitude);

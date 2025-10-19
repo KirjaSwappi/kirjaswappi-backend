@@ -29,28 +29,48 @@ public class MongoIndexConfig {
 
   /**
    * Creates necessary indexes for the application after the bean is constructed.
-   * This includes geospatial indexes for location-based book searches.
+   * This includes proper 2dsphere geospatial indexes for accurate location-based
+   * book searches.
    */
   @PostConstruct
   public void createIndexes() {
     try {
-      // Create compound index for latitude and longitude for location-based queries
+      // Create 2dsphere index for accurate geospatial queries
+      // This requires the location data to be stored as GeoJSON Point format
+      // We'll create this index manually using MongoDB commands for now
+      mongoTemplate.execute(BookDao.class, collection -> {
+        try {
+          // Create 2dsphere index on location coordinates for accurate distance
+          // calculations
+          collection.createIndex(
+              new org.bson.Document("location.coordinates", "2dsphere"),
+              new com.mongodb.client.model.IndexOptions().name("book_location_2dsphere"));
+          logger.info("Created 2dsphere index for accurate geospatial queries");
+        } catch (Exception e) {
+          // Index might already exist, log but don't fail
+          logger.debug("2dsphere index creation skipped (may already exist): {}", e.getMessage());
+        }
+        return null;
+      });
+
+      // Create compound index for latitude and longitude as fallback for simple
+      // queries
       Index latLngIndex = new Index()
           .on("location.latitude", org.springframework.data.domain.Sort.Direction.ASC)
           .on("location.longitude", org.springframework.data.domain.Sort.Direction.ASC)
           .named("book_location_lat_lng");
 
-      mongoTemplate.indexOps(BookDao.class).ensureIndex(latLngIndex);
+      mongoTemplate.indexOps(BookDao.class).createIndex(latLngIndex);
       logger.info("Created compound index for book location coordinates");
 
-      // Create text index for city and country for faster text searches
+      // Create text indexes for city and country for faster text searches
       Index cityIndex = new Index().on("location.city", org.springframework.data.domain.Sort.Direction.ASC)
           .named("book_location_city");
-      mongoTemplate.indexOps(BookDao.class).ensureIndex(cityIndex);
+      mongoTemplate.indexOps(BookDao.class).createIndex(cityIndex);
 
       Index countryIndex = new Index().on("location.country", org.springframework.data.domain.Sort.Direction.ASC)
           .named("book_location_country");
-      mongoTemplate.indexOps(BookDao.class).ensureIndex(countryIndex);
+      mongoTemplate.indexOps(BookDao.class).createIndex(countryIndex);
 
       logger.info("Created text indexes for city and country searches");
 

@@ -115,13 +115,29 @@ public class BookController {
 
   @GetMapping("/near")
   @Operation(summary = "Find books near a specific location within a given radius.", responses = {
-      @ApiResponse(responseCode = "200", description = "List of Books near the specified location.") })
+      @ApiResponse(responseCode = "200", description = "List of Books near the specified location."),
+      @ApiResponse(responseCode = "400", description = "Invalid coordinates provided.") })
   public ResponseEntity<PagedModel<BookListResponse>> findBooksNearLocation(
-      @Parameter(description = "Latitude coordinate") Double latitude,
-      @Parameter(description = "Longitude coordinate") Double longitude,
-      @Parameter(description = "Search radius in kilometers (default: 50)") Integer radiusKm,
+      @Parameter(description = "Latitude coordinate (-85 to 85 degrees)") Double latitude,
+      @Parameter(description = "Longitude coordinate (-180 to 180 degrees)") Double longitude,
+      @Parameter(description = "Search radius in kilometers (default: 50, max: 1000)") Integer radiusKm,
       @PageableDefault() Pageable pageable) {
-    Page<Book> books = bookService.findBooksNearLocation(latitude, longitude, radiusKm, pageable);
+
+    // Validate coordinates
+    if (latitude == null || longitude == null) {
+      throw new BadRequestException("Both latitude and longitude are required for location search");
+    }
+    if (!com.kirjaswappi.backend.service.entities.BookLocation.isValidLatitude(latitude)) {
+      throw new BadRequestException("Invalid latitude: " + latitude + ". Must be between -85 and 85 degrees.");
+    }
+    if (!com.kirjaswappi.backend.service.entities.BookLocation.isValidLongitude(longitude)) {
+      throw new BadRequestException("Invalid longitude: " + longitude + ". Must be between -180 and 180 degrees.");
+    }
+
+    // Validate and cap radius
+    int validRadiusKm = radiusKm != null ? Math.min(Math.max(radiusKm, 1), 1000) : 50;
+
+    Page<Book> books = bookService.findBooksNearLocation(latitude, longitude, validRadiusKm, pageable);
     Page<BookListResponse> response = books.map(BookListResponse::new);
     return ResponseEntity.status(HttpStatus.OK).body(LinkBuilder.forPage(response, API_BASE + BOOKS + "/near"));
   }

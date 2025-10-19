@@ -13,7 +13,8 @@ import com.mongodb.lang.Nullable;
 
 /**
  * DAO for book location data stored in MongoDB. This is embedded within BookDao
- * as a subdocument.
+ * as a subdocument. Supports both individual lat/lng fields and GeoJSON Point
+ * format for accurate geospatial queries.
  */
 @Getter
 @Setter
@@ -32,6 +33,13 @@ public class BookLocationDao {
    */
   @Nullable
   private Double longitude;
+
+  /**
+   * GeoJSON Point coordinates for accurate geospatial queries. Format:
+   * [longitude, latitude] (note: longitude first in GeoJSON)
+   */
+  @Nullable
+  private Double[] coordinates;
 
   /**
    * Human-readable address of the book location.
