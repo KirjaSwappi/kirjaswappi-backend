@@ -64,6 +64,9 @@ public class CreateBookRequest {
       "}")
   private String swapCondition;
 
+  @Schema(description = "Location information for the book")
+  private BookLocationRequest location;
+
   public Book toEntity() {
     this.validateProperties();
     var book = new Book();
@@ -77,6 +80,7 @@ public class CreateBookRequest {
     var user = new User();
     user.setId(this.ownerId);
     book.setOwner(user);
+    book.setLocation(this.location != null ? this.location.toEntity() : null);
     return book;
   }
 

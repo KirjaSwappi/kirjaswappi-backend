@@ -34,6 +34,7 @@ public class Book {
   private List<MultipartFile> coverPhotoFiles;
   private User owner;
   private SwapCondition swapCondition;
+  private BookLocation location;
   private Instant bookAddedAt = Instant.now();
   private Instant bookUpdatedAt = Instant.now();
   private Instant bookDeletedAt;

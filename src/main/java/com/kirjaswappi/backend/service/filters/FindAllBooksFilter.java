@@ -38,6 +38,21 @@ public class FindAllBooksFilter {
   @Schema(description = "Filter parameter for books except mine.", example = "64e8b2f2c2a4e2a1b8d7c9e0")
   String notOwnerId;
 
+  @Schema(description = "Filter books within radius of these coordinates - latitude", example = "60.1699")
+  Double nearLatitude;
+
+  @Schema(description = "Filter books within radius of these coordinates - longitude", example = "24.9384")
+  Double nearLongitude;
+
+  @Schema(description = "Search radius in kilometers for location-based filtering", example = "50")
+  Integer radiusKm;
+
+  @Schema(description = "Filter books by city", example = "Helsinki")
+  String city;
+
+  @Schema(description = "Filter books by country", example = "Finland")
+  String country;
+
   public Criteria buildSearchAndFilterCriteria() {
     List<Criteria> combinedCriteria = new ArrayList<>();
 
@@ -88,6 +103,34 @@ public class FindAllBooksFilter {
         combinedCriteria.add(new Criteria().orOperator(
             genres.stream().map(genre -> Criteria.where("genres.name").is(genre)).toArray(Criteria[]::new)));
       }
+    }
+
+    // Add location-based filtering:
+    if (nearLatitude != null && nearLongitude != null) {
+      // For now, we'll use a simple bounding box approach
+      // This can be enhanced later with proper geospatial indexing
+      int searchRadius = radiusKm != null ? radiusKm : 50;
+
+      // Simple bounding box calculation (approximate)
+      double latDelta = searchRadius / 111.0; // Roughly 111 km per degree of latitude
+      double lngDelta = searchRadius / (111.0 * Math.cos(Math.toRadians(nearLatitude)));
+
+      combinedCriteria.add(Criteria.where("location.latitude")
+          .gte(nearLatitude - latDelta)
+          .lte(nearLatitude + latDelta));
+      combinedCriteria.add(Criteria.where("location.longitude")
+          .gte(nearLongitude - lngDelta)
+          .lte(nearLongitude + lngDelta));
+    }
+
+    // Filter by city if provided:
+    if (city != null && !city.isEmpty()) {
+      combinedCriteria.add(Criteria.where("location.city").regex(city, "i"));
+    }
+
+    // Filter by country if provided:
+    if (country != null && !country.isEmpty()) {
+      combinedCriteria.add(Criteria.where("location.country").regex(country, "i"));
     }
 
     var finalCriteria = new Criteria();

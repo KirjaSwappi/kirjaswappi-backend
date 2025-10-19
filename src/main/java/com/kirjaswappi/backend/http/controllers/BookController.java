@@ -103,7 +103,7 @@ public class BookController {
   }
 
   @GetMapping
-  @Operation(summary = "Search for books with (optional) filter properties, including optional userId.", responses = {
+  @Operation(summary = "Search for books with (optional) filter properties, including optional userId and location filters.", responses = {
       @ApiResponse(responseCode = "200", description = "List of Books.") })
   public ResponseEntity<PagedModel<BookListResponse>> findAllBooks(
       @Valid @ParameterObject FindAllBooksFilter filter,
@@ -111,6 +111,42 @@ public class BookController {
     Page<Book> books = bookService.getAllBooksByFilter(filter, pageable);
     Page<BookListResponse> response = books.map(BookListResponse::new);
     return ResponseEntity.status(HttpStatus.OK).body(LinkBuilder.forPage(response, API_BASE + BOOKS));
+  }
+
+  @GetMapping("/near")
+  @Operation(summary = "Find books near a specific location within a given radius.", responses = {
+      @ApiResponse(responseCode = "200", description = "List of Books near the specified location.") })
+  public ResponseEntity<PagedModel<BookListResponse>> findBooksNearLocation(
+      @Parameter(description = "Latitude coordinate") Double latitude,
+      @Parameter(description = "Longitude coordinate") Double longitude,
+      @Parameter(description = "Search radius in kilometers (default: 50)") Integer radiusKm,
+      @PageableDefault() Pageable pageable) {
+    Page<Book> books = bookService.findBooksNearLocation(latitude, longitude, radiusKm, pageable);
+    Page<BookListResponse> response = books.map(BookListResponse::new);
+    return ResponseEntity.status(HttpStatus.OK).body(LinkBuilder.forPage(response, API_BASE + BOOKS + "/near"));
+  }
+
+  @GetMapping("/city/{city}")
+  @Operation(summary = "Find books in a specific city.", responses = {
+      @ApiResponse(responseCode = "200", description = "List of Books in the specified city.") })
+  public ResponseEntity<PagedModel<BookListResponse>> findBooksInCity(
+      @Parameter(description = "City name") @PathVariable String city,
+      @PageableDefault() Pageable pageable) {
+    Page<Book> books = bookService.findBooksInCity(city, pageable);
+    Page<BookListResponse> response = books.map(BookListResponse::new);
+    return ResponseEntity.status(HttpStatus.OK).body(LinkBuilder.forPage(response, API_BASE + BOOKS + "/city/" + city));
+  }
+
+  @GetMapping("/country/{country}")
+  @Operation(summary = "Find books in a specific country.", responses = {
+      @ApiResponse(responseCode = "200", description = "List of Books in the specified country.") })
+  public ResponseEntity<PagedModel<BookListResponse>> findBooksInCountry(
+      @Parameter(description = "Country name") @PathVariable String country,
+      @PageableDefault() Pageable pageable) {
+    Page<Book> books = bookService.findBooksInCountry(country, pageable);
+    Page<BookListResponse> response = books.map(BookListResponse::new);
+    return ResponseEntity.status(HttpStatus.OK)
+        .body(LinkBuilder.forPage(response, API_BASE + BOOKS + "/country/" + country));
   }
 
   @PutMapping(value = ID, consumes = "multipart/form-data")

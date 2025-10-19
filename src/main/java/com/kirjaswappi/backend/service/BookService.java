@@ -159,6 +159,7 @@ public class BookService {
     setValidSwappableGenresIfExists(updatedBook);
     keepOldSwappableBooksForReferenceIfExists(updatedBook, existingBookDao);
     existingBookDao.setSwapCondition(SwapConditionMapper.toDao(updatedBook.getSwapCondition()));
+    existingBookDao.setLocation(BookLocationMapper.toDao(updatedBook.getLocation()));
     existingBookDao.setBookUpdatedAt(Instant.now());
   }
 
@@ -324,5 +325,48 @@ public class BookService {
     var bookDaos = bookRepository.findAllBooksByFilter(criteria, pageable);
     var books = bookDaos.stream().map(this::bookWithImageUrlAndOwner).toList();
     return new PageImpl<>(books, pageable, bookDaos.getTotalElements());
+  }
+
+  /**
+   * Find books near a specific location within a given radius.
+   *
+   * @param latitude  the latitude coordinate
+   * @param longitude the longitude coordinate
+   * @param radiusKm  the search radius in kilometers
+   * @param pageable  pagination information
+   * @return page of books near the specified location
+   */
+  public Page<Book> findBooksNearLocation(Double latitude, Double longitude, Integer radiusKm, Pageable pageable) {
+    var filter = new FindAllBooksFilter();
+    filter.setNearLatitude(latitude);
+    filter.setNearLongitude(longitude);
+    filter.setRadiusKm(radiusKm);
+    return getAllBooksByFilter(filter, pageable);
+  }
+
+  /**
+   * Find books in a specific city.
+   *
+   * @param city     the city name
+   * @param pageable pagination information
+   * @return page of books in the specified city
+   */
+  public Page<Book> findBooksInCity(String city, Pageable pageable) {
+    var filter = new FindAllBooksFilter();
+    filter.setCity(city);
+    return getAllBooksByFilter(filter, pageable);
+  }
+
+  /**
+   * Find books in a specific country.
+   *
+   * @param country  the country name
+   * @param pageable pagination information
+   * @return page of books in the specified country
+   */
+  public Page<Book> findBooksInCountry(String country, Pageable pageable) {
+    var filter = new FindAllBooksFilter();
+    filter.setCountry(country);
+    return getAllBooksByFilter(filter, pageable);
   }
 }
