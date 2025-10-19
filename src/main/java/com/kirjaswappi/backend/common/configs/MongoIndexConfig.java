@@ -35,19 +35,22 @@ public class MongoIndexConfig {
   /**
    * Creates necessary indexes for the application after the bean is constructed.
    * This includes proper 2dsphere geospatial indexes for accurate location-based
-   * book searches. Handles both production MongoDB and embedded MongoDB for
-   * testing.
+   * book searches. Only runs for test and cloud profiles to avoid MongoDB
+   * connection issues in CI/local environments without MongoDB.
    */
   @PostConstruct
   public void createIndexes() {
-    boolean isTestProfile = isTestProfile();
-
-    if (isTestProfile) {
-      logger.info("Test profile detected, creating indexes with embedded MongoDB compatibility");
-      createIndexesWithDelay();
+    if (shouldCreateIndexes()) {
+      if (isTestProfile()) {
+        logger.info("Test profile detected, creating indexes with embedded MongoDB compatibility");
+        createIndexesWithDelay();
+      } else if (isCloudProfile()) {
+        logger.info("Cloud profile detected, creating indexes normally");
+        createIndexesInternal();
+      }
     } else {
-      logger.info("Production profile detected, creating indexes normally");
-      createIndexesInternal();
+      logger.info("Skipping index creation for current profile: {}",
+          String.join(", ", environment.getActiveProfiles()));
     }
   }
 
@@ -173,6 +176,16 @@ public class MongoIndexConfig {
   }
 
   /**
+   * Checks if indexes should be created based on active profiles.
+   * Only creates indexes for test and cloud profiles.
+   *
+   * @return true if indexes should be created, false otherwise
+   */
+  private boolean shouldCreateIndexes() {
+    return isTestProfile() || isCloudProfile();
+  }
+
+  /**
    * Checks if the current active profile is 'test'.
    *
    * @return true if test profile is active, false otherwise
@@ -181,9 +194,24 @@ public class MongoIndexConfig {
     String[] activeProfiles = environment.getActiveProfiles();
     for (String profile : activeProfiles) {
       if ("test".equals(profile)) {
-        return false;
+        return true;
       }
     }
-    return true;
+    return false;
+  }
+
+  /**
+   * Checks if the current active profile is 'cloud'.
+   *
+   * @return true if cloud profile is active, false otherwise
+   */
+  private boolean isCloudProfile() {
+    String[] activeProfiles = environment.getActiveProfiles();
+    for (String profile : activeProfiles) {
+      if ("cloud".equals(profile)) {
+        return true;
+      }
+    }
+    return false;
   }
 }
