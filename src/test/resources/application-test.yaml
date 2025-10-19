@@ -6,8 +6,13 @@ spring:
   data:
     mongodb:
       database: kirjaswappi_test
-      uri: mongodb://localhost:27017/kirjaswappi_test
       autoIndexCreation: true
+
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 7.0.14
 
   mail:
     host: smtp.example.com
@@ -35,11 +40,7 @@ jwt:
   secret: abcdefghijklmnopqrstuvwxyz1234567890
   expiration: 300000
 
-de:
-  flapdoodle:
-    mongodb:
-      embedded:
-        version: 7.0.14
+
 
 google:
   api:

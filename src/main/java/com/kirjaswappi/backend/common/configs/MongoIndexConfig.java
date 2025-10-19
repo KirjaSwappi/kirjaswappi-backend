@@ -35,6 +35,8 @@ public class MongoIndexConfig {
   @PostConstruct
   public void createIndexes() {
     try {
+      // Check if MongoDB is available before creating indexes
+      mongoTemplate.getDb().runCommand(new org.bson.Document("ping", 1));
       // Create 2dsphere index for accurate geospatial queries
       // This requires the location data to be stored as GeoJSON Point format
       // We'll create this index manually using MongoDB commands for now
@@ -75,7 +77,8 @@ public class MongoIndexConfig {
       logger.info("Created text indexes for city and country searches");
 
     } catch (Exception e) {
-      logger.error("Failed to create MongoDB indexes: {}", e.getMessage(), e);
+      logger.warn("MongoDB not available or failed to create indexes: {}", e.getMessage());
+      // Don't fail application startup if MongoDB is not available
     }
   }
 }
