@@ -182,8 +182,8 @@ public class MongoIndexConfig {
   }
 
   /**
-   * Checks if indexes should be created based on active profiles.
-   * Only creates indexes for test and cloud profiles.
+   * Checks if indexes should be created based on active profiles. Only creates
+   * indexes for test and cloud profiles.
    *
    * @return true if indexes should be created, false otherwise
    */
