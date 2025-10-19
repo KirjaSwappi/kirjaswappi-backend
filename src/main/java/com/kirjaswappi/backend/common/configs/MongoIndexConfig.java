@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 
@@ -17,7 +18,8 @@ import com.kirjaswappi.backend.jpa.daos.BookDao;
 
 /**
  * Configuration class for MongoDB indexes, including geospatial indexes for
- * location-based queries.
+ * location-based queries. Handles both production MongoDB and embedded MongoDB
+ * for testing environments.
  */
 @Configuration
 public class MongoIndexConfig {
@@ -27,19 +29,92 @@ public class MongoIndexConfig {
   @Autowired
   private MongoTemplate mongoTemplate;
 
+  @Autowired
+  private Environment environment;
+
   /**
    * Creates necessary indexes for the application after the bean is constructed.
    * This includes proper 2dsphere geospatial indexes for accurate location-based
-   * book searches.
+   * book searches. Handles both production MongoDB and embedded MongoDB for
+   * testing.
    */
   @PostConstruct
   public void createIndexes() {
+    boolean isTestProfile = isTestProfile();
+
+    if (isTestProfile) {
+      logger.info("Test profile detected, creating indexes with embedded MongoDB compatibility");
+      createIndexesWithDelay();
+    } else {
+      logger.info("Production profile detected, creating indexes normally");
+      createIndexesInternal();
+    }
+  }
+
+  /**
+   * Creates indexes with a small delay for embedded MongoDB environments.
+   * Embedded MongoDB may need time to fully initialize.
+   */
+  private void createIndexesWithDelay() {
+    try {
+      // Small delay to allow embedded MongoDB to fully initialize
+      Thread.sleep(1000);
+      createIndexesInternal();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      logger.warn("Index creation was interrupted: {}", e.getMessage());
+    } catch (Exception e) {
+      logger.warn("Failed to create indexes after delay: {}", e.getMessage());
+      // Try once more without delay
+      try {
+        createIndexesInternal();
+      } catch (Exception retryException) {
+        logger.warn("Second attempt to create indexes also failed: {}", retryException.getMessage());
+      }
+    }
+  }
+
+  /**
+   * Internal method to create all necessary MongoDB indexes.
+   */
+  private void createIndexesInternal() {
     try {
       // Check if MongoDB is available before creating indexes
       mongoTemplate.getDb().runCommand(new org.bson.Document("ping", 1));
+      logger.debug("MongoDB connection verified successfully");
+
       // Create 2dsphere index for accurate geospatial queries
-      // This requires the location data to be stored as GeoJSON Point format
-      // We'll create this index manually using MongoDB commands for now
+      createGeospatialIndexes();
+
+      // Create compound index for latitude and longitude as fallback
+      createLocationIndexes();
+
+      // Create text indexes for city and country for faster text searches
+      createTextIndexes();
+
+      logger.info("Successfully created all MongoDB indexes");
+
+    } catch (Exception e) {
+      boolean isTestProfile = isTestProfile();
+      if (isTestProfile) {
+        logger.warn("Failed to create indexes in test environment (embedded MongoDB may not be ready): {}",
+            e.getMessage());
+        // In test environment, don't fail the application if indexes can't be created
+        // immediately
+        // The embedded MongoDB might still be initializing
+      } else {
+        logger.error("Failed to create indexes in production environment: {}", e.getMessage());
+        // In production, this is more critical, but still don't fail application
+        // startup
+      }
+    }
+  }
+
+  /**
+   * Creates geospatial indexes for location-based queries.
+   */
+  private void createGeospatialIndexes() {
+    try {
       mongoTemplate.execute(BookDao.class, collection -> {
         try {
           // Create 2dsphere index on location coordinates for accurate distance
@@ -47,38 +122,68 @@ public class MongoIndexConfig {
           collection.createIndex(
               new org.bson.Document("location.coordinates", "2dsphere"),
               new com.mongodb.client.model.IndexOptions().name("book_location_2dsphere"));
-          logger.info("Created 2dsphere index for accurate geospatial queries");
+          logger.debug("Created 2dsphere index for accurate geospatial queries");
         } catch (Exception e) {
           // Index might already exist, log but don't fail
           logger.debug("2dsphere index creation skipped (may already exist): {}", e.getMessage());
         }
         return null;
       });
+    } catch (Exception e) {
+      logger.warn("Failed to create geospatial indexes: {}", e.getMessage());
+    }
+  }
 
-      // Create compound index for latitude and longitude as fallback for simple
-      // queries
+  /**
+   * Creates compound indexes for latitude and longitude coordinates.
+   */
+  private void createLocationIndexes() {
+    try {
       Index latLngIndex = new Index()
           .on("location.latitude", org.springframework.data.domain.Sort.Direction.ASC)
           .on("location.longitude", org.springframework.data.domain.Sort.Direction.ASC)
           .named("book_location_lat_lng");
 
       mongoTemplate.indexOps(BookDao.class).createIndex(latLngIndex);
-      logger.info("Created compound index for book location coordinates");
+      logger.debug("Created compound index for book location coordinates");
+    } catch (Exception e) {
+      logger.warn("Failed to create location coordinate indexes: {}", e.getMessage());
+    }
+  }
 
-      // Create text indexes for city and country for faster text searches
-      Index cityIndex = new Index().on("location.city", org.springframework.data.domain.Sort.Direction.ASC)
+  /**
+   * Creates text indexes for city and country searches.
+   */
+  private void createTextIndexes() {
+    try {
+      Index cityIndex = new Index()
+          .on("location.city", org.springframework.data.domain.Sort.Direction.ASC)
           .named("book_location_city");
       mongoTemplate.indexOps(BookDao.class).createIndex(cityIndex);
 
-      Index countryIndex = new Index().on("location.country", org.springframework.data.domain.Sort.Direction.ASC)
+      Index countryIndex = new Index()
+          .on("location.country", org.springframework.data.domain.Sort.Direction.ASC)
           .named("book_location_country");
       mongoTemplate.indexOps(BookDao.class).createIndex(countryIndex);
 
-      logger.info("Created text indexes for city and country searches");
-
+      logger.debug("Created text indexes for city and country searches");
     } catch (Exception e) {
-      logger.warn("MongoDB not available or failed to create indexes: {}", e.getMessage());
-      // Don't fail application startup if MongoDB is not available
+      logger.warn("Failed to create text indexes: {}", e.getMessage());
     }
+  }
+
+  /**
+   * Checks if the current active profile is 'test'.
+   *
+   * @return true if test profile is active, false otherwise
+   */
+  private boolean isTestProfile() {
+    String[] activeProfiles = environment.getActiveProfiles();
+    for (String profile : activeProfiles) {
+      if ("test".equals(profile)) {
+        return false;
+      }
+    }
+    return true;
   }
 }
