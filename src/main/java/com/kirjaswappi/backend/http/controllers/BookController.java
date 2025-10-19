@@ -118,9 +118,9 @@ public class BookController {
       @ApiResponse(responseCode = "200", description = "List of Books near the specified location."),
       @ApiResponse(responseCode = "400", description = "Invalid coordinates provided.") })
   public ResponseEntity<PagedModel<BookListResponse>> findBooksNearLocation(
-      @Parameter(description = "Latitude coordinate (-85 to 85 degrees)") @RequestParam("latitude") Double latitude,
-      @Parameter(description = "Longitude coordinate (-180 to 180 degrees)") @RequestParam("longitude") Double longitude,
-      @Parameter(description = "Search radius in kilometers (default: 50, max: 1000)") @RequestParam(value = "radiusKm", required = false) Integer radiusKm,
+      @Parameter(description = "Latitude coordinate (-85 to 85 degrees)") Double latitude,
+      @Parameter(description = "Longitude coordinate (-180 to 180 degrees)") Double longitude,
+      @Parameter(description = "Search radius in kilometers (default: 50, max: 1000)") Integer radiusKm,
       @PageableDefault() Pageable pageable) {
 
     // Validate coordinates
