@@ -28,6 +28,7 @@ public class BookResponse {
   private List<String> coverPhotoUrls;
   private OwnerResponse owner;
   private SwapConditionResponse swapCondition;
+  private BookLocationResponse location;
 
   public BookResponse(Book entity) {
     this.id = entity.getId();
@@ -41,6 +42,7 @@ public class BookResponse {
     this.owner = entity.getOwner() == null ? null : new OwnerResponse(entity.getOwner());
     this.swapCondition = entity.getSwapCondition() == null ? null
         : new SwapConditionResponse(entity.getSwapCondition());
+    this.location = entity.getLocation() == null ? null : new BookLocationResponse(entity.getLocation());
   }
 
   @Setter

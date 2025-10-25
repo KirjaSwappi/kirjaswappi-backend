@@ -34,6 +34,7 @@ public class BookMapper {
     entity.setBookUpdatedAt(dao.getBookUpdatedAt());
     entity.setBookDeletedAt(dao.getBookDeletedAt());
     entity.setSwapCondition(SwapConditionMapper.toEntity(dao.getSwapCondition()));
+    entity.setLocation(BookLocationMapper.toEntity(dao.getLocation()));
     return entity;
   }
 
@@ -65,6 +66,7 @@ public class BookMapper {
     dao.setBookAddedAt(entity.getBookAddedAt());
     dao.setBookUpdatedAt(entity.getBookUpdatedAt());
     dao.setBookDeletedAt(entity.getBookDeletedAt());
+    dao.setLocation(BookLocationMapper.toDao(entity.getLocation()));
     return dao;
   }
 }

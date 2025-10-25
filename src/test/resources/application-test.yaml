@@ -6,7 +6,6 @@ spring:
   data:
     mongodb:
       database: kirjaswappi_test
-      uri: mongodb://localhost:27017/kirjaswappi_test
       autoIndexCreation: true
 
   mail:

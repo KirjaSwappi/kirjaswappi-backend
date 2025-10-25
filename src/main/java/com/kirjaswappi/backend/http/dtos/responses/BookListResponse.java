@@ -28,6 +28,7 @@ public class BookListResponse {
   private String condition;
   private String coverPhotoUrl;
   private String bookLocation;
+  private BookLocationResponse location;
   private String offeredAgo;
   private String ownerId;
   private String offeredBy;
@@ -42,6 +43,7 @@ public class BookListResponse {
     this.condition = entity.getCondition().getCode();
     this.coverPhotoUrl = entity.getCoverPhotos() != null ? entity.getCoverPhotos().getFirst() : null;
     this.bookLocation = entity.getOwner() != null ? entity.getOwner().getCity() : null;
+    this.location = entity.getLocation() != null ? new BookLocationResponse(entity.getLocation()) : null;
     this.offeredAgo = this.getOfferedAgoHumanReadable(entity.getOfferedAgo());
     this.ownerId = entity.getOwner() != null ? entity.getOwner().getId() : null;
     this.offeredBy = entity.getOwner() != null

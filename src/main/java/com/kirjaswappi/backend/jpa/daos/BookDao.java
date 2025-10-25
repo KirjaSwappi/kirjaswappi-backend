@@ -58,6 +58,9 @@ public class BookDao {
   @NotNull
   private SwapConditionDao swapCondition;
 
+  @Nullable
+  private BookLocationDao location;
+
   @NotNull
   private Instant bookAddedAt = Instant.now();
 
