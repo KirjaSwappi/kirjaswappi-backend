@@ -43,7 +43,7 @@ public class CreateBookRequest {
   @Schema(description = "The genres of the book.", example = "[\"Fiction\"]", requiredMode = REQUIRED)
   private List<String> genres;
 
-  @Schema(description = "The cover photos of the book.", example = "book-cover-photo.jpg", requiredMode = REQUIRED)
+  @Schema(description = "The cover photos of the book.", requiredMode = REQUIRED)
   private List<MultipartFile> coverPhotos;
 
   @Schema(description = "The user ID of the book owner.", example = "123456", requiredMode = REQUIRED)
@@ -64,6 +64,9 @@ public class CreateBookRequest {
       "}")
   private String swapCondition;
 
+  @Schema(description = "Location information for the book")
+  private BookLocationRequest location;
+
   public Book toEntity() {
     this.validateProperties();
     var book = new Book();
@@ -77,6 +80,7 @@ public class CreateBookRequest {
     var user = new User();
     user.setId(this.ownerId);
     book.setOwner(user);
+    book.setLocation(this.location != null ? this.location.toEntity() : null);
     return book;
   }
 

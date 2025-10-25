@@ -8,7 +8,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
+import com.kirjaswappi.backend.config.TestMailConfig;
+
+@SpringBootTest(classes = { BackendApplication.class, TestMailConfig.class })
 @ActiveProfiles("test")
 class BackendApplicationTests {
 

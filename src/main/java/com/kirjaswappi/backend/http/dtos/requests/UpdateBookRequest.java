@@ -45,7 +45,7 @@ public class UpdateBookRequest {
   @Schema(description = "The genres of the book.", example = "[\"Fiction\"]", requiredMode = REQUIRED)
   private List<String> genres;
 
-  @Schema(description = "The cover photos of the book.", example = "book-cover-photo.jpg", requiredMode = REQUIRED)
+  @Schema(description = "The cover photos of the book.", requiredMode = REQUIRED)
   private List<MultipartFile> coverPhotos;
 
   @Schema(description = "Swap condition of the book in JSON format.", requiredMode = REQUIRED, example = "{\n" +
@@ -63,6 +63,9 @@ public class UpdateBookRequest {
       "}")
   private String swapCondition;
 
+  @Schema(description = "Location information for the book")
+  private BookLocationRequest location;
+
   public Book toEntity() {
     this.validateProperties();
     var book = new Book();
@@ -74,6 +77,7 @@ public class UpdateBookRequest {
     book.setCondition(Condition.fromCode(this.condition));
     book.setGenres(this.genres.stream().map(Genre::new).toList());
     book.setCoverPhotoFiles(this.coverPhotos);
+    book.setLocation(this.location != null ? this.location.toEntity() : null);
     return book;
   }
 
