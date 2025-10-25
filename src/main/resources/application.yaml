@@ -65,6 +65,11 @@ google:
   api:
     clientId: 43921547457-06chtojpprgds80g1gq5tprmn5qg0hmq.apps.googleusercontent.com
 
+notification:
+  service:
+    host: ${NOTIFICATION_SERVICE_HOST:notify.kirjaswappi.fi}
+    port: ${NOTIFICATION_SERVICE_PORT:50051}
+
 management:
   endpoints:
     web:

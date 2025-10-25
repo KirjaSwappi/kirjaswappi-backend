@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.kirjaswappi.backend.common.service.NotificationService;
 import com.kirjaswappi.backend.jpa.daos.SwapRequestDao;
 import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
 import com.kirjaswappi.backend.mapper.SwapRequestMapper;
@@ -35,6 +36,9 @@ public class SwapService {
 
   @Autowired
   private SwapRequestRepository swapRequestRepository;
+
+  @Autowired
+  private NotificationService notificationService;
 
   public SwapRequest createSwapRequest(SwapRequest swapRequest) {
     // validation: check if the swap request exists already for this book
@@ -107,7 +111,18 @@ public class SwapService {
     SwapRequestDao dao = SwapRequestMapper.toDao(swapRequest);
     SwapRequestDao createdDao = swapRequestRepository.save(dao);
 
-    // TODO: notify the receiver about the swap request
+    // Send notification to receiver about new swap request
+    try {
+      String notificationTitle = "New Swap Request";
+      String notificationMessage = String.format("%s %s wants to swap for your book '%s'",
+          sender.getFirstName(), sender.getLastName(), bookToSwapWith.getTitle());
+
+      notificationService.sendNotification(receiver.getId(), notificationTitle, notificationMessage);
+    } catch (Exception e) {
+      // Log error but don't fail the swap request creation
+      // TODO: Consider adding retry mechanism or dead letter queue
+    }
+
     return SwapRequestMapper.toEntity(createdDao);
   }
 
@@ -143,7 +158,19 @@ public class SwapService {
     swapRequestDao = SwapRequestMapper.toDao(swapRequest);
     SwapRequestDao updatedDao = swapRequestRepository.save(swapRequestDao);
 
-    // TODO: notify the sender about the status change
+    // Send notification to sender about status change
+    try {
+      String notificationTitle = "Swap Request Update";
+      String notificationMessage = String.format("Your swap request for '%s' has been %s",
+          swapRequest.getBookToSwapWith().getTitle(),
+          newStatus.getCode().toLowerCase());
+
+      notificationService.sendNotification(swapRequest.getSender().getId(), notificationTitle, notificationMessage);
+    } catch (Exception e) {
+      // Log error but don't fail the status update
+      // TODO: Consider adding retry mechanism or dead letter queue
+    }
+
     return SwapRequestMapper.toEntity(updatedDao);
   }
 
