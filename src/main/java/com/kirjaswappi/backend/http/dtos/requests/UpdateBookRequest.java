@@ -45,7 +45,7 @@ public class UpdateBookRequest {
   @Schema(description = "The genres of the book.", example = "[\"Fiction\"]", requiredMode = REQUIRED)
   private List<String> genres;
 
-  @Schema(description = "The cover photos of the book.", example = "book-cover-photo.jpg", requiredMode = REQUIRED)
+  @Schema(description = "The cover photos of the book.", requiredMode = REQUIRED)
   private List<MultipartFile> coverPhotos;
 
   @Schema(description = "Swap condition of the book in JSON format.", requiredMode = REQUIRED, example = "{\n" +

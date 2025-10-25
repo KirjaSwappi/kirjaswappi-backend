@@ -43,7 +43,7 @@ public class CreateBookRequest {
   @Schema(description = "The genres of the book.", example = "[\"Fiction\"]", requiredMode = REQUIRED)
   private List<String> genres;
 
-  @Schema(description = "The cover photos of the book.", example = "book-cover-photo.jpg", requiredMode = REQUIRED)
+  @Schema(description = "The cover photos of the book.", requiredMode = REQUIRED)
   private List<MultipartFile> coverPhotos;
 
   @Schema(description = "The user ID of the book owner.", example = "123456", requiredMode = REQUIRED)
