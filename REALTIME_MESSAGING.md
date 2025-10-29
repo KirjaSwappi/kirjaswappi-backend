@@ -24,12 +24,12 @@ This document describes the real-time messaging features integrated into the Kir
 
 ### Connection
 ```javascript
-// Connect to WebSocket with user authentication
+// Connect to WebSocket with JWT authentication
 const socket = new SockJS('/ws');
 const stompClient = Stomp.over(socket);
 
 stompClient.connect({
-  'userId': 'user-123'  // User authentication
+  'Authorization': 'Bearer ' + jwtToken  // JWT token authentication
 }, function(frame) {
   console.log('Connected: ' + frame);
 });
@@ -115,7 +115,8 @@ notification:
 
 ## Security
 
-- **User Authentication** via WebSocket headers
+- **JWT Authentication** - WebSocket connections validated using JWT tokens from Authorization header
+- **Token Validation** - JWT tokens are verified and user identity extracted from validated tokens
 - **Message Validation** on all incoming WebSocket messages
 - **Access Control** - users can only access their own chats
 - **CORS Configuration** for WebSocket connections
