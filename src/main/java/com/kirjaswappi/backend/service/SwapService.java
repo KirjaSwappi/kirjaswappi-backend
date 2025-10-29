@@ -7,6 +7,8 @@ package com.kirjaswappi.backend.service;
 import java.util.Collection;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,8 @@ import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 @Service
 @Transactional
 public class SwapService {
+  private static final Logger logger = LoggerFactory.getLogger(SwapService.class);
+
   @Autowired
   private UserService userService;
 
@@ -120,6 +124,8 @@ public class SwapService {
       notificationService.sendNotification(receiver.getId(), notificationTitle, notificationMessage);
     } catch (Exception e) {
       // Log error but don't fail the swap request creation
+      logger.error("Failed to send notification for new swap request. Receiver: {}, Book: {}", 
+          receiver.getId(), bookToSwapWith.getTitle(), e);
       // TODO: Consider adding retry mechanism or dead letter queue
     }
 
@@ -168,6 +174,8 @@ public class SwapService {
       notificationService.sendNotification(swapRequest.getSender().getId(), notificationTitle, notificationMessage);
     } catch (Exception e) {
       // Log error but don't fail the status update
+      logger.error("Failed to send notification for swap request status update. Sender: {}, Status: {}", 
+          swapRequest.getSender().getId(), newStatus.getCode(), e);
       // TODO: Consider adding retry mechanism or dead letter queue
     }
 
