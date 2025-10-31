@@ -124,7 +124,7 @@ public class SwapService {
       notificationService.sendNotification(receiver.getId(), notificationTitle, notificationMessage);
     } catch (Exception e) {
       // Log error but don't fail the swap request creation
-      logger.error("Failed to send notification for new swap request. Receiver: {}, Book: {}", 
+      logger.error("Failed to send notification for new swap request. Receiver: {}, Book: {}",
           receiver.getId(), bookToSwapWith.getTitle(), e);
       // TODO: Consider adding retry mechanism or dead letter queue
     }
@@ -174,7 +174,7 @@ public class SwapService {
       notificationService.sendNotification(swapRequest.getSender().getId(), notificationTitle, notificationMessage);
     } catch (Exception e) {
       // Log error but don't fail the status update
-      logger.error("Failed to send notification for swap request status update. Sender: {}, Status: {}", 
+      logger.error("Failed to send notification for swap request status update. Sender: {}, Status: {}",
           swapRequest.getSender().getId(), newStatus.getCode(), e);
       // TODO: Consider adding retry mechanism or dead letter queue
     }

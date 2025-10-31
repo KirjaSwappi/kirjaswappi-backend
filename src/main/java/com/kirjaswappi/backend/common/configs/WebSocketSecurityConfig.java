@@ -53,12 +53,12 @@ public class WebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer
               // Extract username and validate token
               String username = jwtUtil.extractUsername(jwt);
               AdminUser userDetails = adminUserService.getAdminUserInfo(username);
-              
+
               if (jwtUtil.validateJwtToken(jwt, userDetails)) {
                 // Extract role from JWT
                 String role = jwtUtil.extractRole(jwt);
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
-                
+
                 // Create authentication token with proper authorities
                 Authentication auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
