@@ -19,7 +19,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
@@ -45,29 +44,40 @@ public class WebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-          // Extract JWT token from Authorization header
+          // Extract JWT token from Authorization header (validates platform/client)
           String authHeader = accessor.getFirstNativeHeader("Authorization");
-          if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String jwt = authHeader.substring(7);
-            try {
-              // Extract username and validate token
-              String username = jwtUtil.extractUsername(jwt);
-              AdminUser userDetails = adminUserService.getAdminUserInfo(username);
+          if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Authorization header with Bearer token is required");
+          }
 
-              if (jwtUtil.validateJwtToken(jwt, userDetails)) {
-                // Extract role from JWT
-                String role = jwtUtil.extractRole(jwt);
-                List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+          String jwt = authHeader.substring(7);
+          
+          // Extract userId from connection headers (identifies end user)
+          String userId = accessor.getFirstNativeHeader("userId");
+          if (userId == null || userId.trim().isEmpty()) {
+            throw new IllegalArgumentException("userId header is required for WebSocket connection");
+          }
 
-                // Create authentication token with proper authorities
-                Authentication auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
-                SecurityContextHolder.getContext().setAuthentication(auth);
-                accessor.setUser(auth);
-              }
-            } catch (Exception e) {
-              // Invalid token - do not authenticate
-              throw new IllegalArgumentException("Invalid JWT token", e);
+          try {
+            // Validate JWT token (platform authentication)
+            String username = jwtUtil.extractUsername(jwt);
+            AdminUser adminUser = adminUserService.getAdminUserInfo(username);
+
+            if (!jwtUtil.validateJwtToken(jwt, adminUser)) {
+              throw new IllegalArgumentException("Invalid JWT token");
             }
+
+            // Extract role from JWT
+            String role = jwtUtil.extractRole(jwt);
+            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+
+            // Create authentication with userId as principal (for chat routing)
+            // The userId identifies which end user is connecting
+            Authentication auth = new UsernamePasswordAuthenticationToken(userId, null, authorities);
+            accessor.setUser(auth);
+            
+          } catch (Exception e) {
+            throw new IllegalArgumentException("WebSocket authentication failed: " + e.getMessage(), e);
           }
         }
 
