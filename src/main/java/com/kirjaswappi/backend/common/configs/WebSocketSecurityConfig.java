@@ -51,7 +51,7 @@ public class WebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer
           }
 
           String jwt = authHeader.substring(7);
-          
+
           // Extract userId from connection headers (identifies end user)
           String userId = accessor.getFirstNativeHeader("userId");
           if (userId == null || userId.trim().isEmpty()) {
@@ -75,7 +75,7 @@ public class WebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer
             // The userId identifies which end user is connecting
             Authentication auth = new UsernamePasswordAuthenticationToken(userId, null, authorities);
             accessor.setUser(auth);
-            
+
           } catch (Exception e) {
             throw new IllegalArgumentException("WebSocket authentication failed: " + e.getMessage(), e);
           }
