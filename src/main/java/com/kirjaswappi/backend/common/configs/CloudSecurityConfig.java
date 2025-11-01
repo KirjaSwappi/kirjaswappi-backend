@@ -52,7 +52,7 @@ public class CloudSecurityConfig {
         .csrf(csrf -> csrf.disable()) // Disable CSRF protection
         .authorizeHttpRequests(authorize -> authorize
             .requestMatchers(HEALTH, API_DOCS, SWAGGER_UI, API_BASE + AUTHENTICATE,
-                API_BASE + AUTHENTICATE + REFRESH)
+                API_BASE + AUTHENTICATE + REFRESH, "/ws/**")
             .permitAll()
             .requestMatchers(POST, API_BASE + ADMIN_USERS).hasAuthority(ADMIN)
             .requestMatchers(GET, API_BASE + ADMIN_USERS).hasAnyAuthority(ADMIN, USER)

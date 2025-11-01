@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,6 +44,9 @@ public class ChatService {
 
   @Autowired
   private ImageService imageService;
+
+  @Autowired
+  private SimpMessagingTemplate messagingTemplate;
 
   public List<ChatMessage> getChatMessages(String swapRequestId, String userId) {
     // Validate swap request exists
@@ -116,6 +120,10 @@ public class ChatService {
     clearUnreadCountCache(receiverId, swapRequestId);
     clearUnreadCountCache(senderId, swapRequestId);
 
+    // Broadcast inbox update to both users for real-time inbox refresh
+    broadcastInboxUpdate(senderId);
+    broadcastInboxUpdate(receiverId);
+
     return ChatMessageMapper.toEntity(savedDao);
   }
 
@@ -174,6 +182,10 @@ public class ChatService {
     // Clear cache for both sender and receiver to avoid stale data
     clearUnreadCountCache(receiverId, swapRequestId);
     clearUnreadCountCache(senderId, swapRequestId);
+
+    // Broadcast inbox update to both users for real-time inbox refresh
+    broadcastInboxUpdate(senderId);
+    broadcastInboxUpdate(receiverId);
 
     // Convert image IDs to URLs for response
     List<String> imageUrls = convertImageIdsToUrls(imageIds);
@@ -275,5 +287,15 @@ public class ChatService {
     return imageIds.stream()
         .map(imageService::getDownloadUrl)
         .toList();
+  }
+
+  private void broadcastInboxUpdate(String userId) {
+    try {
+      // Send inbox refresh signal to user's WebSocket connection
+      messagingTemplate.convertAndSendToUser(userId, "/queue/inbox/refresh", "refresh");
+    } catch (Exception e) {
+      // Log error but don't fail the message sending
+      // Real-time updates are nice-to-have, not critical
+    }
   }
 }
