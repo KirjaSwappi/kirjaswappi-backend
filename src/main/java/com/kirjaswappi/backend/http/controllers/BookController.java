@@ -103,7 +103,7 @@ public class BookController {
   }
 
   @GetMapping
-  @Operation(summary = "Search for books with (optional) filter properties, including optional userId.", responses = {
+  @Operation(summary = "Search for books with (optional) filter properties, including optional userId and location filters.", responses = {
       @ApiResponse(responseCode = "200", description = "List of Books.") })
   public ResponseEntity<PagedModel<BookListResponse>> findAllBooks(
       @Valid @ParameterObject FindAllBooksFilter filter,
@@ -111,6 +111,58 @@ public class BookController {
     Page<Book> books = bookService.getAllBooksByFilter(filter, pageable);
     Page<BookListResponse> response = books.map(BookListResponse::new);
     return ResponseEntity.status(HttpStatus.OK).body(LinkBuilder.forPage(response, API_BASE + BOOKS));
+  }
+
+  @GetMapping("/near")
+  @Operation(summary = "Find books near a specific location within a given radius.", responses = {
+      @ApiResponse(responseCode = "200", description = "List of Books near the specified location."),
+      @ApiResponse(responseCode = "400", description = "Invalid coordinates provided.") })
+  public ResponseEntity<PagedModel<BookListResponse>> findBooksNearLocation(
+      @Parameter(description = "Latitude coordinate (-85 to 85 degrees)") Double latitude,
+      @Parameter(description = "Longitude coordinate (-180 to 180 degrees)") Double longitude,
+      @Parameter(description = "Search radius in kilometers (default: 50, max: 1000)") Integer radiusKm,
+      @PageableDefault() Pageable pageable) {
+
+    // Validate coordinates
+    if (latitude == null || longitude == null) {
+      throw new BadRequestException("Both latitude and longitude are required for location search");
+    }
+    if (!com.kirjaswappi.backend.service.entities.BookLocation.isValidLatitude(latitude)) {
+      throw new BadRequestException("Invalid latitude: " + latitude + ". Must be between -85 and 85 degrees.");
+    }
+    if (!com.kirjaswappi.backend.service.entities.BookLocation.isValidLongitude(longitude)) {
+      throw new BadRequestException("Invalid longitude: " + longitude + ". Must be between -180 and 180 degrees.");
+    }
+
+    // Validate and cap radius
+    int validRadiusKm = radiusKm != null ? Math.min(Math.max(radiusKm, 1), 1000) : 50;
+
+    Page<Book> books = bookService.findBooksNearLocation(latitude, longitude, validRadiusKm, pageable);
+    Page<BookListResponse> response = books.map(BookListResponse::new);
+    return ResponseEntity.status(HttpStatus.OK).body(LinkBuilder.forPage(response, API_BASE + BOOKS + "/near"));
+  }
+
+  @GetMapping("/city/{city}")
+  @Operation(summary = "Find books in a specific city.", responses = {
+      @ApiResponse(responseCode = "200", description = "List of Books in the specified city.") })
+  public ResponseEntity<PagedModel<BookListResponse>> findBooksInCity(
+      @Parameter(description = "City name") @PathVariable String city,
+      @PageableDefault() Pageable pageable) {
+    Page<Book> books = bookService.findBooksInCity(city, pageable);
+    Page<BookListResponse> response = books.map(BookListResponse::new);
+    return ResponseEntity.status(HttpStatus.OK).body(LinkBuilder.forPage(response, API_BASE + BOOKS + "/city/" + city));
+  }
+
+  @GetMapping("/country/{country}")
+  @Operation(summary = "Find books in a specific country.", responses = {
+      @ApiResponse(responseCode = "200", description = "List of Books in the specified country.") })
+  public ResponseEntity<PagedModel<BookListResponse>> findBooksInCountry(
+      @Parameter(description = "Country name") @PathVariable String country,
+      @PageableDefault() Pageable pageable) {
+    Page<Book> books = bookService.findBooksInCountry(country, pageable);
+    Page<BookListResponse> response = books.map(BookListResponse::new);
+    return ResponseEntity.status(HttpStatus.OK)
+        .body(LinkBuilder.forPage(response, API_BASE + BOOKS + "/country/" + country));
   }
 
   @PutMapping(value = ID, consumes = "multipart/form-data")

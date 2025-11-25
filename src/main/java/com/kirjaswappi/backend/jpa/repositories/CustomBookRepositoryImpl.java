@@ -129,6 +129,7 @@ public class CustomBookRepositoryImpl implements CustomBookRepository {
         .and("description").as("description")
         .and("condition").as("condition")
         .and("coverPhotos").as("coverPhotos")
+        .and("location").as("location")
         .and("offeredAgo").as("offeredAgo")
         .and("bookAddedAt").as("bookAddedAt")
         .and("bookUpdatedAt").as("bookUpdatedAt")

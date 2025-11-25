@@ -6,7 +6,6 @@ spring:
   data:
     mongodb:
       database: kirjaswappi_test
-      uri: mongodb://localhost:27017/kirjaswappi_test
       autoIndexCreation: true
 
   mail:
@@ -21,6 +20,13 @@ spring:
           from: test@example.com
           ssl:
             trust: smtp.example.com
+
+# Test configuration for notification service
+notification:
+  service:
+    host: localhost
+    port: 50051
+    enabled: false
 
 server:
   port: 8080

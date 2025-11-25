@@ -12,9 +12,11 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.kirjaswappi.backend.events.InboxUpdateEvent;
 import com.kirjaswappi.backend.jpa.daos.SwapRequestDao;
 import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
 import com.kirjaswappi.backend.mapper.SwapRequestMapper;
@@ -33,6 +35,9 @@ public class InboxService {
 
   @Autowired
   private ChatService chatService;
+
+  @Autowired
+  private ApplicationEventPublisher eventPublisher;
 
   public List<SwapRequest> getUnifiedInbox(String userId, String status, String sortBy) {
     // Validate user exists
@@ -100,6 +105,16 @@ public class InboxService {
     // Clear unread count cache for both users when status changes
     clearUnreadCountCache(swapRequestDao.getSender().getId(), swapRequestId);
     clearUnreadCountCache(swapRequestDao.getReceiver().getId(), swapRequestId);
+
+    // Publish inbox update events for real-time status changes
+    eventPublisher.publishEvent(new InboxUpdateEvent(
+        swapRequestDao.getSender().getId(),
+        swapRequestId,
+        InboxUpdateEvent.STATUS_CHANGE));
+    eventPublisher.publishEvent(new InboxUpdateEvent(
+        swapRequestDao.getReceiver().getId(),
+        swapRequestId,
+        InboxUpdateEvent.STATUS_CHANGE));
 
     return SwapRequestMapper.toEntity(updatedDao);
   }
