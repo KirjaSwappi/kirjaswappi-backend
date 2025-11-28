@@ -275,7 +275,7 @@ class GenreApiIntegrationTest {
     GenreDao genreWithApostrophe = createGenre("3", "Children's Books", null);
     GenreDao genreWithAmpersand = createGenre("4", "Arts & Crafts", null);
 
-      mockMvc.perform(get("/api/v1/genres"))
+    mockMvc.perform(get("/api/v1/genres"))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.parentGenres['Science Fiction']").exists())

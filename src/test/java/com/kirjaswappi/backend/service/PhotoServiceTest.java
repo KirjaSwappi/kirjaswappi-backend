@@ -52,9 +52,9 @@ class PhotoServiceTest {
   void addProfilePhotoSuccess() {
     String userId = "user-123";
     MultipartFile file = mock(MultipartFile.class);
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true);
     String expectedUrl = "http://example.com/profile.jpg";
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
@@ -65,7 +65,7 @@ class PhotoServiceTest {
     String result = photoService.addProfilePhoto(userId, file);
 
     assertEquals(expectedUrl, result);
-    assertEquals(userId + "-ProfilePhoto", userDao.getProfilePhoto());
+    assertEquals(userId + "-ProfilePhoto", userDao.profilePhoto());
     verify(imageService).uploadImage(file, userId + "-ProfilePhoto");
     verify(userRepository).save(userDao);
   }
@@ -87,9 +87,9 @@ class PhotoServiceTest {
   void addProfilePhotoThrowsWhenUploadFails() {
     String userId = "user-123";
     MultipartFile file = mock(MultipartFile.class);
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true);
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
     doThrow(new ImageUploadFailureException()).when(imageService).uploadImage(any(MultipartFile.class), anyString());
@@ -103,9 +103,10 @@ class PhotoServiceTest {
   void addCoverPhotoSuccess() {
     String userId = "user-123";
     MultipartFile file = mock(MultipartFile.class);
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
+
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true);
     String expectedUrl = "http://example.com/cover.jpg";
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
@@ -116,7 +117,7 @@ class PhotoServiceTest {
     String result = photoService.addCoverPhoto(userId, file);
 
     assertEquals(expectedUrl, result);
-    assertEquals(userId + "-CoverPhoto", userDao.getCoverPhoto());
+    assertEquals(userId + "-CoverPhoto", userDao.coverPhoto());
     verify(imageService).uploadImage(file, userId + "-CoverPhoto");
     verify(userRepository).save(userDao);
   }
@@ -138,9 +139,9 @@ class PhotoServiceTest {
   void addCoverPhotoThrowsWhenUploadFails() {
     String userId = "user-123";
     MultipartFile file = mock(MultipartFile.class);
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true);
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
     doThrow(new ImageUploadFailureException()).when(imageService).uploadImage(any(MultipartFile.class), anyString());
@@ -154,10 +155,10 @@ class PhotoServiceTest {
   void deleteProfilePhotoSuccess() {
     String userId = "user-123";
     String photoId = "user-123-ProfilePhoto";
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
-    userDao.setProfilePhoto(photoId);
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true)
+        .profilePhoto(photoId);
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
     doNothing().when(imageService).deleteImage(photoId);
@@ -165,7 +166,7 @@ class PhotoServiceTest {
 
     photoService.deleteProfilePhoto(userId);
 
-    assertNull(userDao.getProfilePhoto());
+    assertNull(userDao.profilePhoto());
     verify(imageService).deleteImage(photoId);
     verify(userRepository).save(userDao);
   }
@@ -185,10 +186,10 @@ class PhotoServiceTest {
   @DisplayName("Should throw PhotoNotFoundException when deleting non-existent profile photo")
   void deleteProfilePhotoThrowsWhenPhotoNotFound() {
     String userId = "user-123";
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
-    userDao.setProfilePhoto(null);
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true)
+        .profilePhoto(null);
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
 
@@ -201,10 +202,10 @@ class PhotoServiceTest {
   void deleteProfilePhotoThrowsWhenDeletionFails() {
     String userId = "user-123";
     String photoId = "user-123-ProfilePhoto";
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
-    userDao.setProfilePhoto(photoId);
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true)
+        .profilePhoto(photoId);
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
     doThrow(new ImageDeletionFailureException()).when(imageService).deleteImage(photoId);
@@ -218,10 +219,9 @@ class PhotoServiceTest {
   void deleteCoverPhotoSuccess() {
     String userId = "user-123";
     String photoId = "user-123-CoverPhoto";
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
-    userDao.setCoverPhoto(photoId);
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true).coverPhoto(photoId);
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
     doNothing().when(imageService).deleteImage(photoId);
@@ -229,7 +229,7 @@ class PhotoServiceTest {
 
     photoService.deleteCoverPhoto(userId);
 
-    assertNull(userDao.getCoverPhoto());
+    assertNull(userDao.coverPhoto());
     verify(imageService).deleteImage(photoId);
     verify(userRepository).save(userDao);
   }
@@ -249,10 +249,9 @@ class PhotoServiceTest {
   @DisplayName("Should throw PhotoNotFoundException when deleting non-existent cover photo")
   void deleteCoverPhotoThrowsWhenPhotoNotFound() {
     String userId = "user-123";
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
-    userDao.setCoverPhoto(null);
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true).coverPhoto(null);
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
 
@@ -265,10 +264,9 @@ class PhotoServiceTest {
   void deleteCoverPhotoThrowsWhenDeletionFails() {
     String userId = "user-123";
     String photoId = "user-123-CoverPhoto";
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
-    userDao.setCoverPhoto(photoId);
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true).coverPhoto(photoId);
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
     doThrow(new ImageDeletionFailureException()).when(imageService).deleteImage(photoId);
@@ -283,10 +281,10 @@ class PhotoServiceTest {
     String email = "test@example.com";
     String photoId = "user-123-ProfilePhoto";
     String expectedUrl = "http://example.com/profile.jpg";
-    UserDao userDao = new UserDao();
-    userDao.setEmail(email);
-    userDao.setEmailVerified(true);
-    userDao.setProfilePhoto(photoId);
+    UserDao userDao = new UserDao()
+        .email(email)
+        .isEmailVerified(true)
+        .profilePhoto(photoId);
 
     when(userRepository.findByEmailAndIsEmailVerified(email, true)).thenReturn(Optional.of(userDao));
     when(imageService.getDownloadUrl(photoId)).thenReturn(expectedUrl);
@@ -303,10 +301,10 @@ class PhotoServiceTest {
     String email = "test@example.com";
     String photoId = "user-123-CoverPhoto";
     String expectedUrl = "http://example.com/cover.jpg";
-    UserDao userDao = new UserDao();
-    userDao.setEmail(email);
-    userDao.setEmailVerified(true);
-    userDao.setCoverPhoto(photoId);
+    UserDao userDao = new UserDao()
+        .email(email)
+        .isEmailVerified(true)
+        .coverPhoto(photoId);
 
     when(userRepository.findByEmailAndIsEmailVerified(email, true)).thenReturn(Optional.of(userDao));
     when(imageService.getDownloadUrl(photoId)).thenReturn(expectedUrl);
@@ -331,10 +329,10 @@ class PhotoServiceTest {
   @DisplayName("Should throw PhotoNotFoundException when user has no profile photo")
   void getPhotoByUserEmailThrowsWhenPhotoNotFound() {
     String email = "test@example.com";
-    UserDao userDao = new UserDao();
-    userDao.setEmail(email);
-    userDao.setEmailVerified(true);
-    userDao.setProfilePhoto(null);
+    UserDao userDao = new UserDao()
+        .email(email)
+        .isEmailVerified(true)
+        .profilePhoto(null);
 
     when(userRepository.findByEmailAndIsEmailVerified(email, true)).thenReturn(Optional.of(userDao));
 
@@ -348,10 +346,10 @@ class PhotoServiceTest {
     String userId = "user-123";
     String photoId = "user-123-ProfilePhoto";
     String expectedUrl = "http://example.com/profile.jpg";
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
-    userDao.setProfilePhoto(photoId);
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true)
+        .profilePhoto(photoId);
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
     when(imageService.getDownloadUrl(photoId)).thenReturn(expectedUrl);
@@ -368,10 +366,10 @@ class PhotoServiceTest {
     String userId = "user-123";
     String photoId = "user-123-CoverPhoto";
     String expectedUrl = "http://example.com/cover.jpg";
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
-    userDao.setCoverPhoto(photoId);
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true)
+        .coverPhoto(photoId);
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
     when(imageService.getDownloadUrl(photoId)).thenReturn(expectedUrl);
@@ -396,10 +394,10 @@ class PhotoServiceTest {
   @DisplayName("Should throw PhotoNotFoundException when user has no cover photo")
   void getPhotoByUserIdThrowsWhenPhotoNotFound() {
     String userId = "user-123";
-    UserDao userDao = new UserDao();
-    userDao.setId(userId);
-    userDao.setEmailVerified(true);
-    userDao.setCoverPhoto(null);
+    UserDao userDao = new UserDao()
+        .id(userId)
+        .isEmailVerified(true)
+        .coverPhoto(null);
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue(userId)).thenReturn(Optional.of(userDao));
 
@@ -564,10 +562,10 @@ class PhotoServiceTest {
     List<Photo> result = photoService.findSupportedCoverPhoto();
 
     assertEquals(2, result.size());
-    assertEquals("id1", result.get(0).getId());
-    assertEquals(url1, result.get(0).getCoverPhoto());
-    assertEquals("id2", result.get(1).getId());
-    assertEquals(url2, result.get(1).getCoverPhoto());
+    assertEquals("id1", result.get(0).id());
+    assertEquals(url1, result.get(0).coverPhoto());
+    assertEquals("id2", result.get(1).id());
+    assertEquals(url2, result.get(1).coverPhoto());
   }
 
   @Test

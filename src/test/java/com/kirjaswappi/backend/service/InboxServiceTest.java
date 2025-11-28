@@ -305,7 +305,7 @@ class InboxServiceTest {
   @DisplayName("Should throw exception for invalid status transition")
   void shouldThrowExceptionForInvalidStatusTransition() {
     // Given - trying to transition from REJECTED (terminal state) to ACCEPTED
-    receivedSwapRequest.setSwapStatus(SwapStatus.REJECTED.getCode());
+    receivedSwapRequest.swapStatus(SwapStatus.REJECTED.getCode());
     when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
 
     // When & Then
@@ -327,7 +327,7 @@ class InboxServiceTest {
 
     // Then
     assertNotNull(result);
-    assertEquals(SwapStatus.EXPIRED.getCode(), receivedSwapRequest.getSwapStatus());
+    assertEquals(SwapStatus.EXPIRED.getCode(), receivedSwapRequest.swapStatus());
     verify(swapRequestRepository).save(receivedSwapRequest);
     verify(eventPublisher, times(2)).publishEvent(any(InboxUpdateEvent.class));
   }
@@ -336,7 +336,7 @@ class InboxServiceTest {
   @DisplayName("Should allow receiver to mark swap as reserved")
   void shouldAllowReceiverToMarkSwapAsReserved() {
     // Given - swap must be in ACCEPTED state to transition to RESERVED
-    sentSwapRequest.setSwapStatus(SwapStatus.ACCEPTED.getCode());
+    sentSwapRequest.swapStatus(SwapStatus.ACCEPTED.getCode());
     when(swapRequestRepository.findById("sent1")).thenReturn(Optional.of(sentSwapRequest));
     when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(sentSwapRequest);
 
@@ -345,7 +345,7 @@ class InboxServiceTest {
 
     // Then
     assertNotNull(result);
-    assertEquals(SwapStatus.RESERVED.getCode(), sentSwapRequest.getSwapStatus());
+    assertEquals(SwapStatus.RESERVED.getCode(), sentSwapRequest.swapStatus());
     verify(swapRequestRepository).save(sentSwapRequest);
   }
 
@@ -365,8 +365,8 @@ class InboxServiceTest {
     // Then
     assertEquals(2, result.size());
     // Should be sorted by requestedAt descending (sent1 is newer)
-    assertEquals("sent1", result.get(0).getId());
-    assertEquals("received1", result.get(1).getId());
+    assertEquals("sent1", result.getFirst().id());
+    assertEquals("received1", result.get(1).id());
   }
 
   @Test
@@ -375,9 +375,9 @@ class InboxServiceTest {
     // Given
     when(userService.getUser("receiver123")).thenReturn(userEntity);
     when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(Arrays.asList(receivedSwapRequest)); // Sender: Alice Smith
+        .thenReturn(List.of(receivedSwapRequest)); // Sender: Alice Smith
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(Arrays.asList(sentSwapRequest)); // Sender: Bob Johnson
+        .thenReturn(List.of((sentSwapRequest))); // Sender: Bob Johnson
 
     // When
     List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "sender_name");
@@ -385,8 +385,8 @@ class InboxServiceTest {
     // Then
     assertEquals(2, result.size());
     // Should be sorted alphabetically by sender name (Alice < Bob)
-    assertEquals("received1", result.get(0).getId());
-    assertEquals("sent1", result.get(1).getId());
+    assertEquals("received1", result.getFirst().id());
+    assertEquals("sent1", result.get(1).id());
   }
 
   @Test
@@ -395,9 +395,9 @@ class InboxServiceTest {
     // Given
     when(userService.getUser("receiver123")).thenReturn(userEntity);
     when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(Arrays.asList(receivedSwapRequest)); // Status: PENDING
+        .thenReturn(List.of((receivedSwapRequest))); // Status: PENDING
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(Arrays.asList(sentSwapRequest)); // Status: ACCEPTED
+        .thenReturn(List.of((sentSwapRequest))); // Status: ACCEPTED
 
     // When
     List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "status");
@@ -405,8 +405,8 @@ class InboxServiceTest {
     // Then
     assertEquals(2, result.size());
     // Should be sorted alphabetically by status code (ACCEPTED < PENDING)
-    assertEquals("sent1", result.get(0).getId());
-    assertEquals("received1", result.get(1).getId());
+    assertEquals("sent1", result.getFirst().id());
+    assertEquals("received1", result.get(1).id());
   }
 
   @Test
@@ -415,9 +415,9 @@ class InboxServiceTest {
     // Given
     when(userService.getUser("receiver123")).thenReturn(userEntity);
     when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(Arrays.asList(receivedSwapRequest));
+        .thenReturn(List.of((receivedSwapRequest)));
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(Arrays.asList(sentSwapRequest));
+        .thenReturn(List.of((sentSwapRequest)));
     when(chatService.getLatestMessageTimestamp("received1"))
         .thenReturn(Optional.of(Instant.parse("2025-01-03T10:00:00Z")));
     when(chatService.getLatestMessageTimestamp("sent1")).thenReturn(Optional.of(Instant.parse("2025-01-04T10:00:00Z")));
@@ -428,7 +428,7 @@ class InboxServiceTest {
     // Then
     assertEquals(2, result.size());
     // Should default to latest message sorting
-    assertEquals("sent1", result.get(0).getId());
+    assertEquals("sent1", result.getFirst().id());
     verify(chatService).getLatestMessageTimestamp("received1");
     verify(chatService).getLatestMessageTimestamp("sent1");
   }
@@ -437,7 +437,7 @@ class InboxServiceTest {
   @DisplayName("Should mark inbox item as read by receiver")
   void shouldMarkInboxItemAsReadByReceiver() {
     // Given
-    receivedSwapRequest.setReadByReceiverAt(null);
+    receivedSwapRequest.readByReceiverAt(null);
     when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
     when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(receivedSwapRequest);
 
@@ -445,7 +445,7 @@ class InboxServiceTest {
     inboxService.markInboxItemAsRead("received1", "receiver123");
 
     // Then
-    assertNotNull(receivedSwapRequest.getReadByReceiverAt());
+    assertNotNull(receivedSwapRequest.readByReceiverAt());
     verify(swapRequestRepository).findById("received1");
     verify(swapRequestRepository).save(receivedSwapRequest);
   }
@@ -454,7 +454,7 @@ class InboxServiceTest {
   @DisplayName("Should mark inbox item as read by sender")
   void shouldMarkInboxItemAsReadBySender() {
     // Given
-    receivedSwapRequest.setReadBySenderAt(null);
+    receivedSwapRequest.readByReceiverAt(null);
     when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
     when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(receivedSwapRequest);
 
@@ -462,7 +462,7 @@ class InboxServiceTest {
     inboxService.markInboxItemAsRead("received1", "sender123");
 
     // Then
-    assertNotNull(receivedSwapRequest.getReadBySenderAt());
+    assertNotNull(receivedSwapRequest.readBySenderAt());
     verify(swapRequestRepository).findById("received1");
     verify(swapRequestRepository).save(receivedSwapRequest);
   }
@@ -472,14 +472,14 @@ class InboxServiceTest {
   void shouldNotUpdateInboxItemIfAlreadyReadByReceiver() {
     // Given
     Instant readTime = Instant.parse("2025-01-01T12:00:00Z");
-    receivedSwapRequest.setReadByReceiverAt(readTime);
+    receivedSwapRequest.readByReceiverAt(readTime);
     when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
 
     // When
     inboxService.markInboxItemAsRead("received1", "receiver123");
 
     // Then
-    assertEquals(readTime, receivedSwapRequest.getReadByReceiverAt()); // Should remain unchanged
+    assertEquals(readTime, receivedSwapRequest.readByReceiverAt()); // Should remain unchanged
     verify(swapRequestRepository).findById("received1");
     verify(swapRequestRepository, never()).save(any()); // Should not save if already read
   }
@@ -489,14 +489,14 @@ class InboxServiceTest {
   void shouldNotUpdateInboxItemIfAlreadyReadBySender() {
     // Given
     Instant readTime = Instant.parse("2025-01-01T12:00:00Z");
-    receivedSwapRequest.setReadBySenderAt(readTime);
+    receivedSwapRequest.readBySenderAt(readTime);
     when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
 
     // When
     inboxService.markInboxItemAsRead("received1", "sender123");
 
     // Then
-    assertEquals(readTime, receivedSwapRequest.getReadBySenderAt()); // Should remain unchanged
+    assertEquals(readTime, receivedSwapRequest.readBySenderAt()); // Should remain unchanged
     verify(swapRequestRepository, never()).save(any()); // Should not save if already read
   }
 
@@ -531,15 +531,17 @@ class InboxServiceTest {
   @DisplayName("Should return true when inbox item is unread by receiver")
   void shouldReturnTrueWhenInboxItemIsUnreadByReceiver() {
     // Given
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap1");
-    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User();
-    receiver.setId("receiver123");
-    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User();
-    sender.setId("sender123");
-    swapRequest.setReceiver(receiver);
-    swapRequest.setSender(sender);
-    swapRequest.setReadByReceiverAt(null);
+    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User()
+        .id("receiver123");
+    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User()
+        .id("sender123");
+
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap1")
+        .receiver(receiver)
+        .sender(sender)
+        .readByReceiverAt(null)
+        .build();
 
     // When
     boolean result = inboxService.isInboxItemUnread(swapRequest, "receiver123");
@@ -552,15 +554,18 @@ class InboxServiceTest {
   @DisplayName("Should return false when inbox item is read by receiver")
   void shouldReturnFalseWhenInboxItemIsReadByReceiver() {
     // Given
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap1");
-    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User();
-    receiver.setId("receiver123");
-    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User();
-    sender.setId("sender123");
-    swapRequest.setReceiver(receiver);
-    swapRequest.setSender(sender);
-    swapRequest.setReadByReceiverAt(Instant.now());
+
+    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User()
+        .id("receiver123");
+    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User()
+        .id("sender123");
+
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap1")
+        .receiver(receiver)
+        .sender(sender)
+        .readByReceiverAt(Instant.now())
+        .build();
 
     // When
     boolean result = inboxService.isInboxItemUnread(swapRequest, "receiver123");
@@ -573,15 +578,17 @@ class InboxServiceTest {
   @DisplayName("Should return true when inbox item is unread by sender")
   void shouldReturnTrueWhenInboxItemIsUnreadBySender() {
     // Given
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap1");
-    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User();
-    receiver.setId("receiver123");
-    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User();
-    sender.setId("sender123");
-    swapRequest.setReceiver(receiver);
-    swapRequest.setSender(sender);
-    swapRequest.setReadBySenderAt(null);
+    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User()
+        .id("receiver123");
+    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User()
+        .id("sender123");
+
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap1")
+        .receiver(receiver)
+        .sender(sender)
+        .readBySenderAt(null)
+        .build();
 
     // When
     boolean result = inboxService.isInboxItemUnread(swapRequest, "sender123");
@@ -594,15 +601,17 @@ class InboxServiceTest {
   @DisplayName("Should return false when inbox item is read by sender")
   void shouldReturnFalseWhenInboxItemIsReadBySender() {
     // Given
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap1");
-    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User();
-    receiver.setId("receiver123");
-    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User();
-    sender.setId("sender123");
-    swapRequest.setReceiver(receiver);
-    swapRequest.setSender(sender);
-    swapRequest.setReadBySenderAt(Instant.now());
+    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User()
+        .id("receiver123");
+    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User()
+        .id("sender123");
+
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap1")
+        .receiver(receiver)
+        .sender(sender)
+        .readBySenderAt(Instant.now())
+        .build();
 
     // When
     boolean result = inboxService.isInboxItemUnread(swapRequest, "sender123");
@@ -615,14 +624,16 @@ class InboxServiceTest {
   @DisplayName("Should return false when user is neither sender nor receiver")
   void shouldReturnFalseWhenUserIsNeitherSenderNorReceiver() {
     // Given
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap1");
-    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User();
-    receiver.setId("receiver123");
-    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User();
-    sender.setId("sender123");
-    swapRequest.setReceiver(receiver);
-    swapRequest.setSender(sender);
+    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User()
+        .id("receiver123");
+    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User()
+        .id("sender123");
+
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap1")
+        .receiver(receiver)
+        .sender(sender)
+        .build();
 
     // When
     boolean result = inboxService.isInboxItemUnread(swapRequest, "unauthorized123");
@@ -773,7 +784,7 @@ class InboxServiceTest {
 
     // Then
     assertNotNull(result);
-    assertEquals(SwapStatus.REJECTED.getCode(), receivedSwapRequest.getSwapStatus());
+    assertEquals(SwapStatus.REJECTED.getCode(), receivedSwapRequest.swapStatus());
     verify(swapRequestRepository).save(receivedSwapRequest);
     verify(eventPublisher, times(2)).publishEvent(any(InboxUpdateEvent.class));
   }

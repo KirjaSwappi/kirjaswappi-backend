@@ -487,9 +487,9 @@ class ChatServiceTest {
   void shouldNotMarkOwnMessagesAsRead() {
     // Given
     ChatMessageDao ownMessage = new ChatMessageDao()
-    .id("msg111")
+        .id("msg111")
         .sender(senderDao) // Message from sender
-      .readByReceiver(false);
+        .readByReceiver(false);
 
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     when(chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc("swap123"))
