@@ -293,4 +293,493 @@ class InboxServiceTest {
     verify(swapRequestRepository).findById("received1");
     verify(swapRequestRepository, never()).save(any());
   }
+
+  @Test
+  @DisplayName("Should throw exception for invalid status transition")
+  void shouldThrowExceptionForInvalidStatusTransition() {
+    // Given - trying to transition from REJECTED (terminal state) to ACCEPTED
+    receivedSwapRequest.setSwapStatus(SwapStatus.REJECTED.getCode());
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+
+    // When & Then
+    assertThrows(IllegalArgumentException.class,
+        () -> inboxService.updateSwapRequestStatus("received1", SwapStatus.ACCEPTED.getCode(), "receiver123"));
+    verify(swapRequestRepository).findById("received1");
+    verify(swapRequestRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("Should allow sender to mark swap as expired")
+  void shouldAllowSenderToMarkSwapAsExpired() {
+    // Given
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+    when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(receivedSwapRequest);
+
+    // When - sender marks their own request as expired
+    SwapRequest result = inboxService.updateSwapRequestStatus("received1", SwapStatus.EXPIRED.getCode(), "sender123");
+
+    // Then
+    assertNotNull(result);
+    assertEquals(SwapStatus.EXPIRED.getCode(), receivedSwapRequest.getSwapStatus());
+    verify(swapRequestRepository).save(receivedSwapRequest);
+    verify(eventPublisher, times(2)).publishEvent(any(InboxUpdateEvent.class));
+  }
+
+  @Test
+  @DisplayName("Should allow receiver to mark swap as reserved")
+  void shouldAllowReceiverToMarkSwapAsReserved() {
+    // Given - swap must be in ACCEPTED state to transition to RESERVED
+    sentSwapRequest.setSwapStatus(SwapStatus.ACCEPTED.getCode());
+    when(swapRequestRepository.findById("sent1")).thenReturn(Optional.of(sentSwapRequest));
+    when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(sentSwapRequest);
+
+    // When - receiver marks as reserved
+    SwapRequest result = inboxService.updateSwapRequestStatus("sent1", SwapStatus.RESERVED.getCode(), "sender123");
+
+    // Then
+    assertNotNull(result);
+    assertEquals(SwapStatus.RESERVED.getCode(), sentSwapRequest.getSwapStatus());
+    verify(swapRequestRepository).save(sentSwapRequest);
+  }
+
+  @Test
+  @DisplayName("Should sort unified inbox by date")
+  void shouldSortUnifiedInboxByDate() {
+    // Given
+    when(userService.getUser("receiver123")).thenReturn(userEntity);
+    when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList(receivedSwapRequest));
+    when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList(sentSwapRequest));
+
+    // When
+    List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "date");
+
+    // Then
+    assertEquals(2, result.size());
+    // Should be sorted by requestedAt descending (sent1 is newer)
+    assertEquals("sent1", result.get(0).getId());
+    assertEquals("received1", result.get(1).getId());
+  }
+
+  @Test
+  @DisplayName("Should sort unified inbox by sender name")
+  void shouldSortUnifiedInboxBySenderName() {
+    // Given
+    when(userService.getUser("receiver123")).thenReturn(userEntity);
+    when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList(receivedSwapRequest)); // Sender: Alice Smith
+    when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList(sentSwapRequest)); // Sender: Bob Johnson
+
+    // When
+    List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "sender_name");
+
+    // Then
+    assertEquals(2, result.size());
+    // Should be sorted alphabetically by sender name (Alice < Bob)
+    assertEquals("received1", result.get(0).getId());
+    assertEquals("sent1", result.get(1).getId());
+  }
+
+  @Test
+  @DisplayName("Should sort unified inbox by status")
+  void shouldSortUnifiedInboxByStatus() {
+    // Given
+    when(userService.getUser("receiver123")).thenReturn(userEntity);
+    when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList(receivedSwapRequest)); // Status: PENDING
+    when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList(sentSwapRequest)); // Status: ACCEPTED
+
+    // When
+    List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "status");
+
+    // Then
+    assertEquals(2, result.size());
+    // Should be sorted alphabetically by status code (ACCEPTED < PENDING)
+    assertEquals("sent1", result.get(0).getId());
+    assertEquals("received1", result.get(1).getId());
+  }
+
+  @Test
+  @DisplayName("Should handle unknown sort option by defaulting to latest message")
+  void shouldHandleUnknownSortOptionByDefaultingToLatestMessage() {
+    // Given
+    when(userService.getUser("receiver123")).thenReturn(userEntity);
+    when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList(receivedSwapRequest));
+    when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList(sentSwapRequest));
+    when(chatService.getLatestMessageTimestamp("received1"))
+        .thenReturn(Optional.of(Instant.parse("2025-01-03T10:00:00Z")));
+    when(chatService.getLatestMessageTimestamp("sent1")).thenReturn(Optional.of(Instant.parse("2025-01-04T10:00:00Z")));
+
+    // When
+    List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "unknown_sort");
+
+    // Then
+    assertEquals(2, result.size());
+    // Should default to latest message sorting
+    assertEquals("sent1", result.get(0).getId());
+    verify(chatService).getLatestMessageTimestamp("received1");
+    verify(chatService).getLatestMessageTimestamp("sent1");
+  }
+
+  @Test
+  @DisplayName("Should mark inbox item as read by receiver")
+  void shouldMarkInboxItemAsReadByReceiver() {
+    // Given
+    receivedSwapRequest.setReadByReceiverAt(null);
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+    when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(receivedSwapRequest);
+
+    // When
+    inboxService.markInboxItemAsRead("received1", "receiver123");
+
+    // Then
+    assertNotNull(receivedSwapRequest.getReadByReceiverAt());
+    verify(swapRequestRepository).findById("received1");
+    verify(swapRequestRepository).save(receivedSwapRequest);
+  }
+
+  @Test
+  @DisplayName("Should mark inbox item as read by sender")
+  void shouldMarkInboxItemAsReadBySender() {
+    // Given
+    receivedSwapRequest.setReadBySenderAt(null);
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+    when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(receivedSwapRequest);
+
+    // When
+    inboxService.markInboxItemAsRead("received1", "sender123");
+
+    // Then
+    assertNotNull(receivedSwapRequest.getReadBySenderAt());
+    verify(swapRequestRepository).findById("received1");
+    verify(swapRequestRepository).save(receivedSwapRequest);
+  }
+
+  @Test
+  @DisplayName("Should not update inbox item if already read by receiver")
+  void shouldNotUpdateInboxItemIfAlreadyReadByReceiver() {
+    // Given
+    Instant readTime = Instant.parse("2025-01-01T12:00:00Z");
+    receivedSwapRequest.setReadByReceiverAt(readTime);
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+
+    // When
+    inboxService.markInboxItemAsRead("received1", "receiver123");
+
+    // Then
+    assertEquals(readTime, receivedSwapRequest.getReadByReceiverAt()); // Should remain unchanged
+    verify(swapRequestRepository).findById("received1");
+    verify(swapRequestRepository, never()).save(any()); // Should not save if already read
+  }
+
+  @Test
+  @DisplayName("Should not update inbox item if already read by sender")
+  void shouldNotUpdateInboxItemIfAlreadyReadBySender() {
+    // Given
+    Instant readTime = Instant.parse("2025-01-01T12:00:00Z");
+    receivedSwapRequest.setReadBySenderAt(readTime);
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+
+    // When
+    inboxService.markInboxItemAsRead("received1", "sender123");
+
+    // Then
+    assertEquals(readTime, receivedSwapRequest.getReadBySenderAt()); // Should remain unchanged
+    verify(swapRequestRepository, never()).save(any()); // Should not save if already read
+  }
+
+  @Test
+  @DisplayName("Should throw SwapRequestNotFoundException when marking nonexistent inbox item as read")
+  void shouldThrowSwapRequestNotFoundExceptionWhenMarkingNonexistentInboxItemAsRead() {
+    // Given
+    when(swapRequestRepository.findById("nonexistent")).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(SwapRequestNotFoundException.class,
+        () -> inboxService.markInboxItemAsRead("nonexistent", "receiver123"));
+    verify(swapRequestRepository).findById("nonexistent");
+    verify(swapRequestRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("Should not update inbox item when user is neither sender nor receiver")
+  void shouldNotUpdateInboxItemWhenUserIsNeitherSenderNorReceiver() {
+    // Given
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+
+    // When
+    inboxService.markInboxItemAsRead("received1", "unauthorized123");
+
+    // Then
+    verify(swapRequestRepository).findById("received1");
+    verify(swapRequestRepository, never()).save(any()); // Should not save for unauthorized user
+  }
+
+  @Test
+  @DisplayName("Should return true when inbox item is unread by receiver")
+  void shouldReturnTrueWhenInboxItemIsUnreadByReceiver() {
+    // Given
+    SwapRequest swapRequest = new SwapRequest();
+    swapRequest.setId("swap1");
+    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User();
+    receiver.setId("receiver123");
+    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User();
+    sender.setId("sender123");
+    swapRequest.setReceiver(receiver);
+    swapRequest.setSender(sender);
+    swapRequest.setReadByReceiverAt(null);
+
+    // When
+    boolean result = inboxService.isInboxItemUnread(swapRequest, "receiver123");
+
+    // Then
+    assertTrue(result);
+  }
+
+  @Test
+  @DisplayName("Should return false when inbox item is read by receiver")
+  void shouldReturnFalseWhenInboxItemIsReadByReceiver() {
+    // Given
+    SwapRequest swapRequest = new SwapRequest();
+    swapRequest.setId("swap1");
+    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User();
+    receiver.setId("receiver123");
+    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User();
+    sender.setId("sender123");
+    swapRequest.setReceiver(receiver);
+    swapRequest.setSender(sender);
+    swapRequest.setReadByReceiverAt(Instant.now());
+
+    // When
+    boolean result = inboxService.isInboxItemUnread(swapRequest, "receiver123");
+
+    // Then
+    assertFalse(result);
+  }
+
+  @Test
+  @DisplayName("Should return true when inbox item is unread by sender")
+  void shouldReturnTrueWhenInboxItemIsUnreadBySender() {
+    // Given
+    SwapRequest swapRequest = new SwapRequest();
+    swapRequest.setId("swap1");
+    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User();
+    receiver.setId("receiver123");
+    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User();
+    sender.setId("sender123");
+    swapRequest.setReceiver(receiver);
+    swapRequest.setSender(sender);
+    swapRequest.setReadBySenderAt(null);
+
+    // When
+    boolean result = inboxService.isInboxItemUnread(swapRequest, "sender123");
+
+    // Then
+    assertTrue(result);
+  }
+
+  @Test
+  @DisplayName("Should return false when inbox item is read by sender")
+  void shouldReturnFalseWhenInboxItemIsReadBySender() {
+    // Given
+    SwapRequest swapRequest = new SwapRequest();
+    swapRequest.setId("swap1");
+    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User();
+    receiver.setId("receiver123");
+    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User();
+    sender.setId("sender123");
+    swapRequest.setReceiver(receiver);
+    swapRequest.setSender(sender);
+    swapRequest.setReadBySenderAt(Instant.now());
+
+    // When
+    boolean result = inboxService.isInboxItemUnread(swapRequest, "sender123");
+
+    // Then
+    assertFalse(result);
+  }
+
+  @Test
+  @DisplayName("Should return false when user is neither sender nor receiver")
+  void shouldReturnFalseWhenUserIsNeitherSenderNorReceiver() {
+    // Given
+    SwapRequest swapRequest = new SwapRequest();
+    swapRequest.setId("swap1");
+    com.kirjaswappi.backend.service.entities.User receiver = new com.kirjaswappi.backend.service.entities.User();
+    receiver.setId("receiver123");
+    com.kirjaswappi.backend.service.entities.User sender = new com.kirjaswappi.backend.service.entities.User();
+    sender.setId("sender123");
+    swapRequest.setReceiver(receiver);
+    swapRequest.setSender(sender);
+
+    // When
+    boolean result = inboxService.isInboxItemUnread(swapRequest, "unauthorized123");
+
+    // Then
+    assertFalse(result);
+  }
+
+  @Test
+  @DisplayName("Should get unread message count from chat service")
+  void shouldGetUnreadMessageCountFromChatService() {
+    // Given
+    when(chatService.getUnreadMessageCount("swap123", "receiver123")).thenReturn(5L);
+
+    // When
+    long count = inboxService.getUnreadMessageCount("receiver123", "swap123");
+
+    // Then
+    assertEquals(5L, count);
+    verify(chatService).getUnreadMessageCount("swap123", "receiver123");
+  }
+
+  @Test
+  @DisplayName("Should return zero when no unread messages")
+  void shouldReturnZeroWhenNoUnreadMessages() {
+    // Given
+    when(chatService.getUnreadMessageCount("swap123", "receiver123")).thenReturn(0L);
+
+    // When
+    long count = inboxService.getUnreadMessageCount("receiver123", "swap123");
+
+    // Then
+    assertEquals(0L, count);
+    verify(chatService).getUnreadMessageCount("swap123", "receiver123");
+  }
+
+  @Test
+  @DisplayName("Should clear unread count cache")
+  void shouldClearUnreadCountCache() {
+    // When
+    inboxService.clearUnreadCountCache("receiver123", "swap123");
+
+    // Then - method should complete without error
+    // The @CacheEvict annotation handles the cache clearing
+    // No assertions needed as this is a void method with annotation-based behavior
+  }
+
+  @Test
+  @DisplayName("Should handle empty status filter as null")
+  void shouldHandleEmptyStatusFilterAsNull() {
+    // Given
+    when(userService.getUser("receiver123")).thenReturn(userEntity);
+    when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList(receivedSwapRequest));
+    when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList(sentSwapRequest));
+    when(chatService.getLatestMessageTimestamp(anyString())).thenReturn(Optional.empty());
+
+    // When
+    List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", "   ", null);
+
+    // Then
+    assertEquals(2, result.size());
+    verify(swapRequestRepository).findByReceiverIdOrderByRequestedAtDesc("receiver123");
+    verify(swapRequestRepository).findBySenderIdOrderByRequestedAtDesc("receiver123");
+    // Should not call status-filtered methods
+    verify(swapRequestRepository, never()).findByReceiverIdAndSwapStatusOrderByRequestedAtDesc(anyString(),
+        anyString());
+  }
+
+  @Test
+  @DisplayName("Should handle empty sort option as null")
+  void shouldHandleEmptySortOptionAsNull() {
+    // Given
+    when(userService.getUser("receiver123")).thenReturn(userEntity);
+    when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList(receivedSwapRequest));
+    when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList(sentSwapRequest));
+    when(chatService.getLatestMessageTimestamp("received1"))
+        .thenReturn(Optional.of(Instant.parse("2025-01-03T10:00:00Z")));
+    when(chatService.getLatestMessageTimestamp("sent1")).thenReturn(Optional.of(Instant.parse("2025-01-04T10:00:00Z")));
+
+    // When
+    List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "   ");
+
+    // Then
+    assertEquals(2, result.size());
+    // Should default to latest message sorting
+    verify(chatService).getLatestMessageTimestamp("received1");
+    verify(chatService).getLatestMessageTimestamp("sent1");
+  }
+
+  @Test
+  @DisplayName("Should return empty list when user has no swap requests")
+  void shouldReturnEmptyListWhenUserHasNoSwapRequests() {
+    // Given
+    when(userService.getUser("receiver123")).thenReturn(userEntity);
+    when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList());
+    when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
+        .thenReturn(Arrays.asList());
+
+    // When
+    List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, null);
+
+    // Then
+    assertEquals(0, result.size());
+    verify(userService).getUser("receiver123");
+  }
+
+  @Test
+  @DisplayName("Should throw exception when receiver tries to mark sender request as expired")
+  void shouldThrowExceptionWhenReceiverTriesToMarkSenderRequestAsExpired() {
+    // Given
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+
+    // When & Then
+    assertThrows(IllegalArgumentException.class,
+        () -> inboxService.updateSwapRequestStatus("received1", SwapStatus.EXPIRED.getCode(), "receiver123"));
+    verify(swapRequestRepository).findById("received1");
+    verify(swapRequestRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("Should throw exception when sender tries to accept their own request")
+  void shouldThrowExceptionWhenSenderTriesToAcceptTheirOwnRequest() {
+    // Given
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+
+    // When & Then
+    assertThrows(IllegalArgumentException.class,
+        () -> inboxService.updateSwapRequestStatus("received1", SwapStatus.ACCEPTED.getCode(), "sender123"));
+    verify(swapRequestRepository).findById("received1");
+    verify(swapRequestRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("Should allow receiver to reject swap request")
+  void shouldAllowReceiverToRejectSwapRequest() {
+    // Given
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+    when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(receivedSwapRequest);
+
+    // When
+    SwapRequest result = inboxService.updateSwapRequestStatus("received1", SwapStatus.REJECTED.getCode(),
+        "receiver123");
+
+    // Then
+    assertNotNull(result);
+    assertEquals(SwapStatus.REJECTED.getCode(), receivedSwapRequest.getSwapStatus());
+    verify(swapRequestRepository).save(receivedSwapRequest);
+    verify(eventPublisher, times(2)).publishEvent(any(InboxUpdateEvent.class));
+  }
+
+  @Test
+  @DisplayName("Should throw BadRequestException for invalid status code")
+  void shouldThrowBadRequestExceptionForInvalidStatusCode() {
+    // Given - validation happens before repository call, so no need to mock
+
+    // When & Then
+    assertThrows(BadRequestException.class,
+        () -> inboxService.updateSwapRequestStatus("received1", "INVALID_STATUS", "receiver123"));
+    // Validation happens first, so repository should not be called
+    verifyNoInteractions(swapRequestRepository);
+  }
 }

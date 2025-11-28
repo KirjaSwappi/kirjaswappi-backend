@@ -5,6 +5,7 @@
 package com.kirjaswappi.backend.service;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.time.Instant;
@@ -18,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import com.kirjaswappi.backend.common.service.NotificationService;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.GenreDao;
 import com.kirjaswappi.backend.jpa.daos.SwapConditionDao;
@@ -51,6 +53,8 @@ class SwapServiceTest {
   private BookService bookService;
   @Mock
   private GenreService genreService;
+  @Mock
+  private NotificationService notificationService;
   @InjectMocks
   private SwapService swapService;
 
@@ -615,5 +619,317 @@ class SwapServiceTest {
     assertDoesNotThrow(() -> swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId));
     verify(swapRequestRepository).findById(swapRequestId);
     verify(swapRequestRepository).save(any(SwapRequestDao.class));
+  }
+
+  @Test
+  @DisplayName("Should throw IllegalSwapRequestException when sender and receiver are the same")
+  void createSwapRequestThrowsWhenSenderAndReceiverAreSame() {
+    // Given
+    var swapRequest = new SwapRequest();
+    var user = new User();
+    user.setId("sameUserId");
+    var book = new Book();
+    book.setId("bookId");
+
+    swapRequest.setSender(user);
+    swapRequest.setReceiver(user);
+    swapRequest.setBookToSwapWith(book);
+
+    when(swapRequestRepository.existsAlready("sameUserId", "sameUserId", "bookId")).thenReturn(false);
+
+    // When & Then
+    assertThrows(IllegalSwapRequestException.class,
+        () -> swapService.createSwapRequest(swapRequest));
+    verify(swapRequestRepository).existsAlready("sameUserId", "sameUserId", "bookId");
+  }
+
+  @Test
+  @DisplayName("Should create swap request without swap offer successfully")
+  void createSwapRequestWithoutSwapOfferSuccess() {
+    // Given
+    var swapRequest = new SwapRequest();
+    var sender = new User();
+    sender.setId("senderId");
+    sender.setFirstName("John");
+    sender.setLastName("Doe");
+    sender.setBooks(List.of());
+    var receiver = new User();
+    receiver.setId("receiverId");
+    var book = new Book();
+    book.setId("bookId");
+    book.setTitle("Test Book");
+    book.setLanguage(Language.ENGLISH);
+    book.setCondition(Condition.GOOD);
+
+    swapRequest.setSender(sender);
+    swapRequest.setReceiver(receiver);
+    swapRequest.setBookToSwapWith(book);
+    swapRequest.setSwapType(SwapType.BY_BOOKS);
+    swapRequest.setSwapOffer(null); // No swap offer
+
+    receiver.setBooks(List.of(book));
+    var swapCondition = new SwapCondition();
+    swapCondition.setSwappableBooks(List.of());
+    swapCondition.setSwappableGenres(List.of());
+    swapCondition.setSwapType(SwapType.BY_BOOKS);
+    swapCondition.setGiveAway(false);
+    swapCondition.setOpenForOffers(false);
+    book.setSwapCondition(swapCondition);
+
+    when(swapRequestRepository.existsAlready("senderId", "receiverId", "bookId")).thenReturn(false);
+    when(userService.getUser("senderId")).thenReturn(sender);
+    when(userService.getUser("receiverId")).thenReturn(receiver);
+    when(bookService.getBookById("bookId")).thenReturn(book);
+
+    var mockSwapRequestDao = createMockSwapRequestDao("senderId", "receiverId", "bookId", "Pending", null);
+    when(swapRequestRepository.save(any())).thenReturn(mockSwapRequestDao);
+
+    // When
+    SwapRequest result = swapService.createSwapRequest(swapRequest);
+
+    // Then
+    assertNotNull(result);
+    verify(swapRequestRepository).save(any());
+    verify(notificationService).sendNotification(eq("receiverId"), anyString(), anyString());
+  }
+
+  @Test
+  @DisplayName("Should send notification when creating swap request successfully")
+  void createSwapRequestSendsNotificationOnSuccess() {
+    // Given
+    var swapRequest = new SwapRequest();
+    var sender = new User();
+    sender.setId("senderId");
+    sender.setFirstName("John");
+    sender.setLastName("Doe");
+    sender.setBooks(List.of());
+    var receiver = new User();
+    receiver.setId("receiverId");
+    var book = new Book();
+    book.setId("bookId");
+    book.setTitle("Amazing Book");
+    book.setLanguage(Language.ENGLISH);
+    book.setCondition(Condition.GOOD);
+
+    swapRequest.setSender(sender);
+    swapRequest.setReceiver(receiver);
+    swapRequest.setBookToSwapWith(book);
+    swapRequest.setSwapType(SwapType.BY_BOOKS);
+
+    receiver.setBooks(List.of(book));
+    var swapCondition = new SwapCondition();
+    swapCondition.setSwappableBooks(List.of());
+    swapCondition.setSwappableGenres(List.of());
+    swapCondition.setSwapType(SwapType.BY_BOOKS);
+    swapCondition.setGiveAway(false);
+    swapCondition.setOpenForOffers(false);
+    book.setSwapCondition(swapCondition);
+
+    when(swapRequestRepository.existsAlready("senderId", "receiverId", "bookId")).thenReturn(false);
+    when(userService.getUser("senderId")).thenReturn(sender);
+    when(userService.getUser("receiverId")).thenReturn(receiver);
+    when(bookService.getBookById("bookId")).thenReturn(book);
+
+    var mockSwapRequestDao = createMockSwapRequestDao("senderId", "receiverId", "bookId", "Pending", null);
+    when(swapRequestRepository.save(any())).thenReturn(mockSwapRequestDao);
+
+    // When
+    swapService.createSwapRequest(swapRequest);
+
+    // Then
+    verify(notificationService).sendNotification(
+        eq("receiverId"),
+        eq("New Swap Request"),
+        eq("John Doe wants to swap for your book 'Amazing Book'"));
+  }
+
+  @Test
+  @DisplayName("Should continue creating swap request even when notification fails")
+  void createSwapRequestContinuesWhenNotificationFails() {
+    // Given
+    var swapRequest = new SwapRequest();
+    var sender = new User();
+    sender.setId("senderId");
+    sender.setFirstName("John");
+    sender.setLastName("Doe");
+    sender.setBooks(List.of());
+    var receiver = new User();
+    receiver.setId("receiverId");
+    var book = new Book();
+    book.setId("bookId");
+    book.setTitle("Test Book");
+    book.setLanguage(Language.ENGLISH);
+    book.setCondition(Condition.GOOD);
+
+    swapRequest.setSender(sender);
+    swapRequest.setReceiver(receiver);
+    swapRequest.setBookToSwapWith(book);
+    swapRequest.setSwapType(SwapType.BY_BOOKS);
+
+    receiver.setBooks(List.of(book));
+    var swapCondition = new SwapCondition();
+    swapCondition.setSwappableBooks(List.of());
+    swapCondition.setSwappableGenres(List.of());
+    swapCondition.setSwapType(SwapType.BY_BOOKS);
+    swapCondition.setGiveAway(false);
+    swapCondition.setOpenForOffers(false);
+    book.setSwapCondition(swapCondition);
+
+    when(swapRequestRepository.existsAlready("senderId", "receiverId", "bookId")).thenReturn(false);
+    when(userService.getUser("senderId")).thenReturn(sender);
+    when(userService.getUser("receiverId")).thenReturn(receiver);
+    when(bookService.getBookById("bookId")).thenReturn(book);
+
+    var mockSwapRequestDao = createMockSwapRequestDao("senderId", "receiverId", "bookId", "Pending", null);
+    when(swapRequestRepository.save(any())).thenReturn(mockSwapRequestDao);
+
+    // Notification service throws exception
+    doThrow(new RuntimeException("Notification service unavailable"))
+        .when(notificationService).sendNotification(anyString(), anyString(), anyString());
+
+    // When & Then - should not throw exception
+    assertDoesNotThrow(() -> swapService.createSwapRequest(swapRequest));
+    verify(swapRequestRepository).save(any());
+  }
+
+  @Test
+  @DisplayName("Should send notification when updating swap request status successfully")
+  void updateSwapRequestStatusSendsNotificationOnSuccess() {
+    // Given
+    String swapRequestId = "swap123";
+    String userId = "receiver123";
+    SwapStatus newStatus = SwapStatus.ACCEPTED;
+
+    var mockSwapRequestDao = createMockSwapRequestDao("sender123", userId, "bookId", "Pending", null);
+    when(mockSwapRequestDao.getBookToSwapWith().getTitle()).thenReturn("Amazing Book");
+
+    when(swapRequestRepository.findById(swapRequestId)).thenReturn(Optional.of(mockSwapRequestDao));
+    when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(mockSwapRequestDao);
+
+    // When
+    swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId);
+
+    // Then
+    verify(notificationService).sendNotification(
+        eq("sender123"),
+        eq("Swap Request Update"),
+        eq("Your swap request for 'Amazing Book' has been accepted"));
+  }
+
+  @Test
+  @DisplayName("Should continue updating status even when notification fails")
+  void updateSwapRequestStatusContinuesWhenNotificationFails() {
+    // Given
+    String swapRequestId = "swap123";
+    String userId = "receiver123";
+    SwapStatus newStatus = SwapStatus.REJECTED;
+
+    var mockSwapRequestDao = createMockSwapRequestDao("sender123", userId, "bookId", "Pending", null);
+
+    when(swapRequestRepository.findById(swapRequestId)).thenReturn(Optional.of(mockSwapRequestDao));
+    when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(mockSwapRequestDao);
+
+    // Notification service throws exception
+    doThrow(new RuntimeException("Notification service unavailable"))
+        .when(notificationService).sendNotification(anyString(), anyString(), anyString());
+
+    // When & Then - should not throw exception
+    assertDoesNotThrow(() -> swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId));
+    verify(swapRequestRepository).save(any(SwapRequestDao.class));
+  }
+
+  @Test
+  @DisplayName("Should validate that only PENDING status can transition to ACCEPTED")
+  void updateSwapRequestStatusValidatesTransitionFromPendingToAccepted() {
+    // Given
+    String swapRequestId = "swap123";
+    String userId = "receiver123";
+    SwapStatus newStatus = SwapStatus.ACCEPTED;
+
+    var mockSwapRequestDao = createMockSwapRequestDao("sender123", userId, "bookId", "Pending", null);
+
+    when(swapRequestRepository.findById(swapRequestId)).thenReturn(Optional.of(mockSwapRequestDao));
+    when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(mockSwapRequestDao);
+
+    // When & Then
+    assertDoesNotThrow(() -> swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId));
+    verify(swapRequestRepository).save(any(SwapRequestDao.class));
+  }
+
+  @Test
+  @DisplayName("Should validate that only PENDING status can transition to REJECTED")
+  void updateSwapRequestStatusValidatesTransitionFromPendingToRejected() {
+    // Given
+    String swapRequestId = "swap123";
+    String userId = "receiver123";
+    SwapStatus newStatus = SwapStatus.REJECTED;
+
+    var mockSwapRequestDao = createMockSwapRequestDao("sender123", userId, "bookId", "Pending", null);
+
+    when(swapRequestRepository.findById(swapRequestId)).thenReturn(Optional.of(mockSwapRequestDao));
+    when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(mockSwapRequestDao);
+
+    // When & Then
+    assertDoesNotThrow(() -> swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId));
+    verify(swapRequestRepository).save(any(SwapRequestDao.class));
+  }
+
+  @Test
+  @DisplayName("Should throw InvalidStatusTransitionException when transitioning from REJECTED")
+  void updateSwapRequestStatusThrowsWhenTransitioningFromRejected() {
+    // Given
+    String swapRequestId = "swap123";
+    String userId = "receiver123";
+    SwapStatus newStatus = SwapStatus.ACCEPTED;
+
+    var mockSwapRequestDao = createMockSwapRequestDao("sender123", userId, "bookId", "Rejected", null);
+
+    when(swapRequestRepository.findById(swapRequestId)).thenReturn(Optional.of(mockSwapRequestDao));
+
+    // When & Then
+    assertThrows(InvalidStatusTransitionException.class,
+        () -> swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId));
+  }
+
+  // Helper method to create mock SwapRequestDao
+  private SwapRequestDao createMockSwapRequestDao(String senderId, String receiverId, String bookId,
+      String status, SwapOfferDao swapOfferDao) {
+    var mockSwapRequestDao = mock(SwapRequestDao.class);
+    var mockSenderDao = mock(UserDao.class);
+    var mockReceiverDao = mock(UserDao.class);
+    var mockBookDao = mock(BookDao.class);
+    var mockOwnerDao = mock(UserDao.class);
+    var mockSwapConditionDao = mock(SwapConditionDao.class);
+
+    when(mockSwapRequestDao.getSender()).thenReturn(mockSenderDao);
+    when(mockSwapRequestDao.getReceiver()).thenReturn(mockReceiverDao);
+    when(mockSwapRequestDao.getBookToSwapWith()).thenReturn(mockBookDao);
+    when(mockSwapRequestDao.getSwapOfferDao()).thenReturn(swapOfferDao);
+    when(mockSwapRequestDao.getSwapType()).thenReturn("ByBooks");
+    when(mockSwapRequestDao.getSwapStatus()).thenReturn(status);
+    when(mockSwapRequestDao.getRequestedAt()).thenReturn(Instant.now());
+    when(mockSwapRequestDao.getUpdatedAt()).thenReturn(Instant.now());
+
+    when(mockSenderDao.getId()).thenReturn(senderId);
+    when(mockReceiverDao.getId()).thenReturn(receiverId);
+
+    when(mockBookDao.getId()).thenReturn(bookId);
+    when(mockBookDao.getTitle()).thenReturn("Test Book");
+    when(mockBookDao.getAuthor()).thenReturn("Test Author");
+    when(mockBookDao.getDescription()).thenReturn("Test Description");
+    when(mockBookDao.getLanguage()).thenReturn("English");
+    when(mockBookDao.getCondition()).thenReturn("Good");
+    when(mockBookDao.getGenres()).thenReturn(List.of());
+    when(mockBookDao.getCoverPhotos()).thenReturn(List.of());
+    when(mockBookDao.getOwner()).thenReturn(mockOwnerDao);
+    when(mockBookDao.getSwapCondition()).thenReturn(mockSwapConditionDao);
+
+    when(mockSwapConditionDao.getSwapType()).thenReturn("ByBooks");
+    when(mockSwapConditionDao.isGiveAway()).thenReturn(false);
+    when(mockSwapConditionDao.isOpenForOffers()).thenReturn(false);
+    when(mockSwapConditionDao.getSwappableGenres()).thenReturn(List.of());
+    when(mockSwapConditionDao.getSwappableBooks()).thenReturn(List.of());
+
+    return mockSwapRequestDao;
   }
 }
