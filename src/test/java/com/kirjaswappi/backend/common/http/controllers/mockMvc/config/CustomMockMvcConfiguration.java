@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kirjaswappi.backend.common.http.ErrorUtils;
 
 @TestConfiguration
@@ -27,5 +28,10 @@ public class CustomMockMvcConfiguration {
     return MockMvcBuilders.webAppContextSetup(webApplicationContext)
         .defaultRequest(get("/").header("Host", "localhost:8080"))
         .build();
+  }
+
+  @Bean
+  public ObjectMapper objectMapper() {
+    return new ObjectMapper();
   }
 }

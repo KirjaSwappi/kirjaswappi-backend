@@ -31,17 +31,17 @@ public class SwapRequestResponse {
   private Instant updatedAt;
 
   public SwapRequestResponse(SwapRequest entity) {
-    this.id = entity.getId();
-    this.senderId = entity.getSender().getId();
-    this.receiverId = entity.getReceiver().getId();
-    this.bookToSwapWith = new BookResponse(entity.getBookToSwapWith());
-    this.swapType = entity.getSwapType().getCode();
-    this.swapOffer = entity.getSwapOffer() == null ? null : new SwapOfferResponse(entity.getSwapOffer());
-    this.askForGiveaway = entity.isAskForGiveaway();
-    this.swapStatus = entity.getSwapStatus().getCode();
-    this.note = entity.getNote();
-    this.requestedAt = entity.getRequestedAt();
-    this.updatedAt = entity.getUpdatedAt();
+    this.id = entity.id();
+    this.senderId = entity.sender().id();
+    this.receiverId = entity.receiver().id();
+    this.bookToSwapWith = new BookResponse(entity.bookToSwapWith());
+    this.swapType = entity.swapType().getCode();
+    this.swapOffer = entity.swapOffer() == null ? null : new SwapOfferResponse(entity.swapOffer());
+    this.askForGiveaway = entity.askForGiveaway();
+    this.swapStatus = entity.swapStatus().getCode();
+    this.note = entity.note();
+    this.requestedAt = entity.requestedAt();
+    this.updatedAt = entity.updatedAt();
   }
 
   @Setter
@@ -51,8 +51,8 @@ public class SwapRequestResponse {
     private GenreResponse offeredGenre;
 
     public SwapOfferResponse(SwapOffer entity) {
-      this.offeredBook = entity.getOfferedBook() == null ? null : new OfferedBookResponse(entity.getOfferedBook());
-      this.offeredGenre = entity.getOfferedGenre() == null ? null : new GenreResponse(entity.getOfferedGenre());
+      this.offeredBook = entity.offeredBook() == null ? null : new OfferedBookResponse(entity.offeredBook());
+      this.offeredGenre = entity.offeredGenre() == null ? null : new GenreResponse(entity.offeredGenre());
     }
 
     @Setter

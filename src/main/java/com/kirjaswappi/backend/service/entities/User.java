@@ -8,15 +8,16 @@ import static com.kirjaswappi.backend.common.utils.Util.hashPassword;
 
 import java.util.List;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.Accessors;
 
 import com.mongodb.lang.Nullable;
 
+// candidate for record
 @Getter
 @Setter
+@Builder
+@Accessors(fluent = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
@@ -42,6 +43,8 @@ public class User {
   @Nullable
   private List<Book> favBooks;
 
+  // Todo: Should the hash generated be tied to a setter rather than setter just
+  // setting the value ???
   public void setPassword(String password, String salt) {
     this.password = hashPassword(password, salt);
   }

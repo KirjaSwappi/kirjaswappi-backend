@@ -7,9 +7,10 @@ package com.kirjaswappi.backend.service;
 import java.util.Collection;
 import java.util.Optional;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,106 +27,101 @@ import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class SwapService {
   private static final Logger logger = LoggerFactory.getLogger(SwapService.class);
 
-  @Autowired
-  private UserService userService;
+  private final UserService userService;
 
-  @Autowired
-  private BookService bookService;
+  private final BookService bookService;
 
-  @Autowired
-  private GenreService genreService;
+  private final GenreService genreService;
 
-  @Autowired
-  private SwapRequestRepository swapRequestRepository;
+  private final SwapRequestRepository swapRequestRepository;
 
-  @Autowired
-  private NotificationService notificationService;
+  private final NotificationService notificationService;
 
   public SwapRequest createSwapRequest(SwapRequest swapRequest) {
     // validation: check if the swap request exists already for this book
-    if (swapRequestRepository.existsAlready(swapRequest.getSender().getId(),
-        swapRequest.getReceiver().getId(), swapRequest.getBookToSwapWith().getId())) {
+    if (swapRequestRepository.existsAlready(swapRequest.sender().id(),
+        swapRequest.receiver().id(), swapRequest.bookToSwapWith().id())) {
       throw new SwapRequestExistsAlreadyException();
     }
 
     // validation: check if the user is trying to swap their own book
-    if (swapRequest.getSender().getId().equals(swapRequest.getReceiver().getId())) {
+    if (swapRequest.sender().id().equals(swapRequest.receiver().id())) {
       throw new IllegalSwapRequestException("senderAndReceiverCannotBeSame");
     }
 
     // set sender:
-    User sender = userService.getUser(swapRequest.getSender().getId());
-    swapRequest.setSender(sender);
-
+    User sender = userService.getUser(swapRequest.sender().id());
     // set receiver:
-    User receiver = userService.getUser(swapRequest.getReceiver().getId());
-    swapRequest.setReceiver(receiver);
-
+    User receiver = userService.getUser(swapRequest.receiver().id());
     // set bookToSwapWith:
-    Book bookToSwapWith = bookService.getBookById(swapRequest.getBookToSwapWith().getId());
-    swapRequest.setBookToSwapWith(bookToSwapWith);
+    Book bookToSwapWith = bookService.getBookById(swapRequest.bookToSwapWith().id());
 
     // check if the bookToSwapWith belongs to the receiver:
-    if (Optional.ofNullable(receiver.getBooks())
+    if (Optional.ofNullable(receiver.books())
         .stream()
         .flatMap(Collection::stream)
-        .noneMatch(book -> book.getId().equals(bookToSwapWith.getId()))) {
+        .noneMatch(book -> book.id().equals(bookToSwapWith.id()))) {
       throw new IllegalSwapRequestException("bookToSwapWithDoesNotBelongToReceiver");
     }
 
-    if (swapRequest.getSwapOffer() != null) {
+    if (swapRequest.swapOffer() != null) {
       // set offeredBook if present:
-      if (swapRequest.getSwapOffer().getOfferedBook() != null) {
+      if (swapRequest.swapOffer().offeredBook() != null) {
         SwappableBook offeredBook = bookService
-            .getSwappableBookById(swapRequest.getSwapOffer().getOfferedBook().getId());
+            .getSwappableBookById(swapRequest.swapOffer().offeredBook().getId());
 
         // check if the offeredBook is present as one of the swappableBooks conditions
         // of bookToSwapWith:
-        if (Optional.ofNullable(bookToSwapWith.getSwapCondition().getSwappableBooks())
+        if (Optional.ofNullable(bookToSwapWith.swapCondition().swappableBooks())
             .stream()
             .flatMap(Collection::stream)
             .noneMatch(book -> book.getId().equals(offeredBook.getId()))) {
           throw new IllegalSwapRequestException("offeredBookDoesNotBelongToOneOfTheSwappableBooks");
         }
 
-        swapRequest.getSwapOffer().setOfferedBook(offeredBook);
+        swapRequest.swapOffer().offeredBook(offeredBook);
       }
 
       // set offeredGenre if present:
-      if (swapRequest.getSwapOffer().getOfferedGenre() != null) {
-        Genre offeredGenre = genreService.getGenreById(swapRequest.getSwapOffer().getOfferedGenre().getId());
+      if (swapRequest.swapOffer().offeredGenre() != null) {
+        Genre offeredGenre = genreService.getGenreById(swapRequest.swapOffer().offeredGenre().getId());
 
         // check if the offeredGenre is present as one of the swappableGenres conditions
         // of bookToSwapWith:
-        if (Optional.ofNullable(bookToSwapWith.getSwapCondition().getSwappableGenres())
+        if (Optional.ofNullable(bookToSwapWith.swapCondition().swappableGenres())
             .stream()
             .flatMap(Collection::stream)
             .noneMatch(genre -> genre.getId().equals(offeredGenre.getId()))) {
           throw new IllegalSwapRequestException("offeredGenreDoesNotBelongToOneOfTheSwappableGenres");
         }
 
-        swapRequest.getSwapOffer().setOfferedGenre(offeredGenre);
+        swapRequest.swapOffer().offeredGenre(offeredGenre);
       }
     }
 
-    swapRequest.setSwapStatus(SwapStatus.PENDING);
-    SwapRequestDao dao = SwapRequestMapper.toDao(swapRequest);
+    var updatedSwapRequest = swapRequest.withSender(sender)
+        .withReceiver(receiver)
+        .withBookToSwapWith(bookToSwapWith)
+        .withSwapStatus(SwapStatus.PENDING);
+
+    SwapRequestDao dao = SwapRequestMapper.toDao(updatedSwapRequest);
     SwapRequestDao createdDao = swapRequestRepository.save(dao);
 
     // Send notification to receiver about new swap request
     try {
       String notificationTitle = "New Swap Request";
       String notificationMessage = String.format("%s %s wants to swap for your book '%s'",
-          sender.getFirstName(), sender.getLastName(), bookToSwapWith.getTitle());
+          sender.firstName(), sender.lastName(), bookToSwapWith.title());
 
-      notificationService.sendNotification(receiver.getId(), notificationTitle, notificationMessage);
+      notificationService.sendNotification(receiver.id(), notificationTitle, notificationMessage);
     } catch (Exception e) {
       // Log error but don't fail the swap request creation
       logger.error("Failed to send notification for new swap request. Receiver: {}, Book: {}",
-          receiver.getId(), bookToSwapWith.getTitle(), e);
+          receiver.id(), bookToSwapWith.title(), e);
       // TODO: Consider adding retry mechanism or dead letter queue
     }
 
@@ -148,11 +144,11 @@ public class SwapService {
     SwapRequest swapRequest = SwapRequestMapper.toEntity(swapRequestDao);
 
     // Validate that the user is the receiver (only receivers can change status)
-    if (!swapRequest.getReceiver().getId().equals(userId)) {
+    if (!swapRequest.receiver().id().equals(userId)) {
       throw new IllegalSwapRequestException("onlyReceiverCanChangeStatus");
     }
 
-    SwapStatus currentStatus = swapRequest.getSwapStatus();
+    SwapStatus currentStatus = swapRequest.swapStatus();
 
     // Validate status transition
     if (!isValidStatusTransition(currentStatus, newStatus)) {
@@ -160,22 +156,21 @@ public class SwapService {
     }
 
     // Update the status
-    swapRequest.setSwapStatus(newStatus);
-    swapRequestDao = SwapRequestMapper.toDao(swapRequest);
+    swapRequestDao = SwapRequestMapper.toDao(swapRequest.withSwapStatus(newStatus));
     SwapRequestDao updatedDao = swapRequestRepository.save(swapRequestDao);
 
     // Send notification to sender about status change
     try {
       String notificationTitle = "Swap Request Update";
       String notificationMessage = String.format("Your swap request for '%s' has been %s",
-          swapRequest.getBookToSwapWith().getTitle(),
+          swapRequest.bookToSwapWith().title(),
           newStatus.getCode().toLowerCase());
 
-      notificationService.sendNotification(swapRequest.getSender().getId(), notificationTitle, notificationMessage);
+      notificationService.sendNotification(swapRequest.sender().id(), notificationTitle, notificationMessage);
     } catch (Exception e) {
       // Log error but don't fail the status update
       logger.error("Failed to send notification for swap request status update. Sender: {}, Status: {}",
-          swapRequest.getSender().getId(), newStatus.getCode(), e);
+          swapRequest.sender().id(), newStatus.getCode(), e);
       // TODO: Consider adding retry mechanism or dead letter queue
     }
 

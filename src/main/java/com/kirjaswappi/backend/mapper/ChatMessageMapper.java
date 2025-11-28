@@ -4,47 +4,46 @@
  */
 package com.kirjaswappi.backend.mapper;
 
+import static com.kirjaswappi.backend.common.utils.Util.defaultIfNull;
+
 import java.time.Instant;
 import java.util.List;
-
-import lombok.NoArgsConstructor;
-
-import org.springframework.stereotype.Component;
 
 import com.kirjaswappi.backend.jpa.daos.ChatMessageDao;
 import com.kirjaswappi.backend.service.entities.ChatMessage;
 
-@Component
-@NoArgsConstructor
-public class ChatMessageMapper {
+public final class ChatMessageMapper {
+
+  private ChatMessageMapper() {
+    throw new IllegalStateException("Mapper class should not be instantiated");
+  }
+
   public static ChatMessage toEntity(ChatMessageDao dao) {
-    var entity = new ChatMessage();
-    entity.setId(dao.getId());
-    entity.setSwapRequestId(dao.getSwapRequestId());
-    entity.setSender(UserMapper.toEntity(dao.getSender()));
-    entity.setMessage(dao.getMessage());
-    entity.setImageIds(dao.getImageIds()); // Map image IDs
-    entity.setSentAt(dao.getSentAt());
-    entity.setReadByReceiver(dao.isReadByReceiver());
-    return entity;
+    return ChatMessage.builder()
+        .id(dao.id())
+        .swapRequestId(dao.swapRequestId())
+        .sender(UserMapper.toEntity(dao.sender()))
+        .message(dao.message())
+        .imageIds(dao.imageIds()) // Map image IDs
+        .sentAt(dao.sentAt())
+        .readByReceiver(dao.readByReceiver())
+        .build();
   }
 
   public static ChatMessage toEntity(ChatMessageDao dao, List<String> imageUrls) {
-    var entity = toEntity(dao);
-    entity.setImageIds(imageUrls); // Replace IDs with URLs for response
-    return entity;
+    return toEntity(dao)
+        .withImageIds(imageUrls); // Replace IDs with URLs for response
   }
 
   public static ChatMessageDao toDao(ChatMessage entity) {
-    var dao = new ChatMessageDao();
-    dao.setId(entity.getId());
-    dao.setSwapRequestId(entity.getSwapRequestId());
-    dao.setSender(UserMapper.toDao(entity.getSender()));
-    dao.setMessage(entity.getMessage());
-    dao.setImageIds(entity.getImageIds()); // Map image IDs
-    var currentTime = Instant.now();
-    dao.setSentAt(entity.getSentAt() == null ? currentTime : entity.getSentAt());
-    dao.setReadByReceiver(entity.isReadByReceiver());
-    return dao;
+    return ChatMessageDao.builder()
+        .id(entity.id())
+        .swapRequestId(entity.swapRequestId())
+        .sender(UserMapper.toDao(entity.sender()))
+        .message(entity.message())
+        .imageIds(entity.imageIds()) // Map image IDs
+        .sentAt(defaultIfNull(entity.sentAt(), Instant.now()))
+        .readByReceiver(entity.readByReceiver())
+        .build();
   }
 }

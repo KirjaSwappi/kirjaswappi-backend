@@ -8,6 +8,10 @@ spring:
       uri: ${MONGODB_URI}
       database: ${MONGODB_DATABASE}
 
+  threads:
+    virtual:
+      enabled: true
+
 springdoc:
   swagger-ui:
     schemes:

@@ -10,7 +10,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -26,18 +27,16 @@ import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class InboxService {
-  @Autowired
-  private SwapRequestRepository swapRequestRepository;
 
-  @Autowired
-  private UserService userService;
+  private final SwapRequestRepository swapRequestRepository;
 
-  @Autowired
-  private ChatService chatService;
+  private final UserService userService;
 
-  @Autowired
-  private ApplicationEventPublisher eventPublisher;
+  private final ChatService chatService;
+
+  private final ApplicationEventPublisher eventPublisher;
 
   public List<SwapRequest> getUnifiedInbox(String userId, String status, String sortBy) {
     // Validate user exists
@@ -92,27 +91,27 @@ public class InboxService {
     }
 
     // Validate status transition
-    SwapStatus currentStatus = SwapStatus.fromCode(swapRequestDao.getSwapStatus());
+    SwapStatus currentStatus = SwapStatus.fromCode(swapRequestDao.swapStatus());
     if (!isValidStatusTransition(currentStatus, newSwapStatus)) {
       throw new IllegalArgumentException(
           "Invalid status transition from " + currentStatus.getCode() + " to " + newSwapStatus.getCode());
     }
 
     // Update status
-    swapRequestDao.setSwapStatus(newSwapStatus.getCode());
+    swapRequestDao.swapStatus(newSwapStatus.getCode());
     SwapRequestDao updatedDao = swapRequestRepository.save(swapRequestDao);
 
     // Clear unread count cache for both users when status changes
-    clearUnreadCountCache(swapRequestDao.getSender().getId(), swapRequestId);
-    clearUnreadCountCache(swapRequestDao.getReceiver().getId(), swapRequestId);
+    clearUnreadCountCache(swapRequestDao.sender().id(), swapRequestId);
+    clearUnreadCountCache(swapRequestDao.receiver().id(), swapRequestId);
 
     // Publish inbox update events for real-time status changes
     eventPublisher.publishEvent(new InboxUpdateEvent(
-        swapRequestDao.getSender().getId(),
+        swapRequestDao.sender().id(),
         swapRequestId,
         InboxUpdateEvent.STATUS_CHANGE));
     eventPublisher.publishEvent(new InboxUpdateEvent(
-        swapRequestDao.getReceiver().getId(),
+        swapRequestDao.receiver().id(),
         swapRequestId,
         InboxUpdateEvent.STATUS_CHANGE));
 
@@ -135,11 +134,11 @@ public class InboxService {
     boolean updated = false;
 
     // Mark as read by the appropriate user
-    if (swapRequestDao.getReceiver().getId().equals(userId) && swapRequestDao.getReadByReceiverAt() == null) {
-      swapRequestDao.setReadByReceiverAt(now);
+    if (swapRequestDao.receiver().id().equals(userId) && swapRequestDao.readByReceiverAt() == null) {
+      swapRequestDao.readByReceiverAt(now);
       updated = true;
-    } else if (swapRequestDao.getSender().getId().equals(userId) && swapRequestDao.getReadBySenderAt() == null) {
-      swapRequestDao.setReadBySenderAt(now);
+    } else if (swapRequestDao.sender().id().equals(userId) && swapRequestDao.readBySenderAt() == null) {
+      swapRequestDao.readBySenderAt(now);
       updated = true;
     }
 
@@ -150,10 +149,10 @@ public class InboxService {
   }
 
   public boolean isInboxItemUnread(SwapRequest swapRequest, String userId) {
-    if (swapRequest.getReceiver().getId().equals(userId)) {
-      return swapRequest.getReadByReceiverAt() == null;
-    } else if (swapRequest.getSender().getId().equals(userId)) {
-      return swapRequest.getReadBySenderAt() == null;
+    if (swapRequest.receiver().id().equals(userId)) {
+      return swapRequest.readByReceiverAt() == null;
+    } else if (swapRequest.sender().id().equals(userId)) {
+      return swapRequest.readBySenderAt() == null;
     }
     return false;
   }
@@ -171,8 +170,8 @@ public class InboxService {
       // Sort by latest message timestamp, fallback to request date if no messages
       return swapRequests.stream()
           .sorted((sr1, sr2) -> {
-            Optional<Instant> timestamp1 = chatService.getLatestMessageTimestamp(sr1.getId());
-            Optional<Instant> timestamp2 = chatService.getLatestMessageTimestamp(sr2.getId());
+            Optional<Instant> timestamp1 = chatService.getLatestMessageTimestamp(sr1.id());
+            Optional<Instant> timestamp2 = chatService.getLatestMessageTimestamp(sr2.id());
 
             // If both have messages, compare by latest message timestamp (desc)
             if (timestamp1.isPresent() && timestamp2.isPresent()) {
@@ -184,24 +183,24 @@ public class InboxService {
             if (timestamp2.isPresent())
               return 1;
             // If neither has messages, sort by request date (desc)
-            return sr2.getRequestedAt().compareTo(sr1.getRequestedAt());
+            return sr2.requestedAt().compareTo(sr1.requestedAt());
           })
           .toList();
     }
 
     return switch (sortBy.toLowerCase()) {
     case "date" -> swapRequests.stream()
-        .sorted(Comparator.comparing(SwapRequest::getRequestedAt).reversed())
+        .sorted(Comparator.comparing(SwapRequest::requestedAt).reversed())
         .toList();
     case "book_title" -> swapRequests.stream()
-        .sorted(Comparator.comparing(sr -> sr.getBookToSwapWith().getTitle(), String.CASE_INSENSITIVE_ORDER))
+        .sorted(Comparator.comparing(sr -> sr.bookToSwapWith().title(), String.CASE_INSENSITIVE_ORDER))
         .toList();
     case "sender_name" -> swapRequests.stream()
-        .sorted(Comparator.comparing(sr -> sr.getSender().getFirstName() + " " + sr.getSender().getLastName(),
+        .sorted(Comparator.comparing(sr -> sr.sender().firstName() + " " + sr.sender().lastName(),
             String.CASE_INSENSITIVE_ORDER))
         .toList();
     case "status" -> swapRequests.stream()
-        .sorted(Comparator.comparing(sr -> sr.getSwapStatus().getCode(), String.CASE_INSENSITIVE_ORDER))
+        .sorted(Comparator.comparing(sr -> sr.swapStatus().getCode(), String.CASE_INSENSITIVE_ORDER))
         .toList();
     default -> sortByLatestMessage(swapRequests);
     };
@@ -214,8 +213,8 @@ public class InboxService {
   private List<SwapRequest> sortByLatestMessage(List<SwapRequest> swapRequests) {
     return swapRequests.stream()
         .sorted((sr1, sr2) -> {
-          Optional<Instant> timestamp1 = chatService.getLatestMessageTimestamp(sr1.getId());
-          Optional<Instant> timestamp2 = chatService.getLatestMessageTimestamp(sr2.getId());
+          Optional<Instant> timestamp1 = chatService.getLatestMessageTimestamp(sr1.id());
+          Optional<Instant> timestamp2 = chatService.getLatestMessageTimestamp(sr2.id());
 
           // If both have messages, compare by latest message timestamp (desc)
           if (timestamp1.isPresent() && timestamp2.isPresent()) {
@@ -227,21 +226,21 @@ public class InboxService {
           if (timestamp2.isPresent())
             return 1;
           // If neither has messages, sort by request date (desc)
-          return sr2.getRequestedAt().compareTo(sr1.getRequestedAt());
+          return sr2.requestedAt().compareTo(sr1.requestedAt());
         })
         .toList();
   }
 
   private boolean canUpdateStatus(SwapRequestDao swapRequest, String userId, SwapStatus newStatus) {
     // Receiver can accept, reject, or mark as reserved
-    if (swapRequest.getReceiver().getId().equals(userId)) {
+    if (swapRequest.receiver().id().equals(userId)) {
       return newStatus == SwapStatus.ACCEPTED ||
           newStatus == SwapStatus.REJECTED ||
           newStatus == SwapStatus.RESERVED;
     }
 
     // Sender can only mark as expired (cancel their own request)
-    if (swapRequest.getSender().getId().equals(userId)) {
+    if (swapRequest.sender().id().equals(userId)) {
       return newStatus == SwapStatus.EXPIRED;
     }
 

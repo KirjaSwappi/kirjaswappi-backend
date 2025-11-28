@@ -52,40 +52,44 @@ class ChatControllerTest {
   @Test
   @DisplayName("Should return chat messages when user has access")
   void shouldReturnChatMessagesWhenUserHasAccess() throws Exception {
-    // Given
-    User sender = new User();
-    sender.setId("sender123");
-    sender.setFirstName("John");
-    sender.setLastName("Doe");
+    var sender = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
 
-    Book requestedBook = new Book();
-    requestedBook.setId("book123");
-    requestedBook.setTitle("Test Book");
-    requestedBook.setAuthor("Test Author");
+    var requestedBook = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .build();
 
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap123");
-    swapRequest.setSender(sender);
-    swapRequest.setBookToSwapWith(requestedBook);
-    swapRequest.setSwapType(SwapType.BY_BOOKS);
-    swapRequest.setSwapStatus(SwapStatus.PENDING);
-    swapRequest.setAskForGiveaway(false);
+    var swapRequest = SwapRequest.builder()
+        .id("swap123")
+        .sender(sender)
+        .bookToSwapWith(requestedBook)
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.PENDING)
+        .askForGiveaway(false)
+        .build();
 
-    ChatMessage message1 = new ChatMessage();
-    message1.setId("msg1");
-    message1.setSwapRequestId("swap123");
-    message1.setSender(sender);
-    message1.setMessage("Hello, is this book available?");
-    message1.setSentAt(Instant.parse("2025-01-01T10:00:00Z"));
-    message1.setReadByReceiver(false);
+    var message1 = ChatMessage.builder()
+        .id("msg1")
+        .swapRequestId("swap123")
+        .sender(sender)
+        .message("Hello, is this book available?")
+        .sentAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .readByReceiver(false)
+        .build();
 
-    ChatMessage message2 = new ChatMessage();
-    message2.setId("msg2");
-    message2.setSwapRequestId("swap123");
-    message2.setSender(sender);
-    message2.setMessage("Yes, it's still available!");
-    message2.setSentAt(Instant.parse("2025-01-01T10:05:00Z"));
-    message2.setReadByReceiver(true);
+    var message2 = ChatMessage.builder()
+        .id("msg2")
+        .swapRequestId("swap123")
+        .sender(sender)
+        .message("Yes, it's still available!")
+        .sentAt(Instant.parse("2025-01-01T10:05:00Z"))
+        .readByReceiver(true)
+        .build();
 
     List<ChatMessage> messages = Arrays.asList(message1, message2);
     when(chatService.getChatMessages("swap123", "user123")).thenReturn(messages);
@@ -151,32 +155,35 @@ class ChatControllerTest {
   @Test
   @DisplayName("Should send message successfully")
   void shouldSendMessageSuccessfully() throws Exception {
-    // Given
-    User sender = new User();
-    sender.setId("user123");
-    sender.setFirstName("John");
-    sender.setLastName("Doe");
+    var sender = User.builder()
+        .id("user123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
 
-    Book requestedBook = new Book();
-    requestedBook.setId("book123");
-    requestedBook.setTitle("Test Book");
-    requestedBook.setAuthor("Test Author");
+    var requestedBook = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .build();
 
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap123");
-    swapRequest.setSender(sender);
-    swapRequest.setBookToSwapWith(requestedBook);
-    swapRequest.setSwapType(SwapType.BY_BOOKS);
-    swapRequest.setSwapStatus(SwapStatus.PENDING);
-    swapRequest.setAskForGiveaway(false);
+    var swapRequest = SwapRequest.builder()
+        .id("swap123")
+        .sender(sender)
+        .bookToSwapWith(requestedBook)
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.PENDING)
+        .askForGiveaway(false)
+        .build();
 
-    ChatMessage sentMessage = new ChatMessage();
-    sentMessage.setId("msg123");
-    sentMessage.setSwapRequestId("swap123");
-    sentMessage.setSender(sender);
-    sentMessage.setMessage("Hello, is this book still available?");
-    sentMessage.setSentAt(Instant.parse("2025-01-01T10:00:00Z"));
-    sentMessage.setReadByReceiver(false);
+    var sentMessage = ChatMessage.builder()
+        .id("msg123")
+        .swapRequestId("swap123")
+        .sender(sender)
+        .message("Hello, is this book still available?")
+        .sentAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .readByReceiver(false)
+        .build();
 
     when(chatService.sendMessage("swap123", "user123", "Hello, is this book still available?", null))
         .thenReturn(sentMessage);
@@ -251,37 +258,41 @@ class ChatControllerTest {
   @Test
   @DisplayName("Should return chat messages without swap context for subsequent messages")
   void shouldReturnChatMessagesWithoutSwapContextForSubsequentMessages() throws Exception {
-    // Given
-    User sender = new User();
-    sender.setId("sender123");
-    sender.setFirstName("John");
-    sender.setLastName("Doe");
+    var sender = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
 
-    Book requestedBook = new Book();
-    requestedBook.setId("book123");
-    requestedBook.setTitle("Pride and Prejudice");
-    requestedBook.setAuthor("Jane Austen");
+    var requestedBook = Book.builder()
+        .id("book123")
+        .title("Pride and Prejudice")
+        .author("Jane Austen")
+        .build();
 
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap123");
-    swapRequest.setSender(sender);
-    swapRequest.setBookToSwapWith(requestedBook);
-    swapRequest.setSwapType(SwapType.BY_GENRES);
-    swapRequest.setSwapStatus(SwapStatus.PENDING);
+    var swapRequest = SwapRequest.builder()
+        .id("swap123")
+        .sender(sender)
+        .bookToSwapWith(requestedBook)
+        .swapType(SwapType.BY_GENRES)
+        .swapStatus(SwapStatus.PENDING)
+        .build();
 
-    ChatMessage message1 = new ChatMessage();
-    message1.setId("msg1");
-    message1.setSwapRequestId("swap123");
-    message1.setSender(sender);
-    message1.setMessage("First message");
-    message1.setSentAt(Instant.parse("2025-01-01T10:00:00Z"));
+    var message1 = ChatMessage.builder()
+        .id("msg1")
+        .swapRequestId("swap123")
+        .sender(sender)
+        .message("First message")
+        .sentAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .build();
 
-    ChatMessage message2 = new ChatMessage();
-    message2.setId("msg2");
-    message2.setSwapRequestId("swap123");
-    message2.setSender(sender);
-    message2.setMessage("Second message");
-    message2.setSentAt(Instant.parse("2025-01-01T10:05:00Z"));
+    var message2 = ChatMessage.builder()
+        .id("msg2")
+        .swapRequestId("swap123")
+        .sender(sender)
+        .message("Second message")
+        .sentAt(Instant.parse("2025-01-01T10:05:00Z"))
+        .build();
 
     List<ChatMessage> messages = Arrays.asList(message1, message2);
     when(chatService.getChatMessages("swap123", "user123")).thenReturn(messages);

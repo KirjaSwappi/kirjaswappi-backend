@@ -197,10 +197,10 @@ public class BookController {
   }
 
   private void parseBookSwapCondition(String swapConditionJson, Book book) {
-    ObjectMapper objectMapper = new ObjectMapper();
+    var objectMapper = new ObjectMapper();
     try {
-      book.setSwapCondition(objectMapper.readValue(swapConditionJson, SwapConditionRequest.class).toEntity());
-    } catch (Exception e) {
+      objectMapper.readValue(swapConditionJson, SwapConditionRequest.class).toEntity();
+    } catch (Exception _) {
       throw new BadRequestException("invalidSwapConditionRequest", swapConditionJson);
     }
   }

@@ -34,44 +34,57 @@ public class BookListResponse {
   private String offeredBy;
 
   public BookListResponse(Book entity) {
-    this.id = entity.getId();
-    this.title = entity.getTitle();
-    this.author = entity.getAuthor();
-    this.genres = entity.getGenres().stream().map(Genre::getName).toList();
-    this.language = entity.getLanguage().getCode();
-    this.description = entity.getDescription();
-    this.condition = entity.getCondition().getCode();
-    this.coverPhotoUrl = entity.getCoverPhotos() != null ? entity.getCoverPhotos().getFirst() : null;
-    this.bookLocation = entity.getOwner() != null ? entity.getOwner().getCity() : null;
-    this.location = entity.getLocation() != null ? new BookLocationResponse(entity.getLocation()) : null;
+    this.id = entity.id();
+    this.title = entity.title();
+    this.author = entity.author();
+    this.genres = entity.genres().stream().map(Genre::getName).toList();
+    this.language = entity.language().code();
+    this.description = entity.description();
+    this.condition = entity.condition().code();
+    this.coverPhotoUrl = entity.coverPhotos() != null ? entity.coverPhotos().getFirst() : null;
+    this.bookLocation = entity.owner() != null ? entity.owner().city() : null;
+    this.location = entity.location() != null ? new BookLocationResponse(entity.location()) : null;
     this.offeredAgo = this.getOfferedAgoHumanReadable(entity.getOfferedAgo());
-    this.ownerId = entity.getOwner() != null ? entity.getOwner().getId() : null;
-    this.offeredBy = entity.getOwner() != null
-        ? entity.getOwner().getFirstName() + " " + entity.getOwner().getLastName()
+    this.ownerId = entity.owner() != null ? entity.owner().id() : null;
+    this.offeredBy = entity.owner() != null
+        ? entity.owner().firstName() + " " + entity.owner().lastName()
         : null;
   }
 
   private String getOfferedAgoHumanReadable(Duration duration) {
-    if (duration == null)
+
+    if (duration == null) {
       return "";
-    long seconds = duration.getSeconds();
-    if (seconds < 60) {
-      return seconds + " seconds ago";
-    } else if (seconds < 3600) {
-      long minutes = seconds / 60;
-      return minutes + (minutes == 1 ? " min ago" : " mins ago");
-    } else if (seconds < 86400) {
-      long hours = seconds / 3600;
-      return hours + (hours == 1 ? " hour ago" : " hours ago");
-    } else if (seconds < 2592000) { // less than 30 days
-      long days = seconds / 86400;
-      return days + (days == 1 ? " day ago" : " days ago");
-    } else if (seconds < 31536000) { // less than 365 days
-      long months = seconds / 2592000;
-      return months + (months == 1 ? " month ago" : " months ago");
-    } else {
-      long years = seconds / 31536000;
-      return years + (years == 1 ? " year ago" : " years ago");
     }
+
+    return switch (Long.valueOf(duration.getSeconds())) {
+
+    case Long seconds when seconds < 60 -> seconds + " seconds ago";
+
+    case Long seconds when seconds < 3600 -> {
+      long minutes = seconds / 60;
+      yield minutes + (minutes == 1 ? " min ago" : " mins ago");
+    }
+
+    case Long seconds when seconds < 86400 -> {
+      long hours = seconds / 3600;
+      yield hours + (hours == 1 ? " hour ago" : " hours ago");
+    }
+
+    case Long seconds when seconds < 2592000 -> {
+      long days = seconds / 86400;
+      yield days + (days == 1 ? " day ago" : " days ago");
+    }
+
+    case Long seconds when seconds < 31536000 -> {
+      long months = seconds / 2592000;
+      yield months + (months == 1 ? " month ago" : " months ago");
+    }
+    default -> {
+      long years = duration.getSeconds() / 31536000;
+      yield years + (years == 1 ? " year ago" : " years ago");
+    }
+    };
   }
+
 }

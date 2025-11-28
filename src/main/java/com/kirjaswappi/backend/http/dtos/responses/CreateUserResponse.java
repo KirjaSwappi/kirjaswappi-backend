@@ -18,9 +18,9 @@ public class CreateUserResponse {
   private String email;
 
   public CreateUserResponse(User entity) {
-    this.id = entity.getId();
-    this.firstName = entity.getFirstName();
-    this.lastName = entity.getLastName();
-    this.email = entity.getEmail();
+    this.id = entity.id();
+    this.firstName = entity.firstName();
+    this.lastName = entity.lastName();
+    this.email = entity.email();
   }
 }

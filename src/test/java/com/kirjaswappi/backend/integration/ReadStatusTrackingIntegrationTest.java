@@ -58,134 +58,143 @@ public class ReadStatusTrackingIntegrationTest {
     userRepository.deleteAll();
 
     // Create test users
-    senderUser = new UserDao();
-    senderUser.setFirstName("John");
-    senderUser.setLastName("Sender");
-    senderUser.setEmail("john.sender@test.com");
-    senderUser.setPassword("password");
-    senderUser.setEmailVerified(true);
-    senderUser.setSalt("salt");
+    senderUser = UserDao.builder()
+        .firstName("John")
+        .lastName("Sender")
+        .email("john.sender@test.com")
+        .password("password")
+        .isEmailVerified(true)
+        .salt("salt")
+        .build();
     senderUser = userRepository.save(senderUser);
 
-    receiverUser = new UserDao();
-    receiverUser.setFirstName("Jane");
-    receiverUser.setLastName("Receiver");
-    receiverUser.setEmail("jane.receiver@test.com");
-    receiverUser.setPassword("password");
-    receiverUser.setEmailVerified(true);
-    receiverUser.setSalt("salt");
+    receiverUser = UserDao.builder()
+        .firstName("Jane")
+        .lastName("Receiver")
+        .email("jane.receiver@test.com")
+        .password("password")
+        .isEmailVerified(true)
+        .salt("salt")
+        .build();
+
     receiverUser = userRepository.save(receiverUser);
 
+    var swapConditionDao = SwapConditionDao.builder()
+        .swapType("GiveAway")
+        .giveAway(true)
+        .build();
+
     // Create test book
-    testBook = new BookDao();
-    testBook.setTitle("Test Book");
-    testBook.setAuthor("Test Author");
-    testBook.setCondition("Good");
-    testBook.setLanguage("English");
-    testBook.setOwner(receiverUser);
-    testBook.setCoverPhotos(List.of());
-    testBook.setGenres(List.of());
-    var swapConditionDao = new SwapConditionDao();
-    swapConditionDao.setSwapType("GiveAway");
-    swapConditionDao.setGiveAway(true);
-    testBook.setSwapCondition(swapConditionDao);
+    testBook = BookDao.builder()
+        .title("Test Book")
+        .author("Test Author")
+        .condition("Good")
+        .language("English")
+        .owner(receiverUser)
+        .coverPhotos(List.of())
+        .genres(List.of())
+        .swapCondition(swapConditionDao)
+        .build();
+
     testBook = bookRepository.save(testBook);
 
     // Create test swap request
-    testSwapRequest = new SwapRequestDao();
-    testSwapRequest.setSender(senderUser);
-    testSwapRequest.setReceiver(receiverUser);
-    testSwapRequest.setBookToSwapWith(testBook);
-    testSwapRequest.setSwapType("ByBooks");
-    testSwapRequest.setAskForGiveaway(false);
-    testSwapRequest.setSwapStatus("Pending");
-    testSwapRequest.setNote("Test swap request");
-    testSwapRequest.setRequestedAt(Instant.now());
-    testSwapRequest.setUpdatedAt(Instant.now());
+    testSwapRequest = SwapRequestDao.builder()
+        .sender(senderUser)
+        .receiver(receiverUser)
+        .bookToSwapWith(testBook)
+        .swapType("ByBooks")
+        .askForGiveaway(false)
+        .swapStatus("Pending")
+        .note("Test swap request")
+        .requestedAt(Instant.now())
+        .updatedAt(Instant.now())
+        .build();
+
     testSwapRequest = swapRequestRepository.save(testSwapRequest);
   }
 
   @Test
   void testInboxItemReadStatusTracking() {
     // Initially, the swap request should be unread for the receiver
-    List<SwapRequest> receivedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
+    List<SwapRequest> receivedRequests = inboxService.getUnifiedInbox(receiverUser.id(), null, null);
     assertEquals(1, receivedRequests.size());
 
     SwapRequest swapRequest = receivedRequests.getFirst();
-    assertTrue(inboxService.isInboxItemUnread(swapRequest, receiverUser.getId()));
-    assertTrue(inboxService.isInboxItemUnread(swapRequest, senderUser.getId())); // Sender hasn't viewed it yet
+    assertTrue(inboxService.isInboxItemUnread(swapRequest, receiverUser.id()));
+    assertTrue(inboxService.isInboxItemUnread(swapRequest, senderUser.id())); // Sender hasn't viewed it yet
 
     // Mark as read by receiver
-    inboxService.markInboxItemAsRead(testSwapRequest.getId(), receiverUser.getId());
+    inboxService.markInboxItemAsRead(testSwapRequest.id(), receiverUser.id());
 
     // Verify it's now marked as read for receiver
-    SwapRequestDao updatedRequest = swapRequestRepository.findById(testSwapRequest.getId()).orElseThrow();
-    assertNotNull(updatedRequest.getReadByReceiverAt());
-    assertNull(updatedRequest.getReadBySenderAt());
+    SwapRequestDao updatedRequest = swapRequestRepository.findById(testSwapRequest.id()).orElseThrow();
+    assertNotNull(updatedRequest.readByReceiverAt());
+    assertNull(updatedRequest.readBySenderAt());
 
     // Verify the service method reflects this
-    SwapRequest updatedEntity = inboxService.getUnifiedInbox(receiverUser.getId(), null, null).getFirst();
-    assertFalse(inboxService.isInboxItemUnread(updatedEntity, receiverUser.getId()));
+    SwapRequest updatedEntity = inboxService.getUnifiedInbox(receiverUser.id(), null, null).getFirst();
+    assertFalse(inboxService.isInboxItemUnread(updatedEntity, receiverUser.id()));
 
     // Mark as read by sender
-    inboxService.markInboxItemAsRead(testSwapRequest.getId(), senderUser.getId());
+    inboxService.markInboxItemAsRead(testSwapRequest.id(), senderUser.id());
 
     // Verify both users have read it
-    updatedRequest = swapRequestRepository.findById(testSwapRequest.getId()).orElseThrow();
-    assertNotNull(updatedRequest.getReadByReceiverAt());
-    assertNotNull(updatedRequest.getReadBySenderAt());
+    updatedRequest = swapRequestRepository.findById(testSwapRequest.id()).orElseThrow();
+    assertNotNull(updatedRequest.readByReceiverAt());
+    assertNotNull(updatedRequest.readBySenderAt());
   }
 
   @Test
   void testChatMessageReadStatusTracking() {
     // Send a message from sender to receiver
-    ChatMessage message1 = chatService.sendMessage(testSwapRequest.getId(), senderUser.getId(), "Hello from sender");
-    assertFalse(message1.isReadByReceiver());
+    ChatMessage message1 = chatService.sendMessage(testSwapRequest.id(), senderUser.id(), "Hello from sender");
+    assertFalse(message1.readByReceiver());
 
     // Check unread count for receiver
-    long unreadCount = chatService.getUnreadMessageCount(testSwapRequest.getId(), receiverUser.getId());
+    long unreadCount = chatService.getUnreadMessageCount(testSwapRequest.id(), receiverUser.id());
     assertEquals(1, unreadCount);
 
     // Receiver accesses chat - should automatically mark messages as read
-    List<ChatMessage> messages = chatService.getChatMessages(testSwapRequest.getId(), receiverUser.getId());
+    List<ChatMessage> messages = chatService.getChatMessages(testSwapRequest.id(), receiverUser.id());
     assertEquals(1, messages.size());
 
     // Verify messages are now marked as read
-    unreadCount = chatService.getUnreadMessageCount(testSwapRequest.getId(), receiverUser.getId());
+    unreadCount = chatService.getUnreadMessageCount(testSwapRequest.id(), receiverUser.id());
     assertEquals(0, unreadCount);
 
     // Send another message from receiver to sender
-    ChatMessage message2 = chatService.sendMessage(testSwapRequest.getId(), receiverUser.getId(),
+    ChatMessage message2 = chatService.sendMessage(testSwapRequest.id(), receiverUser.id(),
         "Hello back from receiver");
-    assertFalse(message2.isReadByReceiver());
+    assertFalse(message2.readByReceiver());
 
     // Check unread count for sender
-    unreadCount = chatService.getUnreadMessageCount(testSwapRequest.getId(), senderUser.getId());
+    unreadCount = chatService.getUnreadMessageCount(testSwapRequest.id(), senderUser.id());
     assertEquals(1, unreadCount);
 
     // Sender accesses chat
-    messages = chatService.getChatMessages(testSwapRequest.getId(), senderUser.getId());
+    messages = chatService.getChatMessages(testSwapRequest.id(), senderUser.id());
     assertEquals(2, messages.size());
 
     // Verify no unread messages for sender
-    unreadCount = chatService.getUnreadMessageCount(testSwapRequest.getId(), senderUser.getId());
+    unreadCount = chatService.getUnreadMessageCount(testSwapRequest.id(), senderUser.id());
     assertEquals(0, unreadCount);
   }
 
   @Test
   void testInboxItemResponseNotificationIndicators() {
     // Send a chat message to create unread messages
-    chatService.sendMessage(testSwapRequest.getId(), senderUser.getId(), "Test message");
+    chatService.sendMessage(testSwapRequest.id(), senderUser.id(), "Test message");
 
     // Get inbox items for receiver
-    List<SwapRequest> receivedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
+    List<SwapRequest> receivedRequests = inboxService.getUnifiedInbox(receiverUser.id(), null, null);
     SwapRequest swapRequest = receivedRequests.getFirst();
 
     // Create response DTO and set indicators
     InboxItemResponse response = new InboxItemResponse(swapRequest);
-    long unreadCount = inboxService.getUnreadMessageCount(receiverUser.getId(), swapRequest.getId());
+    long unreadCount = inboxService.getUnreadMessageCount(receiverUser.id(), swapRequest.id());
     response.setUnreadMessageCount(unreadCount);
-    response.setUnread(inboxService.isInboxItemUnread(swapRequest, receiverUser.getId()));
+    response.setUnread(inboxService.isInboxItemUnread(swapRequest, receiverUser.id()));
     response.setHasNewMessages(unreadCount > 0);
 
     // Verify notification indicators
@@ -194,14 +203,14 @@ public class ReadStatusTrackingIntegrationTest {
     assertEquals(1, response.getUnreadMessageCount());
 
     // Mark inbox item as read
-    inboxService.markInboxItemAsRead(testSwapRequest.getId(), receiverUser.getId());
+    inboxService.markInboxItemAsRead(testSwapRequest.id(), receiverUser.id());
 
     // Update response
-    SwapRequest updatedSwapRequest = inboxService.getUnifiedInbox(receiverUser.getId(), null, null).getFirst();
+    SwapRequest updatedSwapRequest = inboxService.getUnifiedInbox(receiverUser.id(), null, null).getFirst();
     response = new InboxItemResponse(updatedSwapRequest);
-    unreadCount = inboxService.getUnreadMessageCount(receiverUser.getId(), updatedSwapRequest.getId());
+    unreadCount = inboxService.getUnreadMessageCount(receiverUser.id(), updatedSwapRequest.id());
     response.setUnreadMessageCount(unreadCount);
-    response.setUnread(inboxService.isInboxItemUnread(updatedSwapRequest, receiverUser.getId()));
+    response.setUnread(inboxService.isInboxItemUnread(updatedSwapRequest, receiverUser.id()));
     response.setHasNewMessages(unreadCount > 0);
 
     // Verify inbox item is now read but still has unread messages
@@ -212,18 +221,14 @@ public class ReadStatusTrackingIntegrationTest {
 
   @Test
   void testChatMessageResponseNotificationIndicators() {
-    // Send messages from both users
-    ChatMessage message1 = chatService.sendMessage(testSwapRequest.getId(), senderUser.getId(), "Message from sender");
-    ChatMessage message2 = chatService.sendMessage(testSwapRequest.getId(), receiverUser.getId(),
-        "Message from receiver");
 
     // Get messages as receiver
-    List<ChatMessage> messages = chatService.getChatMessages(testSwapRequest.getId(), receiverUser.getId());
+    List<ChatMessage> messages = chatService.getChatMessages(testSwapRequest.id(), receiverUser.id());
     assertEquals(2, messages.size());
 
     // Create response DTOs with current user context
     List<ChatMessageResponse> responses = messages.stream()
-        .map(message -> new ChatMessageResponse(message, receiverUser.getId()))
+        .map(message -> new ChatMessageResponse(message, receiverUser.id()))
         .toList();
 
     // Verify isOwnMessage indicators
@@ -231,9 +236,9 @@ public class ReadStatusTrackingIntegrationTest {
     assertTrue(responses.get(1).isOwnMessage()); // Second message is from receiver
 
     // Get messages as sender
-    messages = chatService.getChatMessages(testSwapRequest.getId(), senderUser.getId());
+    messages = chatService.getChatMessages(testSwapRequest.id(), senderUser.id());
     responses = messages.stream()
-        .map(message -> new ChatMessageResponse(message, senderUser.getId()))
+        .map(message -> new ChatMessageResponse(message, senderUser.id()))
         .toList();
 
     // Verify isOwnMessage indicators from sender's perspective
@@ -244,45 +249,45 @@ public class ReadStatusTrackingIntegrationTest {
   @Test
   void testReadStatusWorkflowIntegration() {
     // 1. Sender creates swap request - receiver should see it as unread
-    List<SwapRequest> receivedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
+    List<SwapRequest> receivedRequests = inboxService.getUnifiedInbox(receiverUser.id(), null, null);
     SwapRequest swapRequest = receivedRequests.getFirst();
-    assertTrue(inboxService.isInboxItemUnread(swapRequest, receiverUser.getId()));
+    assertTrue(inboxService.isInboxItemUnread(swapRequest, receiverUser.id()));
 
     // 2. Sender sends a message
-    chatService.sendMessage(testSwapRequest.getId(), senderUser.getId(), "Hi, interested in your book!");
-    assertEquals(1, chatService.getUnreadMessageCount(testSwapRequest.getId(), receiverUser.getId()));
+    chatService.sendMessage(testSwapRequest.id(), senderUser.id(), "Hi, interested in your book!");
+    assertEquals(1, chatService.getUnreadMessageCount(testSwapRequest.id(), receiverUser.id()));
 
     // 3. Receiver views inbox - item should be marked as read but still have unread
     // messages
-    receivedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
+    receivedRequests = inboxService.getUnifiedInbox(receiverUser.id(), null, null);
     swapRequest = receivedRequests.getFirst();
 
     InboxItemResponse inboxResponse = new InboxItemResponse(swapRequest);
-    long unreadCount = inboxService.getUnreadMessageCount(receiverUser.getId(), swapRequest.getId());
+    long unreadCount = inboxService.getUnreadMessageCount(receiverUser.id(), swapRequest.id());
     inboxResponse.setUnreadMessageCount(unreadCount);
-    inboxResponse.setUnread(inboxService.isInboxItemUnread(swapRequest, receiverUser.getId()));
+    inboxResponse.setUnread(inboxService.isInboxItemUnread(swapRequest, receiverUser.id()));
     inboxResponse.setHasNewMessages(unreadCount > 0);
 
     // After viewing inbox, item should be marked as read
-    inboxService.markInboxItemAsRead(testSwapRequest.getId(), receiverUser.getId());
+    inboxService.markInboxItemAsRead(testSwapRequest.id(), receiverUser.id());
 
     // 4. Receiver opens chat - messages should be marked as read
-    List<ChatMessage> messages = chatService.getChatMessages(testSwapRequest.getId(), receiverUser.getId());
+    List<ChatMessage> messages = chatService.getChatMessages(testSwapRequest.id(), receiverUser.id());
     assertEquals(1, messages.size());
-    assertEquals(0, chatService.getUnreadMessageCount(testSwapRequest.getId(), receiverUser.getId()));
+    assertEquals(0, chatService.getUnreadMessageCount(testSwapRequest.id(), receiverUser.id()));
 
     // 5. Receiver responds
-    chatService.sendMessage(testSwapRequest.getId(), receiverUser.getId(), "Yes, let's discuss!");
+    chatService.sendMessage(testSwapRequest.id(), receiverUser.id(), "Yes, let's discuss!");
 
     // 6. Sender should now have unread messages
-    assertEquals(1, chatService.getUnreadMessageCount(testSwapRequest.getId(), senderUser.getId()));
+    assertEquals(1, chatService.getUnreadMessageCount(testSwapRequest.id(), senderUser.id()));
 
     // 7. Sender views sent requests - should see unread message indicator
-    List<SwapRequest> sentRequests = inboxService.getUnifiedInbox(senderUser.getId(), null, null);
+    List<SwapRequest> sentRequests = inboxService.getUnifiedInbox(senderUser.id(), null, null);
     SwapRequest sentRequest = sentRequests.getFirst();
 
     InboxItemResponse sentResponse = new InboxItemResponse(sentRequest);
-    unreadCount = inboxService.getUnreadMessageCount(senderUser.getId(), sentRequest.getId());
+    unreadCount = inboxService.getUnreadMessageCount(senderUser.id(), sentRequest.id());
     sentResponse.setUnreadMessageCount(unreadCount);
     sentResponse.setHasNewMessages(unreadCount > 0);
 
@@ -293,41 +298,42 @@ public class ReadStatusTrackingIntegrationTest {
   @Test
   void testMultipleUsersReadStatusIsolation() {
     // Create another user
-    UserDao anotherUser = new UserDao();
-    anotherUser.setFirstName("Bob");
-    anotherUser.setLastName("Another");
-    anotherUser.setEmail("bob.another@test.com");
-    anotherUser.setPassword("password");
-    anotherUser.setEmailVerified(true);
-    anotherUser.setSalt("salt");
+    var anotherUser = UserDao.builder()
+        .firstName("Bob")
+        .lastName("Another")
+        .email("bob.another@test.com")
+        .password("password")
+        .isEmailVerified(true)
+        .salt("salt")
+        .build();
     final UserDao finalAnotherUser = userRepository.save(anotherUser);
 
     // Send messages from both sender and receiver
-    chatService.sendMessage(testSwapRequest.getId(), senderUser.getId(), "Message 1");
-    chatService.sendMessage(testSwapRequest.getId(), receiverUser.getId(), "Message 2");
+    chatService.sendMessage(testSwapRequest.id(), senderUser.id(), "Message 1");
+    chatService.sendMessage(testSwapRequest.id(), receiverUser.id(), "Message 2");
 
     // Receiver reads messages
-    chatService.getChatMessages(testSwapRequest.getId(), receiverUser.getId());
-    assertEquals(0, chatService.getUnreadMessageCount(testSwapRequest.getId(), receiverUser.getId()));
-    assertEquals(1, chatService.getUnreadMessageCount(testSwapRequest.getId(), senderUser.getId()));
+    chatService.getChatMessages(testSwapRequest.id(), receiverUser.id());
+    assertEquals(0, chatService.getUnreadMessageCount(testSwapRequest.id(), receiverUser.id()));
+    assertEquals(1, chatService.getUnreadMessageCount(testSwapRequest.id(), senderUser.id()));
 
     // Another user should not be able to access this chat
     assertThrows(Exception.class, () -> {
-      chatService.getChatMessages(testSwapRequest.getId(), finalAnotherUser.getId());
+      chatService.getChatMessages(testSwapRequest.id(), finalAnotherUser.id());
     });
 
     // Mark inbox item as read for receiver
-    inboxService.markInboxItemAsRead(testSwapRequest.getId(), receiverUser.getId());
+    inboxService.markInboxItemAsRead(testSwapRequest.id(), receiverUser.id());
 
     // Verify read status is isolated per user
-    SwapRequestDao updatedRequest = swapRequestRepository.findById(testSwapRequest.getId()).orElseThrow();
-    assertNotNull(updatedRequest.getReadByReceiverAt());
-    assertNull(updatedRequest.getReadBySenderAt());
+    SwapRequestDao updatedRequest = swapRequestRepository.findById(testSwapRequest.id()).orElseThrow();
+    assertNotNull(updatedRequest.readByReceiverAt());
+    assertNull(updatedRequest.readBySenderAt());
 
     // Mark as read for sender
-    inboxService.markInboxItemAsRead(testSwapRequest.getId(), senderUser.getId());
-    updatedRequest = swapRequestRepository.findById(testSwapRequest.getId()).orElseThrow();
-    assertNotNull(updatedRequest.getReadByReceiverAt());
-    assertNotNull(updatedRequest.getReadBySenderAt());
+    inboxService.markInboxItemAsRead(testSwapRequest.id(), senderUser.id());
+    updatedRequest = swapRequestRepository.findById(testSwapRequest.id()).orElseThrow();
+    assertNotNull(updatedRequest.readByReceiverAt());
+    assertNotNull(updatedRequest.readBySenderAt());
   }
 }

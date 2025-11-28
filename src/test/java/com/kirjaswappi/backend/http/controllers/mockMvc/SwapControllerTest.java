@@ -53,7 +53,7 @@ class SwapControllerTest {
   @Test
   @DisplayName("Should return OK when creating a valid swap request")
   void shouldReturnOk_whenValidRequest() throws Exception {
-    CreateSwapRequest request = new CreateSwapRequest();
+    var request = new CreateSwapRequest();
     request.setSenderId("user1");
     request.setReceiverId("user2");
     request.setBookIdToSwapWith("book1");
@@ -66,36 +66,44 @@ class SwapControllerTest {
     request.setSwapOffer(offer);
 
     // Setup mocked SwapRequest entity
-    SwapRequest entity = new SwapRequest();
-    entity.setId("swap-001");
 
-    User sender = new User();
-    sender.setId("user1");
-    User receiver = new User();
-    receiver.setId("user2");
-    entity.setSender(sender);
-    entity.setReceiver(receiver);
+    User sender = User.builder()
+        .id("user1")
+        .build();
 
-    Book bookToSwapWith = new Book();
-    bookToSwapWith.setId("book1");
-    bookToSwapWith.setTitle("Book One");
-    bookToSwapWith.setAuthor("Author A");
-    entity.setBookToSwapWith(bookToSwapWith);
+    User receiver = User.builder()
+        .id("user2")
+        .build();
 
-    SwappableBook offeredBook = new SwappableBook();
-    offeredBook.setId("book2");
-    offeredBook.setTitle("Offered Book");
-    offeredBook.setAuthor("Author B");
-    offeredBook.setCoverPhoto("http://example.com/cover2.jpg");
-    SwapOffer offerEntity = new SwapOffer(offeredBook, null);
-    entity.setSwapOffer(offerEntity);
+    Book bookToSwapWith = Book.builder()
+        .id("book1")
+        .title("Book One")
+        .author("Author A")
+        .build();
 
-    entity.setSwapType(SwapType.BY_BOOKS);
-    entity.setSwapStatus(SwapStatus.PENDING);
-    entity.setAskForGiveaway(false);
-    entity.setNote("I'd like to swap");
-    entity.setRequestedAt(Instant.parse("2024-01-01T00:00:00Z"));
-    entity.setUpdatedAt(Instant.parse("2024-01-01T01:00:00Z"));
+    SwappableBook offeredBook = SwappableBook.builder()
+        .id("book2")
+        .title("Offered Book")
+        .author("Author B")
+        .coverPhoto("https://example.com/cover2.jpg")
+        .build();
+    SwapOffer offerEntity = SwapOffer.builder().offeredBook(offeredBook)
+        .offeredGenre(null)
+        .build();
+
+    SwapRequest entity = SwapRequest.builder()
+        .id("swap-001")
+        .bookToSwapWith(bookToSwapWith)
+        .sender(sender)
+        .receiver(receiver)
+        .swapOffer(offerEntity)
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.PENDING)
+        .askForGiveaway(false)
+        .note("I'd like to swap")
+        .requestedAt(Instant.parse("2024-01-01T00:00:00Z"))
+        .updatedAt(Instant.parse("2024-01-01T01:00:00Z"))
+        .build();
 
     when(swapService.createSwapRequest(any())).thenReturn(entity);
 
@@ -178,34 +186,38 @@ class SwapControllerTest {
   @Test
   @DisplayName("Should return OK when updating swap request status with valid data")
   void shouldReturnOk_whenUpdatingSwapRequestStatus() throws Exception {
-    String swapRequestId = "swap-001";
-    String userId = "user2";
-    UpdateSwapStatusRequest request = new UpdateSwapStatusRequest();
+    var swapRequestId = "swap-001";
+    var userId = "user2";
+
+    var request = new UpdateSwapStatusRequest();
     request.setStatus("Accepted");
 
-    // Setup mocked SwapRequest entity
-    SwapRequest entity = new SwapRequest();
-    entity.setId(swapRequestId);
+    var sender = User.builder()
+        .id("user1")
+        .build();
 
-    User sender = new User();
-    sender.setId("user1");
-    User receiver = new User();
-    receiver.setId(userId);
-    entity.setSender(sender);
-    entity.setReceiver(receiver);
+    var receiver = User.builder()
+        .id(userId)
+        .build();
 
-    Book bookToSwapWith = new Book();
-    bookToSwapWith.setId("book1");
-    bookToSwapWith.setTitle("Book One");
-    bookToSwapWith.setAuthor("Author A");
-    entity.setBookToSwapWith(bookToSwapWith);
+    var bookToSwapWith = Book.builder()
+        .id("book1")
+        .title("Book One")
+        .author("Author A")
+        .build();
 
-    entity.setSwapType(SwapType.BY_BOOKS);
-    entity.setSwapStatus(SwapStatus.ACCEPTED);
-    entity.setAskForGiveaway(false);
-    entity.setNote("I'd like to swap");
-    entity.setRequestedAt(Instant.parse("2024-01-01T00:00:00Z"));
-    entity.setUpdatedAt(Instant.parse("2024-01-01T01:00:00Z"));
+    var entity = SwapRequest.builder()
+        .id(swapRequestId)
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(bookToSwapWith)
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.ACCEPTED)
+        .askForGiveaway(false)
+        .note("I'd like to swap")
+        .requestedAt(Instant.parse("2024-01-01T00:00:00Z"))
+        .updatedAt(Instant.parse("2024-01-01T01:00:00Z"))
+        .build();
 
     when(swapService.updateSwapRequestStatus(eq(swapRequestId), eq(SwapStatus.ACCEPTED), eq(userId)))
         .thenReturn(entity);

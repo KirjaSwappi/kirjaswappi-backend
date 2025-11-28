@@ -10,9 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,14 +30,13 @@ import com.kirjaswappi.backend.service.exceptions.GenreNotFoundException;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class GenreService {
   private static final Logger logger = LoggerFactory.getLogger(GenreService.class);
 
-  @Autowired
-  GenreRepository genreRepository;
+  private final GenreRepository genreRepository;
 
-  @Autowired
-  UserRepository userRepository;
+  private final UserRepository userRepository;
 
   public List<Genre> getGenres() {
     // fetch all the genres
@@ -146,26 +146,26 @@ public class GenreService {
   }
 
   private boolean isGenreInFavGenres(UserDao user, String id) {
-    return user.getFavGenres() != null
-        && user.getFavGenres().stream().anyMatch(favGenre -> favGenre.getId().equals(id));
+    return user.favGenres() != null
+        && user.favGenres().stream().anyMatch(favGenre -> favGenre.id().equals(id));
   }
 
   private boolean isGenreInBooks(UserDao user, String id) {
-    return user.getBooks() != null && user.getBooks().stream()
-        .anyMatch(book -> book.getGenres().stream().anyMatch(genre -> genre.getId().equals(id)) ||
-            (book.getSwapCondition() != null &&
-                book.getSwapCondition().getSwappableGenres().stream().anyMatch(g -> g.getId().equals(id))));
+    return user.books() != null && user.books().stream()
+        .anyMatch(book -> book.genres().stream().anyMatch(genre -> genre.id().equals(id)) &&
+            book.swapCondition() != null &&
+            book.swapCondition().swappableGenres().stream().anyMatch(g -> g.id().equals(id)));
   }
 
   public Genre updateGenre(Genre genre) {
     var dao = genreRepository.findById(genre.getId())
         .orElseThrow(() -> new GenreNotFoundException(genre.getId()));
-    dao.setName(genre.getName());
+    dao.name(genre.getName());
     if (genre.getParent() == null)
-      dao.setParent(null);
+      dao.parent(null);
     else {
       checkAndFetchParentIfExists(genre);
-      dao.setParent(GenreMapper.toDao(genre.getParent()));
+      dao.parent(GenreMapper.toDao(genre.getParent()));
     }
     return GenreMapper.toEntity(genreRepository.save(dao));
   }

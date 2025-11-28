@@ -53,14 +53,14 @@ public class BookLocationRequest {
       throw new IllegalArgumentException("Invalid longitude: " + longitude + ". Must be between -180 and 180 degrees.");
     }
 
-    var location = new BookLocation();
-    location.setLatitude(this.latitude);
-    location.setLongitude(this.longitude);
-    location.setAddress(this.address);
-    location.setCity(this.city);
-    location.setCountry(this.country);
-    location.setPostalCode(this.postalCode);
-    location.setRadiusKm(this.radiusKm != null ? this.radiusKm : 50); // Default to 50km
-    return location;
+    return BookLocation.builder()
+        .latitude(this.latitude)
+        .longitude(this.longitude)
+        .address(this.address)
+        .city(this.city)
+        .country(this.country)
+        .postalCode(this.postalCode)
+        .radiusKm(this.radiusKm) // Default to 50km
+        .build();
   }
 }

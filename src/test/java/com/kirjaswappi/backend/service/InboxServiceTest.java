@@ -57,59 +57,66 @@ class InboxServiceTest {
     MockitoAnnotations.openMocks(this);
 
     // Create test users
-    senderDao = new UserDao();
-    senderDao.setId("sender123");
-    senderDao.setFirstName("Alice");
-    senderDao.setLastName("Smith");
+    senderDao = UserDao.builder()
+        .id("sender123")
+        .firstName("Alice")
+        .lastName("Smith")
+        .build();
 
-    receiverDao = new UserDao();
-    receiverDao.setId("receiver123");
-    receiverDao.setFirstName("Bob");
-    receiverDao.setLastName("Johnson");
+    receiverDao = UserDao.builder()
+        .id("receiver123")
+        .firstName("Bob")
+        .lastName("Johnson")
+        .build();
 
-    userEntity = new User();
-    userEntity.setId("receiver123");
-    userEntity.setFirstName("Bob");
-    userEntity.setLastName("Johnson");
+    userEntity = User.builder()
+        .id("receiver123")
+        .firstName("Bob")
+        .lastName("Johnson")
+        .build();
 
     // Create test books
-    bookDao1 = new BookDao();
-    bookDao1.setId("book1");
-    bookDao1.setTitle("Book A");
-    bookDao1.setAuthor("Author A");
-    bookDao1.setLanguage("English");
-    bookDao1.setCondition("Good");
+    bookDao1 = BookDao.builder()
+        .id("book1")
+        .title("Book A")
+        .author("Author A")
+        .language("English")
+        .condition("Good")
+        .build();
 
-    bookDao2 = new BookDao();
-    bookDao2.setId("book2");
-    bookDao2.setTitle("Book B");
-    bookDao2.setAuthor("Author B");
-    bookDao2.setLanguage("English");
-    bookDao2.setCondition("Good");
+    bookDao2 = BookDao.builder()
+        .id("book2")
+        .title("Book B")
+        .author("Author B")
+        .language("English")
+        .condition("Good")
+        .build();
 
     // Create received swap request
-    receivedSwapRequest = new SwapRequestDao();
-    receivedSwapRequest.setId("received1");
-    receivedSwapRequest.setSender(senderDao);
-    receivedSwapRequest.setReceiver(receiverDao);
-    receivedSwapRequest.setBookToSwapWith(bookDao1);
-    receivedSwapRequest.setSwapType("ByBooks");
-    receivedSwapRequest.setAskForGiveaway(false);
-    receivedSwapRequest.setSwapStatus(SwapStatus.PENDING.getCode());
-    receivedSwapRequest.setRequestedAt(Instant.parse("2025-01-01T10:00:00Z"));
-    receivedSwapRequest.setUpdatedAt(Instant.parse("2025-01-01T10:00:00Z"));
+    receivedSwapRequest = SwapRequestDao.builder()
+        .id("received1")
+        .sender(senderDao)
+        .receiver(receiverDao)
+        .bookToSwapWith(bookDao1)
+        .swapType("ByBooks")
+        .askForGiveaway(false)
+        .swapStatus(SwapStatus.PENDING.getCode())
+        .requestedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .build();
 
     // Create sent swap request
-    sentSwapRequest = new SwapRequestDao();
-    sentSwapRequest.setId("sent1");
-    sentSwapRequest.setSender(receiverDao);
-    sentSwapRequest.setReceiver(senderDao);
-    sentSwapRequest.setBookToSwapWith(bookDao2);
-    sentSwapRequest.setSwapType("GiveAway");
-    sentSwapRequest.setAskForGiveaway(true);
-    sentSwapRequest.setSwapStatus(SwapStatus.ACCEPTED.getCode());
-    sentSwapRequest.setRequestedAt(Instant.parse("2025-01-02T10:00:00Z"));
-    sentSwapRequest.setUpdatedAt(Instant.parse("2025-01-02T10:00:00Z"));
+    sentSwapRequest = SwapRequestDao.builder()
+        .id("sent1")
+        .sender(receiverDao)
+        .receiver(senderDao)
+        .bookToSwapWith(bookDao2)
+        .swapType("GiveAway")
+        .askForGiveaway(true)
+        .swapStatus(SwapStatus.ACCEPTED.getCode())
+        .requestedAt(Instant.parse("2025-01-02T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-02T10:00:00Z"))
+        .build();
   }
 
   @Test
@@ -118,9 +125,9 @@ class InboxServiceTest {
     // Given
     when(userService.getUser("receiver123")).thenReturn(userEntity);
     when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(Arrays.asList(receivedSwapRequest));
+        .thenReturn(List.of(receivedSwapRequest));
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(Arrays.asList(sentSwapRequest));
+        .thenReturn(List.of(sentSwapRequest));
     when(chatService.getLatestMessageTimestamp("received1"))
         .thenReturn(Optional.of(Instant.parse("2025-01-03T10:00:00Z")));
     when(chatService.getLatestMessageTimestamp("sent1")).thenReturn(Optional.of(Instant.parse("2025-01-04T10:00:00Z")));
@@ -131,8 +138,8 @@ class InboxServiceTest {
     // Then
     assertEquals(2, result.size());
     // Should be sorted by latest message timestamp (sent1 has newer message)
-    assertEquals("sent1", result.get(0).getId());
-    assertEquals("received1", result.get(1).getId());
+    assertEquals("sent1", result.get(0).id());
+    assertEquals("received1", result.get(1).id());
     verify(userService).getUser("receiver123");
     verify(swapRequestRepository).findByReceiverIdOrderByRequestedAtDesc("receiver123");
     verify(swapRequestRepository).findBySenderIdOrderByRequestedAtDesc("receiver123");
@@ -147,18 +154,18 @@ class InboxServiceTest {
     when(userService.getUser("receiver123")).thenReturn(userEntity);
     when(swapRequestRepository.findByReceiverIdAndSwapStatusOrderByRequestedAtDesc("receiver123",
         SwapStatus.PENDING.getCode()))
-            .thenReturn(Arrays.asList(receivedSwapRequest));
+            .thenReturn(List.of(receivedSwapRequest));
     when(swapRequestRepository.findBySenderIdAndSwapStatusOrderByRequestedAtDesc("receiver123",
         SwapStatus.PENDING.getCode()))
-            .thenReturn(Arrays.asList());
+            .thenReturn(List.of());
 
     // When
     List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", SwapStatus.PENDING.getCode(), null);
 
     // Then
     assertEquals(1, result.size());
-    assertEquals("received1", result.get(0).getId());
-    assertEquals(SwapStatus.PENDING, result.get(0).getSwapStatus());
+    assertEquals("received1", result.getFirst().id());
+    assertEquals(SwapStatus.PENDING, result.getFirst().swapStatus());
     verify(userService).getUser("receiver123");
     verify(swapRequestRepository).findByReceiverIdAndSwapStatusOrderByRequestedAtDesc("receiver123",
         SwapStatus.PENDING.getCode());
@@ -185,17 +192,17 @@ class InboxServiceTest {
     // Given
     when(userService.getUser("receiver123")).thenReturn(userEntity);
     when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(Arrays.asList(receivedSwapRequest)); // Book A
+        .thenReturn(List.of(receivedSwapRequest)); // Book A
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(Arrays.asList(sentSwapRequest)); // Book B
+        .thenReturn(List.of(sentSwapRequest)); // Book B
 
     // When
     List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "book_title");
 
     // Then
     assertEquals(2, result.size());
-    assertEquals("Book A", result.get(0).getBookToSwapWith().getTitle()); // Should be first after sorting
-    assertEquals("Book B", result.get(1).getBookToSwapWith().getTitle());
+    assertEquals("Book A", result.get(0).bookToSwapWith().title()); // Should be first after sorting
+    assertEquals("Book B", result.get(1).bookToSwapWith().title());
   }
 
   @Test
@@ -204,9 +211,9 @@ class InboxServiceTest {
     // Given
     when(userService.getUser("receiver123")).thenReturn(userEntity);
     when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(Arrays.asList(receivedSwapRequest));
+        .thenReturn(List.of(receivedSwapRequest));
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(Arrays.asList(sentSwapRequest));
+        .thenReturn(List.of(sentSwapRequest));
     // received1 has older message, sent1 has newer message
     when(chatService.getLatestMessageTimestamp("received1"))
         .thenReturn(Optional.of(Instant.parse("2025-01-03T10:00:00Z")));
@@ -217,8 +224,8 @@ class InboxServiceTest {
 
     // Then
     assertEquals(2, result.size());
-    assertEquals("sent1", result.get(0).getId()); // Should be first (newer message)
-    assertEquals("received1", result.get(1).getId());
+    assertEquals("sent1", result.getFirst().id()); // Should be first (newer message)
+    assertEquals("received1", result.get(1).id());
     verify(chatService).getLatestMessageTimestamp("received1");
     verify(chatService).getLatestMessageTimestamp("sent1");
   }
@@ -242,8 +249,8 @@ class InboxServiceTest {
 
     // Then
     assertEquals(2, result.size());
-    assertEquals("received1", result.get(0).getId()); // Should be first (has messages)
-    assertEquals("sent1", result.get(1).getId());
+    assertEquals("received1", result.getFirst().id()); // Should be first (has messages)
+    assertEquals("sent1", result.get(1).id());
     verify(chatService).getLatestMessageTimestamp("received1");
     verify(chatService).getLatestMessageTimestamp("sent1");
   }
@@ -261,7 +268,7 @@ class InboxServiceTest {
 
     // Then
     assertNotNull(result);
-    assertEquals(SwapStatus.ACCEPTED.getCode(), receivedSwapRequest.getSwapStatus());
+    assertEquals(SwapStatus.ACCEPTED.getCode(), receivedSwapRequest.swapStatus());
     verify(swapRequestRepository).findById("received1");
     verify(swapRequestRepository).save(receivedSwapRequest);
     // Verify events are published for both sender and receiver

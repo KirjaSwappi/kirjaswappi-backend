@@ -82,12 +82,12 @@ public class InboxChatApiIntegrationTest {
   void testCompleteInboxChatApiWorkflow() throws Exception {
     // 1. Get unified inbox - should return 1 request
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId()))
+        .param("userId", receiverUser.id()))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(1))
-        .andExpect(jsonPath("$[0].id").value(testSwapRequest.getId()))
+        .andExpect(jsonPath("$[0].id").value(testSwapRequest.id()))
         .andExpect(jsonPath("$[0].swapStatus").value("Pending"))
         .andExpect(jsonPath("$[0].unreadMessageCount").value(0))
         .andExpect(jsonPath("$[0].sender.name").value("John Sender"))
@@ -95,8 +95,8 @@ public class InboxChatApiIntegrationTest {
         .andExpect(jsonPath("$[0].conversationType").value("received"));
 
     // 2. Sender sends a chat message
-    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-        .param("userId", senderUser.getId())
+    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.id() + "/chat")
+        .param("userId", senderUser.id())
         .param("message", "Hi! I'm interested in your book. Is it still available?"))
         .andExpect(status().isCreated())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -106,13 +106,13 @@ public class InboxChatApiIntegrationTest {
 
     // 3. Get unified inbox again - should show unread message count
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId()))
+        .param("userId", receiverUser.id()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].unreadMessageCount").value(1));
 
     // 4. Receiver gets chat messages - should auto-mark as read
-    mockMvc.perform(get("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-        .param("userId", receiverUser.getId()))
+    mockMvc.perform(get("/api/v1/swap-requests/" + testSwapRequest.id() + "/chat")
+        .param("userId", receiverUser.id()))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$").isArray())
@@ -121,8 +121,8 @@ public class InboxChatApiIntegrationTest {
         .andExpect(jsonPath("$[0].sender.name").value("John Sender"));
 
     // 5. Receiver responds with a message
-    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-        .param("userId", receiverUser.getId())
+    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.id() + "/chat")
+        .param("userId", receiverUser.id())
         .param("message", "Yes, it's available! What would you like to offer in exchange?"))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.message").value("Yes, it's available! What would you like to offer in exchange?"))
@@ -132,8 +132,8 @@ public class InboxChatApiIntegrationTest {
     UpdateSwapStatusRequest statusRequest = new UpdateSwapStatusRequest();
     statusRequest.setStatus("Accepted");
 
-    mockMvc.perform(put("/api/v1/swap-requests/" + testSwapRequest.getId() + "/status")
-        .header("X-User-Id", receiverUser.getId())
+    mockMvc.perform(put("/api/v1/swap-requests/" + testSwapRequest.id() + "/status")
+        .header("X-User-Id", receiverUser.id())
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(statusRequest)))
         .andExpect(status().isOk())
@@ -141,7 +141,7 @@ public class InboxChatApiIntegrationTest {
 
     // 7. Get unified inbox for sender - should see status change
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", senderUser.getId()))
+        .param("userId", senderUser.id()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].swapStatus").value("Accepted"))
         .andExpect(jsonPath("$[0].conversationType").value("sent"))
@@ -149,21 +149,21 @@ public class InboxChatApiIntegrationTest {
 
     // 8. Test filtering by status
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId())
+        .param("userId", receiverUser.id())
         .param("status", "Accepted"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].swapStatus").value("Accepted"));
 
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId())
+        .param("userId", receiverUser.id())
         .param("status", "Pending"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(0));
 
     // 9. Test sorting by book title
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId())
+        .param("userId", receiverUser.id())
         .param("sortBy", "book_title"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].bookToSwapWith.title").value("Test Book"));
@@ -180,31 +180,31 @@ public class InboxChatApiIntegrationTest {
     SwapRequestDao request3 = createTestSwapRequest(senderUser, receiverUser, zBook);
 
     // Update one request to accepted status
-    request2.setSwapStatus("Accepted");
+    request2.swapStatus("Accepted");
     swapRequestRepository.save(request2);
 
     // 1. Test no filters - should return all 3 requests
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId()))
+        .param("userId", receiverUser.id()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(3));
 
     // 2. Test status filtering
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId())
+        .param("userId", receiverUser.id())
         .param("status", "Pending"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(2));
 
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId())
+        .param("userId", receiverUser.id())
         .param("status", "Accepted"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(1));
 
     // 3. Test sorting by book title
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId())
+        .param("userId", receiverUser.id())
         .param("sortBy", "book_title"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].bookToSwapWith.title").value("Another Book"))
@@ -213,7 +213,7 @@ public class InboxChatApiIntegrationTest {
 
     // 4. Test sorting by sender name
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId())
+        .param("userId", receiverUser.id())
         .param("sortBy", "sender_name"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].sender.name").value("Alice Another"))
@@ -222,7 +222,7 @@ public class InboxChatApiIntegrationTest {
 
     // 5. Test combined filtering and sorting
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId())
+        .param("userId", receiverUser.id())
         .param("status", "Pending")
         .param("sortBy", "book_title"))
         .andExpect(status().isOk())
@@ -236,32 +236,32 @@ public class InboxChatApiIntegrationTest {
     UserDao unauthorizedUser = createTestUser("Unauthorized", "User", "unauthorized@test.com");
 
     // 1. Test unauthorized access to chat
-    mockMvc.perform(get("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-        .param("userId", unauthorizedUser.getId()))
+    mockMvc.perform(get("/api/v1/swap-requests/" + testSwapRequest.id() + "/chat")
+        .param("userId", unauthorizedUser.id()))
         .andExpect(status().isForbidden());
 
     // 2. Test unauthorized message sending
-    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-        .param("userId", unauthorizedUser.getId())
+    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.id() + "/chat")
+        .param("userId", unauthorizedUser.id())
         .param("message", "This should fail"))
         .andExpect(status().isForbidden());
 
     // 3. Test invalid swap request ID
     mockMvc.perform(get("/api/v1/swap-requests/nonexistent/chat")
-        .param("userId", senderUser.getId()))
+        .param("userId", senderUser.id()))
         .andExpect(status().isNotFound());
 
     // 4. Test empty message validation - should work with multipart but no content
-    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-        .param("userId", senderUser.getId()))
+    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.id() + "/chat")
+        .param("userId", senderUser.id()))
         .andExpect(status().isBadRequest());
 
     // 5. Test invalid status update
     UpdateSwapStatusRequest invalidStatus = new UpdateSwapStatusRequest();
     invalidStatus.setStatus("InvalidStatus");
 
-    mockMvc.perform(put("/api/v1/swap-requests/" + testSwapRequest.getId() + "/status")
-        .param("userId", receiverUser.getId())
+    mockMvc.perform(put("/api/v1/swap-requests/" + testSwapRequest.id() + "/status")
+        .param("userId", receiverUser.id())
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(invalidStatus)))
         .andExpect(status().isBadRequest());
@@ -270,8 +270,8 @@ public class InboxChatApiIntegrationTest {
     UpdateSwapStatusRequest statusRequest = new UpdateSwapStatusRequest();
     statusRequest.setStatus("Accepted");
 
-    mockMvc.perform(put("/api/v1/swap-requests/" + testSwapRequest.getId() + "/status")
-        .param("userId", senderUser.getId())
+    mockMvc.perform(put("/api/v1/swap-requests/" + testSwapRequest.id() + "/status")
+        .param("userId", senderUser.id())
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(statusRequest)))
         .andExpect(status().isBadRequest());
@@ -280,25 +280,25 @@ public class InboxChatApiIntegrationTest {
   @Test
   void testReadStatusTrackingThroughApi() throws Exception {
     // 1. Send a message
-    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-        .param("userId", senderUser.getId())
+    mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.id() + "/chat")
+        .param("userId", senderUser.id())
         .param("message", "Test message for read tracking"))
         .andExpect(status().isCreated());
 
     // 2. Check inbox shows unread message
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId()))
+        .param("userId", receiverUser.id()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].unreadMessageCount").value(1));
 
     // 3. Access chat messages - should mark as read
-    mockMvc.perform(get("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-        .param("userId", receiverUser.getId()))
+    mockMvc.perform(get("/api/v1/swap-requests/" + testSwapRequest.id() + "/chat")
+        .param("userId", receiverUser.id()))
         .andExpect(status().isOk());
 
     // 4. Check inbox again - unread count should be 0
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId()))
+        .param("userId", receiverUser.id()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].unreadMessageCount").value(0));
   }
@@ -309,15 +309,15 @@ public class InboxChatApiIntegrationTest {
 
     // 1. Send multiple messages rapidly
     for (int i = 1; i <= 5; i++) {
-      mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-          .param("userId", i % 2 == 0 ? senderUser.getId() : receiverUser.getId())
+      mockMvc.perform(multipart("/api/v1/swap-requests/" + testSwapRequest.id() + "/chat")
+          .param("userId", i % 2 == 0 ? senderUser.id() : receiverUser.id())
           .param("message", "Message " + i))
           .andExpect(status().isCreated());
     }
 
     // 2. Verify all messages are stored correctly
-    mockMvc.perform(get("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-        .param("userId", senderUser.getId()))
+    mockMvc.perform(get("/api/v1/swap-requests/" + testSwapRequest.id() + "/chat")
+        .param("userId", senderUser.id()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(5));
 
@@ -325,68 +325,71 @@ public class InboxChatApiIntegrationTest {
     UpdateSwapStatusRequest statusRequest = new UpdateSwapStatusRequest();
     statusRequest.setStatus("Accepted");
 
-    mockMvc.perform(put("/api/v1/swap-requests/" + testSwapRequest.getId() + "/status")
-        .header("X-User-Id", receiverUser.getId())
+    mockMvc.perform(put("/api/v1/swap-requests/" + testSwapRequest.id() + "/status")
+        .header("X-User-Id", receiverUser.id())
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(statusRequest)))
         .andExpect(status().isOk());
 
     // 4. Verify messages still exist after status change
-    mockMvc.perform(get("/api/v1/swap-requests/" + testSwapRequest.getId() + "/chat")
-        .param("userId", receiverUser.getId()))
+    mockMvc.perform(get("/api/v1/swap-requests/" + testSwapRequest.id() + "/chat")
+        .param("userId", receiverUser.id()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(5));
 
     // 5. Verify inbox consistency
     mockMvc.perform(get("/api/v1/inbox")
-        .param("userId", receiverUser.getId()))
+        .param("userId", receiverUser.id()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].swapStatus").value("Accepted"));
   }
 
   // Helper methods
   private UserDao createTestUser(String firstName, String lastName, String email) {
-    UserDao user = new UserDao();
-    user.setFirstName(firstName);
-    user.setLastName(lastName);
-    user.setEmail(email);
-    user.setPassword("password");
-    user.setEmailVerified(true);
-    user.setSalt("salt");
+    UserDao user = UserDao.builder()
+        .firstName(firstName)
+        .lastName(lastName)
+        .email(email)
+        .password("password")
+        .isEmailVerified(true)
+        .salt("salt")
+        .build();
     return userRepository.save(user);
   }
 
   private BookDao createTestBook(String title, String author, UserDao owner) {
-    BookDao book = new BookDao();
-    book.setTitle(title);
-    book.setAuthor(author);
-    book.setCondition("Good");
-    book.setLanguage("English");
-    book.setOwner(owner);
-    book.setCoverPhotos(List.of());
-    book.setGenres(List.of());
-    book.setSwapCondition(createSwapCondition());
+    BookDao book = BookDao.builder()
+        .title(title)
+        .author(author)
+        .condition("Good")
+        .language("English")
+        .owner(owner)
+        .coverPhotos(List.of())
+        .genres(List.of())
+        .swapCondition(createSwapCondition())
+        .build();
     return bookRepository.save(book);
   }
 
   private SwapConditionDao createSwapCondition() {
-    SwapConditionDao swapCondition = new SwapConditionDao();
-    swapCondition.setSwapType("GiveAway");
-    swapCondition.setGiveAway(true);
-    return swapCondition;
+    return SwapConditionDao.builder()
+        .swapType("GiveAway")
+        .giveAway(true)
+        .build();
   }
 
   private SwapRequestDao createTestSwapRequest(UserDao sender, UserDao receiver, BookDao book) {
-    SwapRequestDao request = new SwapRequestDao();
-    request.setSender(sender);
-    request.setReceiver(receiver);
-    request.setBookToSwapWith(book);
-    request.setSwapType("ByBooks");
-    request.setSwapStatus("Pending");
-    request.setAskForGiveaway(false);
-    request.setNote("Test swap request");
-    request.setRequestedAt(Instant.now());
-    request.setUpdatedAt(Instant.now());
+    SwapRequestDao request = SwapRequestDao.builder()
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book)
+        .swapType("ByBooks")
+        .swapStatus("Pending")
+        .askForGiveaway(false)
+        .note("Test swap request")
+        .requestedAt(Instant.now())
+        .updatedAt(Instant.now())
+        .build();
     return swapRequestRepository.save(request);
   }
 }

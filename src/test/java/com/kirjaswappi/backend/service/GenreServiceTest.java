@@ -66,12 +66,12 @@ class GenreServiceTest {
   @Test
   @DisplayName("Returns list of genres")
   void getGenresReturnsList() {
-    var dao1 = new GenreDao();
-    dao1.setId("1");
-    dao1.setName("Fantasy");
-    var dao2 = new GenreDao();
-    dao2.setId("2");
-    dao2.setName("SciFi");
+    var dao1 = new GenreDao()
+        .id("1")
+        .name("Fantasy");
+    var dao2 = new GenreDao()
+        .id("2")
+        .name("SciFi");
     when(genreRepository.findAll()).thenReturn(List.of(dao1, dao2));
     List<Genre> genres = genreService.getGenres();
     assertEquals(2, genres.size());
@@ -80,9 +80,9 @@ class GenreServiceTest {
   @Test
   @DisplayName("Updates an existing genre")
   void updateGenreUpdatesGenre() {
-    var dao = new GenreDao();
-    dao.setId("1");
-    dao.setName("Fantasy");
+    var dao = new GenreDao()
+        .id("1")
+        .name("Fantasy");
     when(genreRepository.findById("1")).thenReturn(Optional.of(dao));
     when(genreRepository.save(any())).thenReturn(dao);
     Genre genre = new Genre("1", "FantasyUpdated", null);
@@ -102,8 +102,7 @@ class GenreServiceTest {
   @Test
   @DisplayName("Deletes a genre by ID")
   void deleteGenreDeletesGenre() {
-    var dao = new GenreDao();
-    dao.setId("1");
+    var dao = new GenreDao().id("1");
     when(genreRepository.findById("1")).thenReturn(Optional.of(dao));
     when(genreRepository.existsById("1")).thenReturn(true);
     doNothing().when(genreRepository).deleteById("1");
@@ -664,14 +663,14 @@ class GenreServiceTest {
    * Helper method to create GenreDao objects for testing
    */
   private GenreDao createGenreDao(String id, String name, String parentId) {
-    GenreDao dao = new GenreDao();
-    dao.setId(id);
-    dao.setName(name);
+    GenreDao dao = new GenreDao()
+        .id(id)
+        .name(name);
 
     if (parentId != null) {
       GenreDao parent = new GenreDao();
-      parent.setId(parentId);
-      dao.setParent(parent);
+      parent.id(parentId);
+      dao.parent(parent);
     }
 
     return dao;

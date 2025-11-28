@@ -29,17 +29,17 @@ public class UpdateUserResponse {
   private List<String> favGenres;
 
   public UpdateUserResponse(User entity) {
-    this.id = entity.getId();
-    this.firstName = entity.getFirstName();
-    this.lastName = entity.getLastName();
-    this.email = entity.getEmail();
-    this.streetName = entity.getStreetName();
-    this.houseNumber = entity.getHouseNumber();
-    this.zipCode = entity.getZipCode();
-    this.city = entity.getCity();
-    this.country = entity.getCountry();
-    this.phoneNumber = entity.getPhoneNumber();
-    this.aboutMe = entity.getAboutMe();
-    this.favGenres = entity.getFavGenres().stream().map(Genre::getName).toList();
+    this.id = entity.id();
+    this.firstName = entity.firstName();
+    this.lastName = entity.lastName();
+    this.email = entity.email();
+    this.streetName = entity.streetName();
+    this.houseNumber = entity.houseNumber();
+    this.zipCode = entity.zipCode();
+    this.city = entity.city();
+    this.country = entity.country();
+    this.phoneNumber = entity.phoneNumber();
+    this.aboutMe = entity.aboutMe();
+    this.favGenres = entity.favGenres().stream().map(Genre::getName).toList();
   }
 }

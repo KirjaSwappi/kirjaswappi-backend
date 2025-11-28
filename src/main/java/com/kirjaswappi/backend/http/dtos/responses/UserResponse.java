@@ -31,21 +31,21 @@ public class UserResponse {
   private List<BookListResponse> favBooks;
 
   public UserResponse(User entity) {
-    this.id = entity.getId();
-    this.firstName = entity.getFirstName();
-    this.lastName = entity.getLastName();
-    this.email = entity.getEmail();
-    this.streetName = entity.getStreetName();
-    this.houseNumber = entity.getHouseNumber();
-    this.zipCode = entity.getZipCode();
-    this.city = entity.getCity();
-    this.country = entity.getCountry();
-    this.phoneNumber = entity.getPhoneNumber();
-    this.aboutMe = entity.getAboutMe();
-    this.favGenres = entity.getFavGenres() != null ? entity.getFavGenres().stream().map(Genre::getName).toList()
+    this.id = entity.id();
+    this.firstName = entity.firstName();
+    this.lastName = entity.lastName();
+    this.email = entity.email();
+    this.streetName = entity.streetName();
+    this.houseNumber = entity.houseNumber();
+    this.zipCode = entity.zipCode();
+    this.city = entity.city();
+    this.country = entity.country();
+    this.phoneNumber = entity.phoneNumber();
+    this.aboutMe = entity.aboutMe();
+    this.favGenres = entity.favGenres() != null ? entity.favGenres().stream().map(Genre::getName).toList()
         : List.of();
-    this.books = entity.getBooks() != null ? entity.getBooks().stream().map(BookListResponse::new).toList() : List.of();
-    this.favBooks = entity.getFavBooks() != null ? entity.getFavBooks().stream().map(BookListResponse::new).toList()
+    this.books = entity.books() != null ? entity.books().stream().map(BookListResponse::new).toList() : List.of();
+    this.favBooks = entity.favBooks() != null ? entity.favBooks().stream().map(BookListResponse::new).toList()
         : List.of();
   }
 }

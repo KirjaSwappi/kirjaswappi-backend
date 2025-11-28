@@ -28,7 +28,7 @@ import com.kirjaswappi.backend.jpa.repositories.GenreRepository;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-public class GenreApiIntegrationTest {
+class GenreApiIntegrationTest {
 
   @Autowired
   private WebApplicationContext webApplicationContext;
@@ -87,20 +87,25 @@ public class GenreApiIntegrationTest {
   @DisplayName("Should handle orphaned child genres gracefully")
   void shouldHandleOrphanedChildGenresGracefully() throws Exception {
     // Create child genres without their parent existing in database
-    GenreDao orphanedChild1 = new GenreDao();
-    orphanedChild1.setId("1");
-    orphanedChild1.setName("Science Fiction");
+
     // Create a parent reference that doesn't exist in database
-    GenreDao nonExistentParent = new GenreDao();
-    nonExistentParent.setId("999");
-    nonExistentParent.setName("Fiction");
-    orphanedChild1.setParent(nonExistentParent);
+    var nonExistentParent = GenreDao.builder()
+        .id("999")
+        .name("Fiction")
+        .build();
+
+    GenreDao orphanedChild1 = GenreDao.builder()
+        .id("1")
+        .name("Science Fiction")
+        .parent(nonExistentParent)
+        .build();
     genreRepository.save(orphanedChild1);
 
-    GenreDao orphanedChild2 = new GenreDao();
-    orphanedChild2.setId("2");
-    orphanedChild2.setName("Fantasy");
-    orphanedChild2.setParent(nonExistentParent);
+    GenreDao orphanedChild2 = GenreDao.builder()
+        .id("2")
+        .name("Fantasy")
+        .parent(nonExistentParent)
+        .build();
     genreRepository.save(orphanedChild2);
 
     mockMvc.perform(get("/api/v1/genres"))
@@ -270,7 +275,7 @@ public class GenreApiIntegrationTest {
     GenreDao genreWithApostrophe = createGenre("3", "Children's Books", null);
     GenreDao genreWithAmpersand = createGenre("4", "Arts & Crafts", null);
 
-    mockMvc.perform(get("/api/v1/genres"))
+      mockMvc.perform(get("/api/v1/genres"))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.parentGenres['Science Fiction']").exists())
@@ -281,10 +286,11 @@ public class GenreApiIntegrationTest {
 
   // Helper method to create and save a genre
   private GenreDao createGenre(String id, String name, GenreDao parent) {
-    GenreDao genre = new GenreDao();
-    genre.setId(id);
-    genre.setName(name);
-    genre.setParent(parent);
+    GenreDao genre = GenreDao.builder()
+        .id(id)
+        .name(name)
+        .parent(parent)
+        .build();
     return genreRepository.save(genre);
   }
 }

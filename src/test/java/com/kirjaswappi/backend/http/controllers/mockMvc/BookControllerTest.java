@@ -12,7 +12,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -29,11 +28,11 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
 import com.kirjaswappi.backend.http.controllers.BookController;
 import com.kirjaswappi.backend.service.BookService;
 import com.kirjaswappi.backend.service.entities.Book;
+import com.kirjaswappi.backend.service.entities.User;
 import com.kirjaswappi.backend.service.enums.Condition;
 import com.kirjaswappi.backend.service.enums.Language;
 import com.kirjaswappi.backend.service.enums.SwapType;
@@ -46,9 +45,6 @@ class BookControllerTest {
 
   @MockBean
   private BookService bookService;
-
-  @Autowired
-  private ObjectMapper objectMapper;
 
   private static final String BASE_PATH = API_BASE + BOOKS;
 
@@ -72,8 +68,8 @@ class BookControllerTest {
         }
         """;
 
-    Book book = new Book();
-    book.setTitle("The Alchemist");
+    Book book = Book.builder().title("The Alchemist").build();
+
     Mockito.when(bookService.createBook(any(Book.class))).thenReturn(book);
 
     mockMvc.perform(multipart(BASE_PATH)
@@ -103,8 +99,7 @@ class BookControllerTest {
         }
         """;
 
-    Book book = new Book();
-    book.setTitle("The Alchemist");
+    Book book = Book.builder().title("The Alchemist").build();
     Mockito.when(bookService.createBook(any(Book.class))).thenReturn(book);
 
     mockMvc.perform(multipart(BASE_PATH)
@@ -134,8 +129,8 @@ class BookControllerTest {
         }
         """;
 
-    Book book = new Book();
-    book.setTitle("The Alchemist");
+    Book book = Book.builder().title("The Alchemist").build();
+
     Mockito.when(bookService.createBook(any(Book.class))).thenReturn(book);
 
     mockMvc.perform(multipart(BASE_PATH)
@@ -165,8 +160,7 @@ class BookControllerTest {
         }
         """;
 
-    Book book = new Book();
-    book.setTitle("The Alchemist");
+    Book book = Book.builder().title("The Alchemist").build();
     Mockito.when(bookService.createBook(any(Book.class))).thenReturn(book);
 
     mockMvc.perform(multipart(BASE_PATH)
@@ -200,9 +194,7 @@ class BookControllerTest {
         }
         """;
 
-    Book book = new Book();
-    book.setId("123");
-    book.setTitle("The Alchemist");
+    Book book = Book.builder().id("123").title("The Alchemist").build();
     Mockito.when(bookService.updateBook(any(Book.class))).thenReturn(book);
 
     mockMvc.perform(multipart(BASE_PATH + "/123")
@@ -237,9 +229,7 @@ class BookControllerTest {
         }
         """;
 
-    Book book = new Book();
-    book.setId("123");
-    book.setTitle("The Alchemist");
+    Book book = Book.builder().id("123").title("The Alchemist").build();
     Mockito.when(bookService.updateBook(any(Book.class))).thenReturn(book);
 
     mockMvc.perform(multipart(BASE_PATH + "/123")
@@ -274,9 +264,7 @@ class BookControllerTest {
         }
         """;
 
-    Book book = new Book();
-    book.setId("123");
-    book.setTitle("The Alchemist");
+    Book book = Book.builder().id("123").title("The Alchemist").build();
     Mockito.when(bookService.updateBook(any(Book.class))).thenReturn(book);
 
     mockMvc.perform(multipart(BASE_PATH + "/123")
@@ -311,9 +299,7 @@ class BookControllerTest {
         }
         """;
 
-    Book book = new Book();
-    book.setId("123");
-    book.setTitle("The Alchemist");
+    Book book = Book.builder().id("123").title("The Alchemist").build();
     Mockito.when(bookService.updateBook(any(Book.class))).thenReturn(book);
 
     mockMvc.perform(multipart(BASE_PATH + "/123")
@@ -338,9 +324,7 @@ class BookControllerTest {
   @Test
   @DisplayName("Should return a Book successfully")
   void shouldReturnBookWhenFound() throws Exception {
-    Book book = new Book();
-    book.setId("book123");
-    book.setTitle("Test Book");
+    Book book = Book.builder().id("123").title("Test Book").build();
 
     when(bookService.getBookById("book123")).thenReturn(book);
 
@@ -353,12 +337,9 @@ class BookControllerTest {
   @Test
   @DisplayName("Should return more books of this user successfully")
   void shouldReturnListOfOtherBooksThisUserHave() throws Exception {
-    Book b1 = new Book();
-    b1.setId("b1");
-    b1.setTitle("B1");
-    Book b2 = new Book();
-    b2.setId("b2");
-    b2.setTitle("B2");
+    Book b1 = Book.builder().id("b1").title("B1").build();
+    Book b2 = Book.builder().id("b2").title("B2").build();
+
     when(bookService.getMoreBooksOfTheUser("b3")).thenReturn(List.of(b1, b2));
 
     mockMvc.perform(get(BASE_PATH + "/b3/more-books"))
@@ -393,18 +374,22 @@ class BookControllerTest {
   @Test
   @DisplayName("Should return paged books by optional filter criteria")
   void shouldReturnPagedBooks() throws Exception {
-    Book book = new Book();
-    book.setId("book123");
-    book.setTitle("Test");
-    book.setGenres(new ArrayList<>());
-    book.setLanguage(Language.ENGLISH);
-    book.setCondition(Condition.FAIR);
-    // Add owner info
-    com.kirjaswappi.backend.service.entities.User owner = new com.kirjaswappi.backend.service.entities.User();
-    owner.setId("owner-1");
-    owner.setFirstName("Alice");
-    owner.setLastName("Smith");
-    book.setOwner(owner);
+
+    var owner = User.builder()
+        .id("owner-1")
+        .firstName("Alice")
+        .lastName("Smith")
+        .build();
+
+    var book = Book.builder()
+        .id("book123")
+        .title("Test")
+        .genres(List.of())
+        .language(Language.ENGLISH)
+        .condition(Condition.FAIR)
+        .owner(owner) // Add owner info
+        .build();
+
     when(bookService.getAllBooksByFilter(any(), any(Pageable.class)))
         .thenReturn(new PageImpl<>(List.of(book), PageRequest.of(0, 10), 1));
 

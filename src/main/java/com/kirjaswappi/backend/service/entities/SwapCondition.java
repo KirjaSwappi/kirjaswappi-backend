@@ -6,14 +6,18 @@ package com.kirjaswappi.backend.service.entities;
 
 import java.util.List;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import com.kirjaswappi.backend.service.enums.SwapType;
 
 @Getter
 @Setter
+@Builder
+@Accessors(fluent = true)
 @NoArgsConstructor
 public class SwapCondition {
   private SwapType swapType;

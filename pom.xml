@@ -38,7 +38,7 @@
 	</distributionManagement>
 
 	<properties>
-		<java.version>24</java.version>
+		<java.version>25</java.version>
 		<spring-cloud.version>2025.0.0</spring-cloud.version>
 		<start-class>com.kirjaswappi.backend.BackendApplication</start-class>
 		<native.maven.plugin.version>0.11.3</native.maven.plugin.version>
@@ -253,8 +253,8 @@
 				<version>3.14.1</version>
 				<configuration>
 					<fork>true</fork>
-					<source>24</source>
-					<target>24</target>
+					<source>25</source>
+					<target>25</target>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>

@@ -20,18 +20,20 @@ class ChatMessageResponseTest {
   @DisplayName("Should create ChatMessageResponse with all fields from ChatMessage entity")
   void shouldCreateChatMessageResponseWithAllFields() {
     // Given
-    User sender = new User();
-    sender.setId("sender123");
-    sender.setFirstName("John");
-    sender.setLastName("Doe");
+    User sender = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
 
-    ChatMessage chatMessage = new ChatMessage();
-    chatMessage.setId("msg123");
-    chatMessage.setSwapRequestId("swap123");
-    chatMessage.setSender(sender);
-    chatMessage.setMessage("Hello, is this book still available?");
-    chatMessage.setSentAt(Instant.parse("2025-01-01T10:00:00Z"));
-    chatMessage.setReadByReceiver(false);
+    var chatMessage = ChatMessage.builder()
+        .id("msg123")
+        .swapRequestId("swap123")
+        .sender(sender)
+        .message("Hello, is this book still available?")
+        .sentAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .readByReceiver(false)
+        .build();
 
     // When
     ChatMessageResponse response = new ChatMessageResponse(chatMessage);
@@ -53,18 +55,20 @@ class ChatMessageResponseTest {
   @DisplayName("Should handle read message")
   void shouldHandleReadMessage() {
     // Given
-    User sender = new User();
-    sender.setId("sender456");
-    sender.setFirstName("Jane");
-    sender.setLastName("Smith");
+    User sender = User.builder()
+        .id("sender456")
+        .firstName("John")
+        .lastName("Smith")
+        .build();
 
-    ChatMessage chatMessage = new ChatMessage();
-    chatMessage.setId("msg456");
-    chatMessage.setSwapRequestId("swap456");
-    chatMessage.setSender(sender);
-    chatMessage.setMessage("Yes, it's still available!");
-    chatMessage.setSentAt(Instant.parse("2025-01-01T11:00:00Z"));
-    chatMessage.setReadByReceiver(true);
+    ChatMessage chatMessage = ChatMessage.builder()
+        .id("msg456")
+        .swapRequestId("swap456")
+        .sender(sender)
+        .message("Yes, it's still available!")
+        .sentAt(Instant.parse("2025-01-01T11:00:00Z"))
+        .readByReceiver(true)
+        .build();
 
     // When
     ChatMessageResponse response = new ChatMessageResponse(chatMessage);
@@ -86,18 +90,20 @@ class ChatMessageResponseTest {
   @DisplayName("Should handle sender with null names")
   void shouldHandleSenderWithNullNames() {
     // Given
-    User sender = new User();
-    sender.setId("sender789");
-    sender.setFirstName(null);
-    sender.setLastName(null);
+    User sender = User.builder()
+        .id("sender789")
+        .firstName(null)
+        .lastName(null)
+        .build();
 
-    ChatMessage chatMessage = new ChatMessage();
-    chatMessage.setId("msg789");
-    chatMessage.setSwapRequestId("swap789");
-    chatMessage.setSender(sender);
-    chatMessage.setMessage("Test message");
-    chatMessage.setSentAt(Instant.parse("2025-01-01T12:00:00Z"));
-    chatMessage.setReadByReceiver(false);
+    ChatMessage chatMessage = ChatMessage.builder()
+        .id("msg789")
+        .swapRequestId("swap789")
+        .sender(sender)
+        .message("Test message")
+        .sentAt(Instant.parse("2025-01-01T12:00:00Z"))
+        .readByReceiver(false)
+        .build();
 
     // When
     ChatMessageResponse response = new ChatMessageResponse(chatMessage);

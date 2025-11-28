@@ -48,45 +48,50 @@ class InboxControllerTest {
   @DisplayName("Should return unified inbox successfully")
   void shouldReturnUnifiedInboxSuccessfully() throws Exception {
     // Given
-    User sender = new User();
-    sender.setId("sender123");
-    sender.setFirstName("John");
-    sender.setLastName("Doe");
+    User sender = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
 
-    User receiver = new User();
-    receiver.setId("receiver123");
-    receiver.setFirstName("Jane");
-    receiver.setLastName("Smith");
+    User receiver = User.builder()
+        .id("receiver123")
+        .firstName("Jane")
+        .lastName("Smith")
+        .build();
 
-    Book book = new Book();
-    book.setId("book123");
-    book.setTitle("Test Book");
-    book.setAuthor("Test Author");
-    book.setCondition(Condition.GOOD);
+    Book book = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .condition(Condition.GOOD)
+        .build();
 
-    // Received swap request
-    SwapRequest receivedSwap = new SwapRequest();
-    receivedSwap.setId("received1");
-    receivedSwap.setSender(sender);
-    receivedSwap.setReceiver(receiver);
-    receivedSwap.setBookToSwapWith(book);
-    receivedSwap.setSwapType(SwapType.BY_BOOKS);
-    receivedSwap.setSwapStatus(SwapStatus.PENDING);
-    receivedSwap.setRequestedAt(Instant.parse("2025-01-01T10:00:00Z"));
-    receivedSwap.setUpdatedAt(Instant.parse("2025-01-01T10:00:00Z"));
-    receivedSwap.setAskForGiveaway(false);
+// Received swap request
+    SwapRequest receivedSwap = SwapRequest.builder()
+        .id("received1")
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book)
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.PENDING)
+        .requestedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .askForGiveaway(false)
+        .build();
 
-    // Sent swap request
-    SwapRequest sentSwap = new SwapRequest();
-    sentSwap.setId("sent1");
-    sentSwap.setSender(receiver);
-    sentSwap.setReceiver(sender);
-    sentSwap.setBookToSwapWith(book);
-    sentSwap.setSwapType(SwapType.GIVE_AWAY);
-    sentSwap.setSwapStatus(SwapStatus.ACCEPTED);
-    sentSwap.setRequestedAt(Instant.parse("2025-01-02T10:00:00Z"));
-    sentSwap.setUpdatedAt(Instant.parse("2025-01-02T10:00:00Z"));
-    sentSwap.setAskForGiveaway(true);
+// Sent swap request
+    SwapRequest sentSwap = SwapRequest.builder()
+        .id("sent1")
+        .sender(receiver)
+        .receiver(sender)
+        .bookToSwapWith(book)
+        .swapType(SwapType.GIVE_AWAY)
+        .swapStatus(SwapStatus.ACCEPTED)
+        .requestedAt(Instant.parse("2025-01-02T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-02T10:00:00Z"))
+        .askForGiveaway(true)
+        .build();
 
     List<SwapRequest> unifiedInbox = Arrays.asList(sentSwap, receivedSwap); // Sorted by latest messages
     when(inboxService.getUnifiedInbox("receiver123", null, null)).thenReturn(unifiedInbox);
@@ -125,35 +130,38 @@ class InboxControllerTest {
   @Test
   @DisplayName("Should return unified inbox with status filter")
   void shouldReturnUnifiedInboxWithStatusFilter() throws Exception {
-    // Given
-    User sender = new User();
-    sender.setId("sender123");
-    sender.setFirstName("John");
-    sender.setLastName("Doe");
+    User sender = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
 
-    User receiver = new User();
-    receiver.setId("receiver123");
-    receiver.setFirstName("Jane");
-    receiver.setLastName("Smith");
+    User receiver = User.builder()
+        .id("receiver123")
+        .firstName("Jane")
+        .lastName("Smith")
+        .build();
 
-    Book book = new Book();
-    book.setId("book123");
-    book.setTitle("Test Book");
-    book.setAuthor("Test Author");
-    book.setCondition(Condition.LIKE_NEW);
+    Book book = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .condition(Condition.LIKE_NEW)
+        .build();
 
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap1");
-    swapRequest.setSender(sender);
-    swapRequest.setReceiver(receiver);
-    swapRequest.setBookToSwapWith(book);
-    swapRequest.setSwapType(SwapType.BY_BOOKS);
-    swapRequest.setSwapStatus(SwapStatus.PENDING);
-    swapRequest.setRequestedAt(Instant.parse("2025-01-01T10:00:00Z"));
-    swapRequest.setUpdatedAt(Instant.parse("2025-01-01T10:00:00Z"));
-    swapRequest.setAskForGiveaway(false);
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap1")
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book)
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.PENDING)
+        .requestedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .askForGiveaway(false)
+        .build();
 
-    List<SwapRequest> swapRequests = Arrays.asList(swapRequest);
+    List<SwapRequest> swapRequests = List.of(swapRequest);
     when(inboxService.getUnifiedInbox("receiver123", "Pending", "latest_message")).thenReturn(swapRequests);
     when(inboxService.getUnreadMessageCount("receiver123", "swap1")).thenReturn(1L);
     when(inboxService.isInboxItemUnread(swapRequest, "receiver123")).thenReturn(true);
@@ -213,48 +221,53 @@ class InboxControllerTest {
   @Test
   @DisplayName("Should return unified inbox with sorting by book title")
   void shouldReturnUnifiedInboxWithSorting() throws Exception {
-    // Given
-    User sender = new User();
-    sender.setId("sender123");
-    sender.setFirstName("John");
-    sender.setLastName("Doe");
+    User sender = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
 
-    User receiver = new User();
-    receiver.setId("receiver123");
-    receiver.setFirstName("Jane");
-    receiver.setLastName("Smith");
+    User receiver = User.builder()
+        .id("receiver123")
+        .firstName("Jane")
+        .lastName("Smith")
+        .build();
 
-    Book book1 = new Book();
-    book1.setId("book1");
-    book1.setTitle("A Test Book");
-    book1.setAuthor("Test Author");
+    Book book1 = Book.builder()
+        .id("book1")
+        .title("A Test Book")
+        .author("Test Author")
+        .build();
 
-    Book book2 = new Book();
-    book2.setId("book2");
-    book2.setTitle("Z Test Book");
-    book2.setAuthor("Test Author");
+    Book book2 = Book.builder()
+        .id("book2")
+        .title("Z Test Book")
+        .author("Test Author")
+        .build();
 
-    SwapRequest swapRequest1 = new SwapRequest();
-    swapRequest1.setId("swap1");
-    swapRequest1.setSender(sender);
-    swapRequest1.setReceiver(receiver);
-    swapRequest1.setBookToSwapWith(book1);
-    swapRequest1.setSwapType(SwapType.BY_BOOKS);
-    swapRequest1.setSwapStatus(SwapStatus.PENDING);
-    swapRequest1.setRequestedAt(Instant.parse("2025-01-01T10:00:00Z"));
-    swapRequest1.setUpdatedAt(Instant.parse("2025-01-01T10:00:00Z"));
-    swapRequest1.setAskForGiveaway(false);
+    SwapRequest swapRequest1 = SwapRequest.builder()
+        .id("swap1")
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book1)
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.PENDING)
+        .requestedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .askForGiveaway(false)
+        .build();
 
-    SwapRequest swapRequest2 = new SwapRequest();
-    swapRequest2.setId("swap2");
-    swapRequest2.setSender(sender);
-    swapRequest2.setReceiver(receiver);
-    swapRequest2.setBookToSwapWith(book2);
-    swapRequest2.setSwapType(SwapType.BY_BOOKS);
-    swapRequest2.setSwapStatus(SwapStatus.PENDING);
-    swapRequest2.setRequestedAt(Instant.parse("2025-01-02T10:00:00Z"));
-    swapRequest2.setUpdatedAt(Instant.parse("2025-01-02T10:00:00Z"));
-    swapRequest2.setAskForGiveaway(false);
+    SwapRequest swapRequest2 = SwapRequest.builder()
+        .id("swap2")
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book2)
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.PENDING)
+        .requestedAt(Instant.parse("2025-01-02T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-02T10:00:00Z"))
+        .askForGiveaway(false)
+        .build();
 
     List<SwapRequest> swapRequests = Arrays.asList(swapRequest1, swapRequest2); // Sorted alphabetically by book title
     when(inboxService.getUnifiedInbox("receiver123", null, "book_title")).thenReturn(swapRequests);

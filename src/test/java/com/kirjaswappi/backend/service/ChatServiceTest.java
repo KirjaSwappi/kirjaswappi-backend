@@ -10,7 +10,6 @@ import static org.mockito.Mockito.*;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,37 +62,41 @@ class ChatServiceTest {
     MockitoAnnotations.openMocks(this);
 
     // Create test users
-    senderDao = new UserDao();
-    senderDao.setId("64e8f5d1a2b3c4d5e6f78905");
-    senderDao.setFirstName("John");
-    senderDao.setLastName("Sender");
+    senderDao = UserDao.builder()
+        .id("64e8f5d1a2b3c4d5e6f78905")
+        .firstName("John")
+        .lastName("Sender")
+        .build();
 
-    receiverDao = new UserDao();
-    receiverDao.setId("64e8f5d1a2b3c4d5e6f78901");
-    receiverDao.setFirstName("Jane");
-    receiverDao.setLastName("Receiver");
+    receiverDao = UserDao.builder()
+        .id("64e8f5d1a2b3c4d5e6f78901")
+        .firstName("Jane")
+        .lastName("Receiver")
+        .build();
 
-    senderEntity = new User();
-    senderEntity.setId("sender123");
-    senderEntity.setFirstName("John");
-    senderEntity.setLastName("Sender");
+    senderEntity = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Sender")
+        .build();
 
     // Create test swap request
-    swapRequestDao = new SwapRequestDao();
-    swapRequestDao.setId("swap123");
-    swapRequestDao.setSender(senderDao);
-    swapRequestDao.setReceiver(receiverDao);
-    swapRequestDao.setSwapType("ByBooks");
-    swapRequestDao.setSwapStatus("PENDING");
+    swapRequestDao = new SwapRequestDao()
+        .id("swap123")
+        .sender(senderDao)
+        .receiver(receiverDao)
+        .swapType("ByBooks")
+        .swapStatus("PENDING");
 
     // Create test chat message
-    chatMessageDao = new ChatMessageDao();
-    chatMessageDao.setId("msg123");
-    chatMessageDao.setSwapRequestId("swap123");
-    chatMessageDao.setSender(senderDao);
-    chatMessageDao.setMessage("Hello, is this book still available?");
-    chatMessageDao.setSentAt(Instant.now());
-    chatMessageDao.setReadByReceiver(false);
+    chatMessageDao = ChatMessageDao.builder()
+        .id("msg123")
+        .swapRequestId("swap123")
+        .sender(senderDao)
+        .message("Hello, is this book still available?")
+        .sentAt(Instant.now())
+        .readByReceiver(false)
+        .build();
   }
 
   @Test
@@ -109,8 +112,8 @@ class ChatServiceTest {
 
     // Then
     assertEquals(1, result.size());
-    assertEquals("msg123", result.get(0).getId());
-    assertEquals("Hello, is this book still available?", result.get(0).getMessage());
+    assertEquals("msg123", result.getFirst().id());
+    assertEquals("Hello, is this book still available?", result.getFirst().message());
     verify(swapRequestRepository, times(2)).findById("swap123"); // Called twice: once in getChatMessages, once in
                                                                  // markMessagesAsRead
     verify(chatMessageRepository, times(2)).findBySwapRequestIdOrderBySentAtAsc("swap123"); // Called twice: once for
@@ -157,7 +160,7 @@ class ChatServiceTest {
 
     // Then
     assertNotNull(result);
-    assertEquals("msg123", result.getId());
+    assertEquals("msg123", result.id());
     verify(swapRequestRepository).findById("swap123");
     verify(userService).getUser("64e8f5d1a2b3c4d5e6f78905");
     verify(chatMessageRepository).save(any(ChatMessageDao.class));
@@ -200,10 +203,11 @@ class ChatServiceTest {
   @DisplayName("Should mark messages as read when user has access")
   void shouldMarkMessagesAsReadWhenUserHasAccess() {
     // Given
-    ChatMessageDao unreadMessage = new ChatMessageDao();
-    unreadMessage.setId("msg456");
-    unreadMessage.setSender(senderDao); // Message from sender
-    unreadMessage.setReadByReceiver(false);
+    ChatMessageDao unreadMessage = ChatMessageDao.builder()
+        .id("msg456")
+        .sender(senderDao) // Message from sender
+        .readByReceiver(false)
+        .build();
 
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     when(chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc("swap123"))
@@ -217,7 +221,7 @@ class ChatServiceTest {
     verify(swapRequestRepository).findById("swap123");
     verify(chatMessageRepository).findBySwapRequestIdOrderBySentAtAsc("swap123");
     verify(chatMessageRepository).save(unreadMessage);
-    assertTrue(unreadMessage.isReadByReceiver());
+    assertTrue(unreadMessage.readByReceiver());
   }
 
   @Test
@@ -280,14 +284,14 @@ class ChatServiceTest {
     MockMultipartFile image2 = new MockMultipartFile("image2", "test2.jpg", "image/jpeg", "test image 2".getBytes());
     List<MultipartFile> images = Arrays.asList(image1, image2);
 
-    ChatMessageDao savedMessageDao = new ChatMessageDao();
-    savedMessageDao.setId("msg789");
-    savedMessageDao.setSwapRequestId("swap123");
-    savedMessageDao.setSender(senderDao);
-    savedMessageDao.setMessage("Check out these photos!");
-    savedMessageDao.setImageIds(Arrays.asList("image-id-1", "image-id-2"));
-    savedMessageDao.setSentAt(Instant.now());
-    savedMessageDao.setReadByReceiver(false);
+    ChatMessageDao savedMessageDao = new ChatMessageDao()
+        .id("msg789")
+        .swapRequestId("swap123")
+        .sender(senderDao)
+        .message("Check out these photos!")
+        .imageIds(List.of("image-id-1", "image-id-2"))
+        .sentAt(Instant.now())
+        .readByReceiver(false);
 
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     when(userService.getUser("64e8f5d1a2b3c4d5e6f78905")).thenReturn(senderEntity);
@@ -301,10 +305,10 @@ class ChatServiceTest {
 
     // Then
     assertNotNull(result);
-    assertEquals("msg789", result.getId());
-    assertEquals("Check out these photos!", result.getMessage());
-    assertNotNull(result.getImageIds());
-    assertEquals(2, result.getImageIds().size());
+    assertEquals("msg789", result.id());
+    assertEquals("Check out these photos!", result.message());
+    assertNotNull(result.imageIds());
+    assertEquals(2, result.imageIds().size());
     verify(swapRequestRepository).findById("swap123");
     verify(userService).getUser("64e8f5d1a2b3c4d5e6f78905");
     verify(imageService, times(2)).uploadImage(any(MultipartFile.class), anyString());
@@ -316,16 +320,16 @@ class ChatServiceTest {
   void shouldSendMessageWithOnlyImagesWhenTextIsNull() {
     // Given
     MockMultipartFile image = new MockMultipartFile("image", "test.jpg", "image/jpeg", "test image".getBytes());
-    List<MultipartFile> images = Arrays.asList(image);
+    List<MultipartFile> images = List.of(image);
 
-    ChatMessageDao savedMessageDao = new ChatMessageDao();
-    savedMessageDao.setId("msg999");
-    savedMessageDao.setSwapRequestId("swap123");
-    savedMessageDao.setSender(senderDao);
-    savedMessageDao.setMessage(null);
-    savedMessageDao.setImageIds(Arrays.asList("image-id-1"));
-    savedMessageDao.setSentAt(Instant.now());
-    savedMessageDao.setReadByReceiver(false);
+    ChatMessageDao savedMessageDao = new ChatMessageDao()
+        .id("msg999")
+        .swapRequestId("swap123")
+        .sender(senderDao)
+        .message(null)
+        .imageIds(List.of("image-id-1"))
+        .sentAt(Instant.now())
+        .readByReceiver(false);
 
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     when(userService.getUser("64e8f5d1a2b3c4d5e6f78905")).thenReturn(senderEntity);
@@ -338,10 +342,10 @@ class ChatServiceTest {
 
     // Then
     assertNotNull(result);
-    assertEquals("msg999", result.getId());
-    assertNull(result.getMessage());
-    assertNotNull(result.getImageIds());
-    assertEquals(1, result.getImageIds().size());
+    assertEquals("msg999", result.id());
+    assertNull(result.message());
+    assertNotNull(result.imageIds());
+    assertEquals(1, result.imageIds().size());
     verify(imageService).uploadImage(any(MultipartFile.class), anyString());
     verify(chatMessageRepository).save(any(ChatMessageDao.class));
   }
@@ -423,18 +427,18 @@ class ChatServiceTest {
   @DisplayName("Should get chat messages with image URLs")
   void shouldGetChatMessagesWithImageUrls() {
     // Given
-    ChatMessageDao messageWithImages = new ChatMessageDao();
-    messageWithImages.setId("msg456");
-    messageWithImages.setSwapRequestId("swap123");
-    messageWithImages.setSender(senderDao);
-    messageWithImages.setMessage("Check these out");
-    messageWithImages.setImageIds(Arrays.asList("image-id-1", "image-id-2"));
-    messageWithImages.setSentAt(Instant.now());
-    messageWithImages.setReadByReceiver(false);
+    ChatMessageDao messageWithImages = new ChatMessageDao()
+        .id("msg456")
+        .swapRequestId("swap123")
+        .sender(senderDao)
+        .message("Check these out")
+        .imageIds(List.of("image-id-1", "image-id-2"))
+        .sentAt(Instant.now())
+        .readByReceiver(false);
 
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     when(chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc("swap123"))
-        .thenReturn(Arrays.asList(messageWithImages));
+        .thenReturn(List.of(messageWithImages));
     when(imageService.getDownloadUrl("image-id-1")).thenReturn("https://example.com/image1.jpg");
     when(imageService.getDownloadUrl("image-id-2")).thenReturn("https://example.com/image2.jpg");
 
@@ -443,11 +447,11 @@ class ChatServiceTest {
 
     // Then
     assertEquals(1, result.size());
-    ChatMessage message = result.get(0);
-    assertNotNull(message.getImageIds());
-    assertEquals(2, message.getImageIds().size());
-    assertEquals("https://example.com/image1.jpg", message.getImageIds().get(0));
-    assertEquals("https://example.com/image2.jpg", message.getImageIds().get(1));
+    ChatMessage message = result.getFirst();
+    assertNotNull(message.imageIds());
+    assertEquals(2, message.imageIds().size());
+    assertEquals("https://example.com/image1.jpg", message.imageIds().getFirst());
+    assertEquals("https://example.com/image2.jpg", message.imageIds().get(1));
     verify(imageService, times(2)).getDownloadUrl(anyString());
   }
 
@@ -455,14 +459,14 @@ class ChatServiceTest {
   @DisplayName("Should get chat messages with null image URLs when no images")
   void shouldGetChatMessagesWithNullImageUrlsWhenNoImages() {
     // Given
-    ChatMessageDao messageWithoutImages = new ChatMessageDao();
-    messageWithoutImages.setId("msg789");
-    messageWithoutImages.setSwapRequestId("swap123");
-    messageWithoutImages.setSender(senderDao);
-    messageWithoutImages.setMessage("Text only message");
-    messageWithoutImages.setImageIds(null);
-    messageWithoutImages.setSentAt(Instant.now());
-    messageWithoutImages.setReadByReceiver(false);
+    ChatMessageDao messageWithoutImages = new ChatMessageDao()
+        .id("msg789")
+        .swapRequestId("swap123")
+        .sender(senderDao)
+        .message("Text only message")
+        .imageIds(null)
+        .sentAt(Instant.now())
+        .readByReceiver(false);
 
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     when(chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc("swap123"))
@@ -473,8 +477,8 @@ class ChatServiceTest {
 
     // Then
     assertEquals(1, result.size());
-    ChatMessage message = result.get(0);
-    assertNull(message.getImageIds());
+    ChatMessage message = result.getFirst();
+    assertNull(message.imageIds());
     verify(imageService, never()).getDownloadUrl(anyString());
   }
 
@@ -482,10 +486,10 @@ class ChatServiceTest {
   @DisplayName("Should not mark own messages as read")
   void shouldNotMarkOwnMessagesAsRead() {
     // Given
-    ChatMessageDao ownMessage = new ChatMessageDao();
-    ownMessage.setId("msg111");
-    ownMessage.setSender(senderDao); // Message from sender
-    ownMessage.setReadByReceiver(false);
+    ChatMessageDao ownMessage = new ChatMessageDao()
+    .id("msg111")
+        .sender(senderDao) // Message from sender
+      .readByReceiver(false);
 
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     when(chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc("swap123"))
@@ -504,10 +508,10 @@ class ChatServiceTest {
   @DisplayName("Should not mark already read messages")
   void shouldNotMarkAlreadyReadMessages() {
     // Given
-    ChatMessageDao alreadyReadMessage = new ChatMessageDao();
-    alreadyReadMessage.setId("msg222");
-    alreadyReadMessage.setSender(senderDao); // Message from sender
-    alreadyReadMessage.setReadByReceiver(true); // Already read
+    ChatMessageDao alreadyReadMessage = new ChatMessageDao()
+        .id("msg222")
+        .sender(senderDao) // Message from sender
+        .readByReceiver(true); // Already read
 
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     when(chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc("swap123"))
@@ -582,14 +586,15 @@ class ChatServiceTest {
   void shouldGetSwapRequestForChatWhenUserHasAccess() {
     // Given
     // Add book to swap request to avoid NullPointerException in mapper
-    BookDao bookDao = new BookDao();
-    bookDao.setId("book123");
-    bookDao.setTitle("Test Book");
-    bookDao.setAuthor("Test Author");
-    bookDao.setLanguage("English");
-    bookDao.setCondition("Good");
-    bookDao.setOwner(senderDao);
-    swapRequestDao.setBookToSwapWith(bookDao);
+    BookDao bookDao = new BookDao()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .language("English")
+        .condition("Good")
+        .owner(senderDao);
+
+    swapRequestDao.bookToSwapWith(bookDao);
 
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
 
@@ -598,7 +603,7 @@ class ChatServiceTest {
 
     // Then
     assertNotNull(result);
-    assertEquals("swap123", result.getId());
+    assertEquals("swap123", result.id());
     verify(swapRequestRepository).findById("swap123");
   }
 
@@ -644,7 +649,7 @@ class ChatServiceTest {
     // Given
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     when(chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc("swap123"))
-        .thenReturn(Collections.emptyList());
+        .thenReturn(List.of());
 
     // When
     List<ChatMessage> result = chatService.getChatMessages("swap123", "64e8f5d1a2b3c4d5e6f78905");
@@ -663,7 +668,7 @@ class ChatServiceTest {
     when(userService.getUser("64e8f5d1a2b3c4d5e6f78905")).thenReturn(senderEntity);
     when(chatMessageRepository.save(any(ChatMessageDao.class))).thenAnswer(invocation -> {
       ChatMessageDao dao = invocation.getArgument(0);
-      assertEquals("Hello", dao.getMessage()); // Should be trimmed
+      assertEquals("Hello", dao.message()); // Should be trimmed
       return dao;
     });
 

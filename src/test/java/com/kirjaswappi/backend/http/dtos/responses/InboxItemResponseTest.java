@@ -26,41 +26,43 @@ class InboxItemResponseTest {
   @DisplayName("Should create InboxItemResponse with all fields from SwapRequest entity")
   void shouldCreateInboxItemResponseWithAllFields() {
     // Given
-    User sender = new User();
-    sender.setId("sender123");
-    sender.setFirstName("John");
-    sender.setLastName("Doe");
+    User sender = new User()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe");
 
-    User receiver = new User();
-    receiver.setId("receiver123");
-    receiver.setFirstName("Jane");
-    receiver.setLastName("Smith");
+    User receiver = new User()
+        .id("receiver123")
+        .firstName("Jane")
+        .lastName("Smith");
 
-    Book book = new Book();
-    book.setId("book123");
-    book.setTitle("Test Book");
-    book.setAuthor("Test Author");
-    book.setCondition(Condition.GOOD);
+    Book book = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .condition(Condition.GOOD)
+        .build();
 
     SwappableBook offeredBook = new SwappableBook();
     offeredBook.setId("offered123");
     offeredBook.setTitle("Offered Book");
 
-    SwapOffer swapOffer = new SwapOffer();
-    swapOffer.setOfferedBook(offeredBook);
+    SwapOffer swapOffer = new SwapOffer()
+        .offeredBook(offeredBook);
 
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap123");
-    swapRequest.setSwapType(SwapType.BY_BOOKS);
-    swapRequest.setSwapStatus(SwapStatus.PENDING);
-    swapRequest.setNote("Test note");
-    swapRequest.setRequestedAt(Instant.parse("2025-01-01T10:00:00Z"));
-    swapRequest.setUpdatedAt(Instant.parse("2025-01-01T11:00:00Z"));
-    swapRequest.setSender(sender);
-    swapRequest.setReceiver(receiver);
-    swapRequest.setBookToSwapWith(book);
-    swapRequest.setSwapOffer(swapOffer);
-    swapRequest.setAskForGiveaway(false);
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap123")
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.PENDING)
+        .note("Test note")
+        .requestedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-01T11:00:00Z"))
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book)
+        .swapOffer(swapOffer)
+        .askForGiveaway(false)
+        .build();
 
     // When
     InboxItemResponse response = new InboxItemResponse(swapRequest);
@@ -102,32 +104,34 @@ class InboxItemResponseTest {
   @DisplayName("Should handle null swap offer")
   void shouldHandleNullSwapOffer() {
     // Given
-    User sender = new User();
-    sender.setId("sender123");
-    sender.setFirstName("John");
-    sender.setLastName("Doe");
+    User sender = new User()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe");
 
-    User receiver = new User();
-    receiver.setId("receiver123");
-    receiver.setFirstName("Jane");
-    receiver.setLastName("Smith");
+    User receiver = new User()
+        .id("receiver123")
+        .firstName("Jane")
+        .lastName("Smith");
 
-    Book book = new Book();
-    book.setId("book123");
-    book.setTitle("Test Book");
-    book.setAuthor("Test Author");
+    Book book = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .build();
 
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap123");
-    swapRequest.setSwapType(SwapType.GIVE_AWAY);
-    swapRequest.setSwapStatus(SwapStatus.ACCEPTED);
-    swapRequest.setRequestedAt(Instant.parse("2025-01-01T10:00:00Z"));
-    swapRequest.setUpdatedAt(Instant.parse("2025-01-01T11:00:00Z"));
-    swapRequest.setSender(sender);
-    swapRequest.setReceiver(receiver);
-    swapRequest.setBookToSwapWith(book);
-    swapRequest.setSwapOffer(null);
-    swapRequest.setAskForGiveaway(true);
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap123")
+        .swapType(SwapType.GIVE_AWAY)
+        .swapStatus(SwapStatus.ACCEPTED)
+        .requestedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-01T11:00:00Z"))
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book)
+        .swapOffer(null)
+        .askForGiveaway(true)
+        .build();
 
     // When
     InboxItemResponse response = new InboxItemResponse(swapRequest);
@@ -144,32 +148,34 @@ class InboxItemResponseTest {
   @DisplayName("Should handle null book condition")
   void shouldHandleNullBookCondition() {
     // Given
-    User sender = new User();
-    sender.setId("sender123");
-    sender.setFirstName("John");
-    sender.setLastName("Doe");
+    User sender = new User()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe");
 
-    User receiver = new User();
-    receiver.setId("receiver123");
-    receiver.setFirstName("Jane");
-    receiver.setLastName("Smith");
+    User receiver = new User()
+        .id("receiver123")
+        .firstName("Jane")
+        .lastName("Smith");
 
-    Book book = new Book();
-    book.setId("book123");
-    book.setTitle("Test Book");
-    book.setAuthor("Test Author");
-    book.setCondition(null);
+    Book book = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .condition(null)
+        .build();
 
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap123");
-    swapRequest.setSwapType(SwapType.OPEN_FOR_OFFERS);
-    swapRequest.setSwapStatus(SwapStatus.REJECTED);
-    swapRequest.setRequestedAt(Instant.parse("2025-01-01T10:00:00Z"));
-    swapRequest.setUpdatedAt(Instant.parse("2025-01-01T11:00:00Z"));
-    swapRequest.setSender(sender);
-    swapRequest.setReceiver(receiver);
-    swapRequest.setBookToSwapWith(book);
-    swapRequest.setAskForGiveaway(false);
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap123")
+        .swapType(SwapType.OPEN_FOR_OFFERS)
+        .swapStatus(SwapStatus.REJECTED)
+        .requestedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-01T11:00:00Z"))
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book)
+        .askForGiveaway(false)
+        .build();
 
     // When
     InboxItemResponse response = new InboxItemResponse(swapRequest);

@@ -19,6 +19,9 @@ spring:
           from: test@example.com
           ssl:
             trust: smtp.example.com
+  threads:
+    virtual:
+      enabled: true
 
 server:
   port: 8080

@@ -7,16 +7,19 @@ package com.kirjaswappi.backend.common.utils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Base64;
-
-import lombok.NoArgsConstructor;
+import java.util.function.Function;
 
 import org.apache.tomcat.util.http.fileupload.FileItem;
 import org.apache.tomcat.util.http.fileupload.disk.DiskFileItem;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.web.multipart.MultipartFile;
 
-@NoArgsConstructor
-public class Util {
+public final class Util {
+
+  private Util() {
+    throw new IllegalStateException("Utility class should not be instantiated");
+  }
+
   public static String generateSalt() {
     return BCrypt.gensalt();
   }
@@ -37,5 +40,16 @@ public class Util {
       outputStream.write(decodedBytes);
     }
     return new FileItemMultipartFile(fileItem);
+  }
+
+  public static <T, R> R mapIfNotNull(T obj, Function<T, R> mapper) {
+    if (obj == null) {
+      return null;
+    }
+    return mapper.apply(obj);
+  }
+
+  public static <T> T defaultIfNull(T obj, T defaultValue) {
+    return obj != null ? obj : defaultValue;
   }
 }

@@ -17,57 +17,58 @@ class ChatMessageTest {
   @DisplayName("Should create ChatMessage with all properties")
   void shouldCreateChatMessageWithAllProperties() {
     // Given
-    var user = new User();
-    user.setId("user123");
-    user.setFirstName("John");
-    user.setLastName("Doe");
+    User user = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
 
     var sentAt = Instant.now();
 
     // When
-    var chatMessage = new ChatMessage();
-    chatMessage.setId("msg123");
-    chatMessage.setSwapRequestId("swap123");
-    chatMessage.setSender(user);
-    chatMessage.setMessage("Hello, is this book still available?");
-    chatMessage.setSentAt(sentAt);
-    chatMessage.setReadByReceiver(false);
+    var chatMessage = ChatMessage.builder()
+        .id("msg123")
+        .swapRequestId("swap123")
+        .sender(user)
+        .message("Hello, is this book still available?")
+        .sentAt(sentAt)
+        .readByReceiver(false)
+        .build();
 
     // Then
-    assertEquals("msg123", chatMessage.getId());
-    assertEquals("swap123", chatMessage.getSwapRequestId());
-    assertEquals(user, chatMessage.getSender());
-    assertEquals("Hello, is this book still available?", chatMessage.getMessage());
-    assertEquals(sentAt, chatMessage.getSentAt());
-    assertFalse(chatMessage.isReadByReceiver());
+    assertEquals("msg123", chatMessage.id());
+    assertEquals("swap123", chatMessage.swapRequestId());
+    assertEquals(user, chatMessage.sender());
+    assertEquals("Hello, is this book still available?", chatMessage.message());
+    assertEquals(sentAt, chatMessage.sentAt());
+    assertFalse(chatMessage.readByReceiver());
   }
 
   @Test
   @DisplayName("Should create ChatMessage with default constructor")
   void shouldCreateChatMessageWithDefaultConstructor() {
     // When
-    var chatMessage = new ChatMessage();
+    var chatMessage = ChatMessage.builder().build();
 
     // Then
     assertNotNull(chatMessage);
-    assertNull(chatMessage.getId());
-    assertNull(chatMessage.getSwapRequestId());
-    assertNull(chatMessage.getSender());
-    assertNull(chatMessage.getMessage());
-    assertNull(chatMessage.getSentAt());
-    assertFalse(chatMessage.isReadByReceiver()); // boolean defaults to false
+    assertNull(chatMessage.id());
+    assertNull(chatMessage.swapRequestId());
+    assertNull(chatMessage.sender());
+    assertNull(chatMessage.message());
+    assertNull(chatMessage.sentAt());
+    assertFalse(chatMessage.readByReceiver()); // boolean defaults to false
   }
 
   @Test
   @DisplayName("Should allow setting readByReceiver to true")
   void shouldAllowSettingReadByReceiverToTrue() {
     // Given
-    var chatMessage = new ChatMessage();
-
-    // When
-    chatMessage.setReadByReceiver(true);
+    var chatMessage = ChatMessage.builder()
+        .readByReceiver(true) // When
+        .build();
 
     // Then
-    assertTrue(chatMessage.isReadByReceiver());
+    assertTrue(chatMessage.readByReceiver());
   }
 }

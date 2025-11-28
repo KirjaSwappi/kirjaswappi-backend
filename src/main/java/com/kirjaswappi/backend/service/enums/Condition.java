@@ -10,10 +10,12 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 import lombok.Getter;
+import lombok.experimental.Accessors;
 
 import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 
 @Getter
+@Accessors(fluent = true)
 public enum Condition {
   NEW("New"),
   LIKE_NEW("Like New"),
@@ -30,12 +32,12 @@ public enum Condition {
   public static Condition fromCode(String code) {
     Objects.requireNonNull(code);
     return Arrays.stream(Condition.values())
-        .filter(c -> c.getCode().equalsIgnoreCase(code))
+        .filter(c -> c.code().equalsIgnoreCase(code))
         .findFirst()
         .orElseThrow(() -> new BadRequestException("invalidCondition", code));
   }
 
   public static List<String> getSupportedConditions() {
-    return Stream.of(Condition.values()).map(Condition::getCode).toList();
+    return Stream.of(Condition.values()).map(Condition::code).toList();
   }
 }

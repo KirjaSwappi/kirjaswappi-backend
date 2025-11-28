@@ -49,19 +49,20 @@ public class CreateBookRequest {
   @Schema(description = "The user ID of the book owner.", example = "123456", requiredMode = REQUIRED)
   private String ownerId;
 
-  @Schema(description = "Swap condition of the book in JSON format.", requiredMode = REQUIRED, example = "{\n" +
-      "  \"conditionType\": \"ByBooks\",\n" +
-      "  \"giveAway\": false,\n" +
-      "  \"openForOffers\": false,\n" +
-      "  \"genres\": [],\n" +
-      "  \"books\": [\n" +
-      "    {\n" +
-      "      \"title\": \"The Alchemist\",\n" +
-      "      \"author\": \"Paulo Coelho\",\n" +
-      "      \"coverPhoto\": \"swappable-book-cover-photo.jpg\"\n" +
-      "    }\n" +
-      "  ]\n" +
-      "}")
+  @Schema(description = "Swap condition of the book in JSON format.", requiredMode = REQUIRED, example = """
+      {
+        "conditionType": "ByBooks",
+        "giveAway": false,
+        "openForOffers": false,
+        "genres": [],
+        "books": [
+          {
+            "title": "The Alchemist",
+            "author": "Paulo Coelho",
+            "coverPhoto": "swappable-book-cover-photo.jpg"
+          }
+        ]
+      }""")
   private String swapCondition;
 
   @Schema(description = "Location information for the book")
@@ -69,19 +70,19 @@ public class CreateBookRequest {
 
   public Book toEntity() {
     this.validateProperties();
-    var book = new Book();
-    book.setTitle(this.title);
-    book.setAuthor(this.author);
-    book.setDescription(this.description);
-    book.setLanguage(Language.fromCode(this.language));
-    book.setCondition(Condition.fromCode(this.condition));
-    book.setGenres(this.genres.stream().map(Genre::new).toList());
-    book.setCoverPhotoFiles(this.coverPhotos);
-    var user = new User();
-    user.setId(this.ownerId);
-    book.setOwner(user);
-    book.setLocation(this.location != null ? this.location.toEntity() : null);
-    return book;
+    var user = new User().id(this.ownerId);
+
+    return Book.builder()
+        .title(this.title)
+        .author(this.author)
+        .description(this.description)
+        .language(Language.fromCode(this.language))
+        .condition(Condition.fromCode(this.condition))
+        .genres(this.genres.stream().map(Genre::new).toList())
+        .coverPhotoFiles(this.coverPhotos)
+        .owner(user)
+        .location(this.location != null ? this.location.toEntity() : null)
+        .build();
   }
 
   private void validateProperties() {
