@@ -27,10 +27,10 @@ public class AuthenticateUserRequest implements Serializable {
 
   public User toEntity() {
     this.validateProperties();
-    var entity = new User();
-    entity.setEmail(this.email.toLowerCase());
-    entity.setPassword(this.password);
-    return entity;
+    return User.builder()
+        .email(this.email.toLowerCase())
+        .password(this.password)
+        .build();
   }
 
   private void validateProperties() {

@@ -13,8 +13,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.kirjaswappi.backend.config.TestContainersConfig;
 import com.kirjaswappi.backend.http.dtos.responses.ChatMessageResponse;
 import com.kirjaswappi.backend.http.dtos.responses.InboxItemResponse;
 import com.kirjaswappi.backend.jpa.daos.*;
@@ -31,8 +33,9 @@ import com.kirjaswappi.backend.service.enums.*;
  * status changes, filtering, sorting, and database consistency.
  */
 @SpringBootTest
+@Import(TestContainersConfig.class)
 @ActiveProfiles("test")
-public class InboxChatWorkflowIntegrationTest {
+class InboxChatWorkflowIntegrationTest {
   @Autowired
   private InboxService inboxService;
 
@@ -97,26 +100,26 @@ public class InboxChatWorkflowIntegrationTest {
   void testCompleteInboxWorkflow() {
     // 1. Receiver views unified inbox - should see both received requests (2) and
     // sent request (1) = 3 total
-    List<SwapRequest> allRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
+    List<SwapRequest> allRequests = inboxService.getUnifiedInbox(receiverUser.id(), null, null);
     assertEquals(3, allRequests.size());
 
     // Filter to get only received requests (2)
     List<SwapRequest> receivedRequests = allRequests.stream()
-        .filter(req -> req.getReceiver().getId().equals(receiverUser.getId()))
+        .filter(req -> req.receiver().id().equals(receiverUser.id()))
         .toList();
     assertEquals(2, receivedRequests.size());
 
     // Verify requests are ordered by most recent first (latest message or request
     // date)
-    assertTrue(allRequests.get(0).getRequestedAt().isAfter(allRequests.get(2).getRequestedAt()));
+    assertTrue(allRequests.get(0).requestedAt().isAfter(allRequests.get(2).requestedAt()));
 
     // 2. Create inbox item responses with notification indicators
     List<InboxItemResponse> inboxResponses = receivedRequests.stream()
         .map(request -> {
           InboxItemResponse response = new InboxItemResponse(request);
-          long unreadCount = inboxService.getUnreadMessageCount(receiverUser.getId(), request.getId());
+          long unreadCount = inboxService.getUnreadMessageCount(receiverUser.id(), request.id());
           response.setUnreadMessageCount(unreadCount);
-          response.setUnread(inboxService.isInboxItemUnread(request, receiverUser.getId()));
+          response.setUnread(inboxService.isInboxItemUnread(request, receiverUser.id()));
           response.setHasNewMessages(unreadCount > 0);
           response.setConversationType("received");
           return response;
@@ -130,99 +133,99 @@ public class InboxChatWorkflowIntegrationTest {
     assertEquals(0, inboxResponses.get(1).getUnreadMessageCount());
 
     // 3. Sender sends a message to first swap request
-    ChatMessage message1 = chatService.sendMessage(testSwapRequest1.getId(), senderUser.getId(),
+    ChatMessage message1 = chatService.sendMessage(testSwapRequest1.id(), senderUser.id(),
         "Hi! I'm really interested in this book. Is it still available?");
     assertNotNull(message1);
-    assertFalse(message1.isReadByReceiver());
+    assertFalse(message1.readByReceiver());
 
     // 4. Receiver views inbox again - should see unread message indicator
-    receivedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
+    receivedRequests = inboxService.getUnifiedInbox(receiverUser.id(), null, null);
     SwapRequest requestWithMessage = receivedRequests.stream()
-        .filter(r -> r.getId().equals(testSwapRequest1.getId()))
+        .filter(r -> r.id().equals(testSwapRequest1.id()))
         .findFirst()
         .orElseThrow();
 
-    long unreadCount = inboxService.getUnreadMessageCount(receiverUser.getId(), requestWithMessage.getId());
+    long unreadCount = inboxService.getUnreadMessageCount(receiverUser.id(), requestWithMessage.id());
     assertEquals(1, unreadCount);
 
     // 5. Receiver marks inbox item as read
-    inboxService.markInboxItemAsRead(testSwapRequest1.getId(), receiverUser.getId());
+    inboxService.markInboxItemAsRead(testSwapRequest1.id(), receiverUser.id());
 
     // 6. Receiver opens chat - messages should be automatically marked as read
-    List<ChatMessage> chatMessages = chatService.getChatMessages(testSwapRequest1.getId(), receiverUser.getId());
+    List<ChatMessage> chatMessages = chatService.getChatMessages(testSwapRequest1.id(), receiverUser.id());
     assertEquals(1, chatMessages.size());
-    assertEquals(0, chatService.getUnreadMessageCount(testSwapRequest1.getId(), receiverUser.getId()));
+    assertEquals(0, chatService.getUnreadMessageCount(testSwapRequest1.id(), receiverUser.id()));
 
     // 7. Receiver responds in chat
-    ChatMessage response = chatService.sendMessage(testSwapRequest1.getId(), receiverUser.getId(),
+    ChatMessage response = chatService.sendMessage(testSwapRequest1.id(), receiverUser.id(),
         "Yes, it's available! What would you like to offer?");
     assertNotNull(response);
 
     // 8. Receiver accepts the swap request
-    SwapRequest updatedRequest = inboxService.updateSwapRequestStatus(testSwapRequest1.getId(),
-        "Accepted", receiverUser.getId());
-    assertEquals(SwapStatus.ACCEPTED, updatedRequest.getSwapStatus());
+    SwapRequest updatedRequest = inboxService.updateSwapRequestStatus(testSwapRequest1.id(),
+        "Accepted", receiverUser.id());
+    assertEquals(SwapStatus.ACCEPTED, updatedRequest.swapStatus());
 
     // 9. Sender views sent requests - should see status change and unread message
-    List<SwapRequest> sentRequests = inboxService.getUnifiedInbox(senderUser.getId(), null, null);
+    List<SwapRequest> sentRequests = inboxService.getUnifiedInbox(senderUser.id(), null, null);
     SwapRequest sentRequest = sentRequests.stream()
-        .filter(r -> r.getId().equals(testSwapRequest1.getId()))
+        .filter(r -> r.id().equals(testSwapRequest1.id()))
         .findFirst()
         .orElseThrow();
 
-    assertEquals(SwapStatus.ACCEPTED, sentRequest.getSwapStatus());
-    assertEquals(1, chatService.getUnreadMessageCount(testSwapRequest1.getId(), senderUser.getId()));
+    assertEquals(SwapStatus.ACCEPTED, sentRequest.swapStatus());
+    assertEquals(1, chatService.getUnreadMessageCount(testSwapRequest1.id(), senderUser.id()));
 
     // 10. Verify database consistency
-    SwapRequestDao dbRequest = swapRequestRepository.findById(testSwapRequest1.getId()).orElseThrow();
-    assertEquals("Accepted", dbRequest.getSwapStatus());
-    assertNotNull(dbRequest.getReadByReceiverAt());
-    assertNull(dbRequest.getReadBySenderAt());
+    SwapRequestDao dbRequest = swapRequestRepository.findById(testSwapRequest1.id()).orElseThrow();
+    assertEquals("Accepted", dbRequest.swapStatus());
+    assertNotNull(dbRequest.readByReceiverAt());
+    assertNull(dbRequest.readBySenderAt());
 
     List<ChatMessageDao> dbMessages = chatMessageRepository
-        .findBySwapRequestIdOrderBySentAtAsc(testSwapRequest1.getId());
+        .findBySwapRequestIdOrderBySentAtAsc(testSwapRequest1.id());
     assertEquals(2, dbMessages.size());
-    assertTrue(dbMessages.get(0).isReadByReceiver()); // First message marked as read
-    assertFalse(dbMessages.get(1).isReadByReceiver()); // Second message not read by sender
+    assertTrue(dbMessages.get(0).readByReceiver()); // First message marked as read
+    assertFalse(dbMessages.get(1).readByReceiver()); // Second message not read by sender
   }
 
   @Test
   void testChatConversationBetweenUsers() {
     // 1. Start conversation - sender sends first message
-    ChatMessage msg1 = chatService.sendMessage(testSwapRequest1.getId(), senderUser.getId(),
+    ChatMessage msg1 = chatService.sendMessage(testSwapRequest1.id(), senderUser.id(),
         "Hello! I'm interested in your book.");
 
     // 2. Receiver reads messages and responds
-    List<ChatMessage> messages = chatService.getChatMessages(testSwapRequest1.getId(), receiverUser.getId());
+    List<ChatMessage> messages = chatService.getChatMessages(testSwapRequest1.id(), receiverUser.id());
     assertEquals(1, messages.size());
 
-    ChatMessage msg2 = chatService.sendMessage(testSwapRequest1.getId(), receiverUser.getId(),
+    ChatMessage msg2 = chatService.sendMessage(testSwapRequest1.id(), receiverUser.id(),
         "Hi! Yes, it's available. What are you offering?");
 
     // 3. Sender continues conversation
-    chatService.getChatMessages(testSwapRequest1.getId(), senderUser.getId()); // Mark previous messages as read
-    ChatMessage msg3 = chatService.sendMessage(testSwapRequest1.getId(), senderUser.getId(),
+    chatService.getChatMessages(testSwapRequest1.id(), senderUser.id()); // Mark previous messages as read
+    ChatMessage msg3 = chatService.sendMessage(testSwapRequest1.id(), senderUser.id(),
         "I have a fantasy novel in excellent condition. Would that work?");
 
     // 4. Receiver responds with acceptance
-    chatService.getChatMessages(testSwapRequest1.getId(), receiverUser.getId()); // Mark messages as read
-    ChatMessage msg4 = chatService.sendMessage(testSwapRequest1.getId(), receiverUser.getId(),
+    chatService.getChatMessages(testSwapRequest1.id(), receiverUser.id()); // Mark messages as read
+    ChatMessage msg4 = chatService.sendMessage(testSwapRequest1.id(), receiverUser.id(),
         "That sounds perfect! Let's arrange the swap.");
 
     // 5. Verify complete conversation
-    List<ChatMessage> fullConversation = chatService.getChatMessages(testSwapRequest1.getId(), senderUser.getId());
+    List<ChatMessage> fullConversation = chatService.getChatMessages(testSwapRequest1.id(), senderUser.id());
     assertEquals(4, fullConversation.size());
 
     // Verify message order and content
-    assertEquals("Hello! I'm interested in your book.", fullConversation.get(0).getMessage());
-    assertEquals("Hi! Yes, it's available. What are you offering?", fullConversation.get(1).getMessage());
+    assertEquals("Hello! I'm interested in your book.", fullConversation.get(0).message());
+    assertEquals("Hi! Yes, it's available. What are you offering?", fullConversation.get(1).message());
     assertEquals("I have a fantasy novel in excellent condition. Would that work?",
-        fullConversation.get(2).getMessage());
-    assertEquals("That sounds perfect! Let's arrange the swap.", fullConversation.get(3).getMessage());
+        fullConversation.get(2).message());
+    assertEquals("That sounds perfect! Let's arrange the swap.", fullConversation.get(3).message());
 
     // 6. Verify message ownership indicators
     List<ChatMessageResponse> senderView = fullConversation.stream()
-        .map(msg -> new ChatMessageResponse(msg, senderUser.getId()))
+        .map(msg -> new ChatMessageResponse(msg, senderUser.id()))
         .toList();
 
     assertTrue(senderView.get(0).isOwnMessage()); // Sender's message
@@ -231,7 +234,7 @@ public class InboxChatWorkflowIntegrationTest {
     assertFalse(senderView.get(3).isOwnMessage()); // Receiver's message
 
     List<ChatMessageResponse> receiverView = fullConversation.stream()
-        .map(msg -> new ChatMessageResponse(msg, receiverUser.getId()))
+        .map(msg -> new ChatMessageResponse(msg, receiverUser.id()))
         .toList();
 
     assertFalse(receiverView.get(0).isOwnMessage()); // Sender's message
@@ -240,62 +243,62 @@ public class InboxChatWorkflowIntegrationTest {
     assertTrue(receiverView.get(3).isOwnMessage()); // Receiver's message
 
     // 7. Verify read status tracking
-    assertEquals(0, chatService.getUnreadMessageCount(testSwapRequest1.getId(), receiverUser.getId()));
-    assertEquals(0, chatService.getUnreadMessageCount(testSwapRequest1.getId(), senderUser.getId())); // Messages are
-                                                                                                      // marked as read
-                                                                                                      // when
-                                                                                                      // getChatMessages
-                                                                                                      // is called
+    assertEquals(0, chatService.getUnreadMessageCount(testSwapRequest1.id(), receiverUser.id()));
+    assertEquals(0, chatService.getUnreadMessageCount(testSwapRequest1.id(), senderUser.id())); // Messages are
+    // marked as read
+    // when
+    // getChatMessages
+    // is called
   }
 
   @Test
   void testStatusChangeNotificationsAndUpdates() {
     // 1. Send initial message
-    chatService.sendMessage(testSwapRequest1.getId(), senderUser.getId(), "Interested in swapping!");
+    chatService.sendMessage(testSwapRequest1.id(), senderUser.id(), "Interested in swapping!");
 
     // 2. Receiver views and accepts request
-    inboxService.markInboxItemAsRead(testSwapRequest1.getId(), receiverUser.getId());
-    SwapRequest acceptedRequest = inboxService.updateSwapRequestStatus(testSwapRequest1.getId(),
-        "Accepted", receiverUser.getId());
+    inboxService.markInboxItemAsRead(testSwapRequest1.id(), receiverUser.id());
+    SwapRequest acceptedRequest = inboxService.updateSwapRequestStatus(testSwapRequest1.id(),
+        "Accepted", receiverUser.id());
 
-    assertEquals(SwapStatus.ACCEPTED, acceptedRequest.getSwapStatus());
+    assertEquals(SwapStatus.ACCEPTED, acceptedRequest.swapStatus());
 
     // 3. Verify status change is reflected in both users' views
-    List<SwapRequest> receivedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, null);
+    List<SwapRequest> receivedRequests = inboxService.getUnifiedInbox(receiverUser.id(), null, null);
     SwapRequest receiverView = receivedRequests.stream()
-        .filter(r -> r.getId().equals(testSwapRequest1.getId()))
+        .filter(r -> r.id().equals(testSwapRequest1.id()))
         .findFirst()
         .orElseThrow();
-    assertEquals(SwapStatus.ACCEPTED, receiverView.getSwapStatus());
+    assertEquals(SwapStatus.ACCEPTED, receiverView.swapStatus());
 
-    List<SwapRequest> sentRequests = inboxService.getUnifiedInbox(senderUser.getId(), null, null);
+    List<SwapRequest> sentRequests = inboxService.getUnifiedInbox(senderUser.id(), null, null);
     SwapRequest senderView = sentRequests.stream()
-        .filter(r -> r.getId().equals(testSwapRequest1.getId()))
+        .filter(r -> r.id().equals(testSwapRequest1.id()))
         .findFirst()
         .orElseThrow();
-    assertEquals(SwapStatus.ACCEPTED, senderView.getSwapStatus());
+    assertEquals(SwapStatus.ACCEPTED, senderView.swapStatus());
 
     // 4. Test status filtering after change
-    List<SwapRequest> acceptedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), "Accepted", null);
+    List<SwapRequest> acceptedRequests = inboxService.getUnifiedInbox(receiverUser.id(), "Accepted", null);
     assertEquals(2, acceptedRequests.size()); // testSwapRequest1 (now accepted) + testSwapRequest2 (already accepted)
 
-    List<SwapRequest> pendingRequests = inboxService.getUnifiedInbox(receiverUser.getId(), "Pending", null);
+    List<SwapRequest> pendingRequests = inboxService.getUnifiedInbox(receiverUser.id(), "Pending", null);
     assertEquals(0, pendingRequests.size()); // testSwapRequest1 is no longer pending
 
     // 5. Test invalid status transitions
     assertThrows(IllegalArgumentException.class, () -> {
-      inboxService.updateSwapRequestStatus(testSwapRequest2.getId(), "Pending", receiverUser.getId());
+      inboxService.updateSwapRequestStatus(testSwapRequest2.id(), "Pending", receiverUser.id());
     });
 
     // 6. Test unauthorized status changes
     assertThrows(IllegalArgumentException.class, () -> {
-      inboxService.updateSwapRequestStatus(testSwapRequest1.getId(), "Rejected", senderUser.getId());
+      inboxService.updateSwapRequestStatus(testSwapRequest1.id(), "Rejected", senderUser.id());
     });
 
     // 7. Verify database consistency after status changes
-    SwapRequestDao dbRequest = swapRequestRepository.findById(testSwapRequest1.getId()).orElseThrow();
-    assertEquals("Accepted", dbRequest.getSwapStatus());
-    assertNotNull(dbRequest.getUpdatedAt());
+    SwapRequestDao dbRequest = swapRequestRepository.findById(testSwapRequest1.id()).orElseThrow();
+    assertEquals("Accepted", dbRequest.swapStatus());
+    assertNotNull(dbRequest.updatedAt());
   }
 
   @Test
@@ -307,60 +310,60 @@ public class InboxChatWorkflowIntegrationTest {
         Instant.now().minusSeconds(600), "Another request");
 
     // 1. Test filtering by status
-    List<SwapRequest> pendingRequests = inboxService.getUnifiedInbox(receiverUser.getId(), "Pending", null);
+    List<SwapRequest> pendingRequests = inboxService.getUnifiedInbox(receiverUser.id(), "Pending", null);
     assertEquals(2, pendingRequests.size()); // testSwapRequest1 + extraRequest
 
-    List<SwapRequest> acceptedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), "Accepted", null);
+    List<SwapRequest> acceptedRequests = inboxService.getUnifiedInbox(receiverUser.id(), "Accepted", null);
     assertEquals(1, acceptedRequests.size()); // testSwapRequest2
 
-    List<SwapRequest> rejectedRequests = inboxService.getUnifiedInbox(receiverUser.getId(), "Rejected", null);
+    List<SwapRequest> rejectedRequests = inboxService.getUnifiedInbox(receiverUser.id(), "Rejected", null);
     assertEquals(1, rejectedRequests.size()); // testSwapRequest3 is a sent request that was rejected
 
     // 2. Test sorting by date (default)
-    List<SwapRequest> allRequests = inboxService.getUnifiedInbox(receiverUser.getId(), null, "date");
+    List<SwapRequest> allRequests = inboxService.getUnifiedInbox(receiverUser.id(), null, "date");
     assertEquals(4, allRequests.size()); // 3 received + 1 sent request from receiverUser
     // Should be ordered by most recent first
-    assertTrue(allRequests.get(0).getRequestedAt().isAfter(allRequests.get(1).getRequestedAt()));
-    assertTrue(allRequests.get(1).getRequestedAt().isAfter(allRequests.get(2).getRequestedAt()));
+    assertTrue(allRequests.get(0).requestedAt().isAfter(allRequests.get(1).requestedAt()));
+    assertTrue(allRequests.get(1).requestedAt().isAfter(allRequests.get(2).requestedAt()));
 
     // 3. Test sorting by book title
-    List<SwapRequest> sortedByTitle = inboxService.getUnifiedInbox(receiverUser.getId(), null, "book_title");
+    List<SwapRequest> sortedByTitle = inboxService.getUnifiedInbox(receiverUser.id(), null, "book_title");
     assertEquals(4, sortedByTitle.size()); // 3 received + 1 sent request
-    assertEquals("Another Book", sortedByTitle.get(0).getBookToSwapWith().getTitle());
-    assertEquals("Test Book 1", sortedByTitle.get(1).getBookToSwapWith().getTitle());
-    assertEquals("Test Book 1", sortedByTitle.get(2).getBookToSwapWith().getTitle()); // This could be the sent request
-    assertEquals("Zebra Book", sortedByTitle.get(3).getBookToSwapWith().getTitle());
+    assertEquals("Another Book", sortedByTitle.get(0).bookToSwapWith().title());
+    assertEquals("Test Book 1", sortedByTitle.get(1).bookToSwapWith().title());
+    assertEquals("Test Book 1", sortedByTitle.get(2).bookToSwapWith().title()); // This could be the sent request
+    assertEquals("Zebra Book", sortedByTitle.get(3).bookToSwapWith().title());
 
     // 4. Test sorting by sender name
-    List<SwapRequest> sortedBySender = inboxService.getUnifiedInbox(receiverUser.getId(), null, "sender_name");
+    List<SwapRequest> sortedBySender = inboxService.getUnifiedInbox(receiverUser.id(), null, "sender_name");
     assertEquals(4, sortedBySender.size()); // 3 received + 1 sent request
     assertEquals("Bob Another",
-        sortedBySender.get(0).getSender().getFirstName() + " " + sortedBySender.get(0).getSender().getLastName());
+        sortedBySender.get(0).sender().firstName() + " " + sortedBySender.get(0).sender().lastName());
     assertEquals("Charlie Extra",
-        sortedBySender.get(1).getSender().getFirstName() + " " + sortedBySender.get(1).getSender().getLastName());
+        sortedBySender.get(1).sender().firstName() + " " + sortedBySender.get(1).sender().lastName());
     assertEquals("Jane Receiver", // This is the sent request where receiverUser is the sender
-        sortedBySender.get(2).getSender().getFirstName() + " " + sortedBySender.get(2).getSender().getLastName());
+        sortedBySender.get(2).sender().firstName() + " " + sortedBySender.get(2).sender().lastName());
     assertEquals("John Sender",
-        sortedBySender.get(3).getSender().getFirstName() + " " + sortedBySender.get(3).getSender().getLastName());
+        sortedBySender.get(3).sender().firstName() + " " + sortedBySender.get(3).sender().lastName());
 
     // 5. Test combined filtering and sorting
-    List<SwapRequest> pendingSortedByTitle = inboxService.getUnifiedInbox(receiverUser.getId(), "Pending",
+    List<SwapRequest> pendingSortedByTitle = inboxService.getUnifiedInbox(receiverUser.id(), "Pending",
         "book_title");
     assertEquals(2, pendingSortedByTitle.size());
-    assertEquals("Test Book 1", pendingSortedByTitle.get(0).getBookToSwapWith().getTitle());
-    assertEquals("Zebra Book", pendingSortedByTitle.get(1).getBookToSwapWith().getTitle());
+    assertEquals("Test Book 1", pendingSortedByTitle.get(0).bookToSwapWith().title());
+    assertEquals("Zebra Book", pendingSortedByTitle.get(1).bookToSwapWith().title());
 
     // 6. Test inbox messages filtering and sorting
-    List<SwapRequest> msgs = inboxService.getUnifiedInbox(senderUser.getId(), null, null);
+    List<SwapRequest> msgs = inboxService.getUnifiedInbox(senderUser.id(), null, null);
     assertEquals(2, msgs.size());
 
-    List<SwapRequest> sentRejected = inboxService.getUnifiedInbox(receiverUser.getId(), "Rejected", null);
+    List<SwapRequest> sentRejected = inboxService.getUnifiedInbox(receiverUser.id(), "Rejected", null);
     assertEquals(1, sentRejected.size());
-    assertEquals(testSwapRequest3.getId(), sentRejected.get(0).getId());
+    assertEquals(testSwapRequest3.id(), sentRejected.get(0).id());
 
     // 7. Test invalid filter values
     assertThrows(Exception.class, () -> {
-      inboxService.getUnifiedInbox(receiverUser.getId(), "InvalidStatus", null);
+      inboxService.getUnifiedInbox(receiverUser.id(), "InvalidStatus", null);
     });
   }
 
@@ -371,126 +374,129 @@ public class InboxChatWorkflowIntegrationTest {
     assertEquals(0, chatMessageRepository.count());
 
     // 2. Send messages and verify database state
-    ChatMessage msg1 = chatService.sendMessage(testSwapRequest1.getId(), senderUser.getId(), "Message 1");
-    ChatMessage msg2 = chatService.sendMessage(testSwapRequest1.getId(), receiverUser.getId(), "Message 2");
-    ChatMessage msg3 = chatService.sendMessage(testSwapRequest2.getId(), anotherUser.getId(), "Message 3");
+    ChatMessage msg1 = chatService.sendMessage(testSwapRequest1.id(), senderUser.id(), "Message 1");
+    ChatMessage msg2 = chatService.sendMessage(testSwapRequest1.id(), receiverUser.id(), "Message 2");
+    ChatMessage msg3 = chatService.sendMessage(testSwapRequest2.id(), anotherUser.id(), "Message 3");
 
     assertEquals(3, chatMessageRepository.count());
 
     // Verify message-swap request relationships
     List<ChatMessageDao> request1Messages = chatMessageRepository
-        .findBySwapRequestIdOrderBySentAtAsc(testSwapRequest1.getId());
+        .findBySwapRequestIdOrderBySentAtAsc(testSwapRequest1.id());
     assertEquals(2, request1Messages.size());
 
     List<ChatMessageDao> request2Messages = chatMessageRepository
-        .findBySwapRequestIdOrderBySentAtAsc(testSwapRequest2.getId());
+        .findBySwapRequestIdOrderBySentAtAsc(testSwapRequest2.id());
     assertEquals(1, request2Messages.size());
 
     // 3. Update swap request status and verify consistency
-    SwapRequest updatedRequest = inboxService.updateSwapRequestStatus(testSwapRequest1.getId(), "Accepted",
-        receiverUser.getId());
+    SwapRequest updatedRequest = inboxService.updateSwapRequestStatus(testSwapRequest1.id(), "Accepted",
+        receiverUser.id());
 
-    SwapRequestDao dbRequest = swapRequestRepository.findById(testSwapRequest1.getId()).orElseThrow();
-    assertEquals("Accepted", dbRequest.getSwapStatus());
-    assertEquals(updatedRequest.getSwapStatus().getCode(), dbRequest.getSwapStatus());
+    SwapRequestDao dbRequest = swapRequestRepository.findById(testSwapRequest1.id()).orElseThrow();
+    assertEquals("Accepted", dbRequest.swapStatus());
+    assertEquals(updatedRequest.swapStatus().getCode(), dbRequest.swapStatus());
 
     // 4. Mark messages as read and verify database state
-    chatService.getChatMessages(testSwapRequest1.getId(), receiverUser.getId()); // Auto-marks as read
+    chatService.getChatMessages(testSwapRequest1.id(), receiverUser.id()); // Auto-marks as read
 
     List<ChatMessageDao> updatedMessages = chatMessageRepository
-        .findBySwapRequestIdOrderBySentAtAsc(testSwapRequest1.getId());
-    assertTrue(updatedMessages.get(0).isReadByReceiver()); // Sender's message marked as read
-    assertFalse(updatedMessages.get(1).isReadByReceiver()); // Receiver's own message
+        .findBySwapRequestIdOrderBySentAtAsc(testSwapRequest1.id());
+    assertTrue(updatedMessages.get(0).readByReceiver()); // Sender's message marked as read
+    assertFalse(updatedMessages.get(1).readByReceiver()); // Receiver's own message
 
     // 5. Mark inbox items as read and verify timestamps
-    inboxService.markInboxItemAsRead(testSwapRequest1.getId(), receiverUser.getId());
-    inboxService.markInboxItemAsRead(testSwapRequest1.getId(), senderUser.getId());
+    inboxService.markInboxItemAsRead(testSwapRequest1.id(), receiverUser.id());
+    inboxService.markInboxItemAsRead(testSwapRequest1.id(), senderUser.id());
 
-    SwapRequestDao readRequest = swapRequestRepository.findById(testSwapRequest1.getId()).orElseThrow();
-    assertNotNull(readRequest.getReadByReceiverAt());
-    assertNotNull(readRequest.getReadBySenderAt());
+    SwapRequestDao readRequest = swapRequestRepository.findById(testSwapRequest1.id()).orElseThrow();
+    assertNotNull(readRequest.readByReceiverAt());
+    assertNotNull(readRequest.readBySenderAt());
 
     // 6. Test cascade operations and referential integrity
     // Verify that swap requests reference correct users and books
     List<SwapRequestDao> allRequests = swapRequestRepository.findAll();
     for (SwapRequestDao request : allRequests) {
-      assertNotNull(request.getSender());
-      assertNotNull(request.getReceiver());
-      assertNotNull(request.getBookToSwapWith());
-      assertTrue(userRepository.existsById(request.getSender().getId()));
-      assertTrue(userRepository.existsById(request.getReceiver().getId()));
-      assertTrue(bookRepository.existsById(request.getBookToSwapWith().getId()));
+      assertNotNull(request.sender());
+      assertNotNull(request.receiver());
+      assertNotNull(request.bookToSwapWith());
+      assertTrue(userRepository.existsById(request.sender().id()));
+      assertTrue(userRepository.existsById(request.receiver().id()));
+      assertTrue(bookRepository.existsById(request.bookToSwapWith().id()));
     }
 
     // Verify that chat messages reference correct users and swap requests
     List<ChatMessageDao> allMessages = chatMessageRepository.findAll();
     for (ChatMessageDao message : allMessages) {
-      assertNotNull(message.getSender());
-      assertNotNull(message.getSwapRequestId());
-      assertTrue(userRepository.existsById(message.getSender().getId()));
-      assertTrue(swapRequestRepository.existsById(message.getSwapRequestId()));
+      assertNotNull(message.sender());
+      assertNotNull(message.swapRequestId());
+      assertTrue(userRepository.existsById(message.sender().id()));
+      assertTrue(swapRequestRepository.existsById(message.swapRequestId()));
     }
 
     // 7. Test transaction consistency
     // All operations should be atomic - if one fails, all should rollback
     String invalidUserId = "nonexistent";
     assertThrows(Exception.class, () -> {
-      chatService.sendMessage(testSwapRequest1.getId(), invalidUserId, "This should fail");
+      chatService.sendMessage(testSwapRequest1.id(), invalidUserId, "This should fail");
     });
 
     // Verify database state hasn't changed after failed operation
     assertEquals(3, chatMessageRepository.count()); // Still 3 messages
 
     // 8. Test unread count consistency
-    long unreadCount1 = chatService.getUnreadMessageCount(testSwapRequest1.getId(), receiverUser.getId());
-    long unreadCount2 = inboxService.getUnreadMessageCount(receiverUser.getId(), testSwapRequest1.getId());
+    long unreadCount1 = chatService.getUnreadMessageCount(testSwapRequest1.id(), receiverUser.id());
+    long unreadCount2 = inboxService.getUnreadMessageCount(receiverUser.id(), testSwapRequest1.id());
     assertEquals(unreadCount1, unreadCount2); // Both methods should return same count
   }
 
   // Helper methods
   private UserDao createTestUser(String firstName, String lastName, String email) {
-    UserDao user = new UserDao();
-    user.setFirstName(firstName);
-    user.setLastName(lastName);
-    user.setEmail(email);
-    user.setPassword("password");
-    user.setEmailVerified(true);
-    user.setSalt("salt");
+    var user = UserDao.builder()
+        .firstName(firstName)
+        .lastName(lastName)
+        .email(email)
+        .password("password")
+        .isEmailVerified(true)
+        .salt("salt")
+        .build();
     return userRepository.save(user);
   }
 
   private BookDao createTestBook(String title, String author, UserDao owner) {
-    BookDao book = new BookDao();
-    book.setTitle(title);
-    book.setAuthor(author);
-    book.setCondition("Good");
-    book.setLanguage("English");
-    book.setOwner(owner);
-    book.setCoverPhotos(List.of());
-    book.setGenres(List.of());
-    book.setSwapCondition(createTestSwapCondition());
+    var book = BookDao.builder()
+        .title(title)
+        .author(author)
+        .condition("Good")
+        .language("English")
+        .owner(owner)
+        .coverPhotos(List.of())
+        .genres(List.of())
+        .swapCondition(createTestSwapCondition())
+        .build();
     return bookRepository.save(book);
   }
 
   private SwapConditionDao createTestSwapCondition() {
-    SwapConditionDao dao = new SwapConditionDao();
-    dao.setSwapType("GiveAway");
-    dao.setGiveAway(true);
-    return dao;
+    return SwapConditionDao.builder()
+        .swapType("GiveAway")
+        .giveAway(true)
+        .build();
   }
 
   private SwapRequestDao createTestSwapRequest(UserDao sender, UserDao receiver, BookDao book,
       String status, Instant requestedAt, String note) {
-    SwapRequestDao request = new SwapRequestDao();
-    request.setSender(sender);
-    request.setReceiver(receiver);
-    request.setBookToSwapWith(book);
-    request.setSwapType("ByBooks");
-    request.setSwapStatus(status);
-    request.setAskForGiveaway(false);
-    request.setNote(note);
-    request.setRequestedAt(requestedAt);
-    request.setUpdatedAt(requestedAt);
+    var request = SwapRequestDao.builder()
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book)
+        .swapType("ByBooks")
+        .swapStatus(status)
+        .askForGiveaway(false)
+        .note(note)
+        .requestedAt(requestedAt)
+        .updatedAt(requestedAt)
+        .build();
     return swapRequestRepository.save(request);
   }
 }

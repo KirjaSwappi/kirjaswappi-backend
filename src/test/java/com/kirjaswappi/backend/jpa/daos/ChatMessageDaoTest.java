@@ -17,39 +17,42 @@ class ChatMessageDaoTest {
   @DisplayName("Should create ChatMessageDao with all properties")
   void shouldCreateChatMessageDaoWithAllProperties() {
     // Given
-    var userDao = new UserDao();
-    userDao.setId("user123");
-    userDao.setFirstName("John");
-    userDao.setLastName("Doe");
+    var userDao = UserDao.builder()
+        .id("user123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
 
     var sentAt = Instant.now();
 
     // When
-    var chatMessageDao = new ChatMessageDao();
-    chatMessageDao.setId("msg123");
-    chatMessageDao.setSwapRequestId("swap123");
-    chatMessageDao.setSender(userDao);
-    chatMessageDao.setMessage("Hello, is this book still available?");
-    chatMessageDao.setSentAt(sentAt);
-    chatMessageDao.setReadByReceiver(false);
+    var chatMessageDao = ChatMessageDao.builder()
+        .id("msg123")
+        .swapRequestId("swap123")
+        .sender(userDao)
+        .message("Hello, is this book still available?")
+        .sentAt(sentAt)
+        .readByReceiver(false)
+        .build();
 
     // Then
-    assertEquals("msg123", chatMessageDao.getId());
-    assertEquals("swap123", chatMessageDao.getSwapRequestId());
-    assertEquals(userDao, chatMessageDao.getSender());
-    assertEquals("Hello, is this book still available?", chatMessageDao.getMessage());
-    assertEquals(sentAt, chatMessageDao.getSentAt());
-    assertFalse(chatMessageDao.isReadByReceiver());
+    assertEquals("msg123", chatMessageDao.id());
+    assertEquals("swap123", chatMessageDao.swapRequestId());
+    assertEquals(userDao, chatMessageDao.sender());
+    assertEquals("Hello, is this book still available?", chatMessageDao.message());
+    assertEquals(sentAt, chatMessageDao.sentAt());
+    assertFalse(chatMessageDao.readByReceiver());
   }
 
   @Test
   @DisplayName("Should create ChatMessageDao with AllArgsConstructor")
   void shouldCreateChatMessageDaoWithAllArgsConstructor() {
     // Given
-    var userDao = new UserDao();
-    userDao.setId("user123");
-    userDao.setFirstName("John");
-    userDao.setLastName("Doe");
+    var userDao = UserDao.builder()
+        .id("user123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
 
     var sentAt = Instant.now();
 
@@ -64,13 +67,13 @@ class ChatMessageDaoTest {
         false);
 
     // Then
-    assertEquals("msg123", chatMessageDao.getId());
-    assertEquals("swap123", chatMessageDao.getSwapRequestId());
-    assertEquals(userDao, chatMessageDao.getSender());
-    assertEquals("Hello, is this book still available?", chatMessageDao.getMessage());
-    assertNull(chatMessageDao.getImageIds()); // Test the new field
-    assertEquals(sentAt, chatMessageDao.getSentAt());
-    assertFalse(chatMessageDao.isReadByReceiver());
+    assertEquals("msg123", chatMessageDao.id());
+    assertEquals("swap123", chatMessageDao.swapRequestId());
+    assertEquals(userDao, chatMessageDao.sender());
+    assertEquals("Hello, is this book still available?", chatMessageDao.message());
+    assertNull(chatMessageDao.imageIds()); // Test the new field
+    assertEquals(sentAt, chatMessageDao.sentAt());
+    assertFalse(chatMessageDao.readByReceiver());
   }
 
   @Test
@@ -81,12 +84,12 @@ class ChatMessageDaoTest {
 
     // Then
     assertNotNull(chatMessageDao);
-    assertNull(chatMessageDao.getId());
-    assertNull(chatMessageDao.getSwapRequestId());
-    assertNull(chatMessageDao.getSender());
-    assertNull(chatMessageDao.getMessage());
-    assertNull(chatMessageDao.getSentAt());
-    assertFalse(chatMessageDao.isReadByReceiver()); // boolean defaults to false
+    assertNull(chatMessageDao.id());
+    assertNull(chatMessageDao.swapRequestId());
+    assertNull(chatMessageDao.sender());
+    assertNull(chatMessageDao.message());
+    assertNull(chatMessageDao.sentAt());
+    assertFalse(chatMessageDao.readByReceiver()); // boolean defaults to false
   }
 
   @Test
@@ -96,9 +99,9 @@ class ChatMessageDaoTest {
     var chatMessageDao = new ChatMessageDao();
 
     // When
-    chatMessageDao.setReadByReceiver(true);
+    chatMessageDao.readByReceiver(true);
 
     // Then
-    assertTrue(chatMessageDao.isReadByReceiver());
+    assertTrue(chatMessageDao.readByReceiver());
   }
 }

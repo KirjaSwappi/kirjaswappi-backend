@@ -4,56 +4,60 @@
  */
 package com.kirjaswappi.backend.service.entities;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import static com.kirjaswappi.backend.common.utils.Util.defaultIfNull;
+
+import lombok.*;
+
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Represents the location information for a book. Each book can have its own
  * location, allowing users to store books in different places.
  */
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class BookLocation {
+@With
+@Builder
+public record BookLocation(
 
-  /**
-   * Latitude coordinate of the book location.
-   */
-  private Double latitude;
+    /**
+     * Latitude coordinate of the book location.
+     */
+    Double latitude,
 
-  /**
-   * Longitude coordinate of the book location.
-   */
-  private Double longitude;
+    /**
+     * Longitude coordinate of the book location.
+     */
+    Double longitude,
 
-  /**
-   * Human-readable address of the book location.
-   */
-  private String address;
+    /**
+     * Human-readable address of the book location.
+     */
+    String address,
 
-  /**
-   * City where the book is located.
-   */
-  private String city;
+    /**
+     * City where the book is located.
+     */
+    String city,
 
-  /**
-   * Country where the book is located.
-   */
-  private String country;
+    /**
+     * Country where the book is located.
+     */
+    String country,
 
-  /**
-   * Postal code of the book location.
-   */
-  private String postalCode;
+    /**
+     * Postal code of the book location.
+     */
+    String postalCode,
 
-  /**
-   * Search radius in kilometers for this book location. Represents how far the
-   * owner is willing to travel or ship from this location. Default is 50km.
-   */
-  private Integer radiusKm = 50;
+    /**
+     * Search radius in kilometers for this book location. Represents how far the
+     * owner is willing to travel or ship from this location. Default is 50km.
+     */
+    Integer radiusKm
+) {
+
+  public BookLocation {
+    radiusKm = defaultIfNull(radiusKm, 50);
+  }
 
   /**
    * Checks if this location has valid coordinates.
@@ -62,7 +66,8 @@ public class BookLocation {
    *         ranges
    */
   public boolean hasCoordinates() {
-    return latitude != null && longitude != null && isValidLatitude(latitude) && isValidLongitude(longitude);
+    return isValidLatitude(latitude)
+        && isValidLongitude(longitude);
   }
 
   /**
@@ -71,7 +76,7 @@ public class BookLocation {
    * @return true if address is not null and not empty
    */
   public boolean hasAddress() {
-    return address != null && !address.trim().isEmpty();
+    return !StringUtils.isBlank(address);
   }
 
   /**

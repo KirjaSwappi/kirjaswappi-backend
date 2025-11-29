@@ -4,19 +4,18 @@
  */
 package com.kirjaswappi.backend.mapper;
 
-import lombok.NoArgsConstructor;
-
-import org.springframework.stereotype.Component;
-
 import com.kirjaswappi.backend.jpa.daos.GenreDao;
 import com.kirjaswappi.backend.service.entities.Genre;
 
-@Component
-@NoArgsConstructor
-public class GenreMapper {
+public final class GenreMapper {
+
+  private GenreMapper() {
+    throw new IllegalStateException("Mapper class should not be instantiated");
+  }
+
   public static Genre toEntity(GenreDao dao) {
-    return new Genre(dao.getId(), dao.getName(),
-        dao.getParent() == null ? null : toEntity(dao.getParent()));
+    return new Genre(dao.id(), dao.name(),
+        dao.parent() == null ? null : toEntity(dao.parent()));
   }
 
   public static GenreDao toDao(Genre entity) {

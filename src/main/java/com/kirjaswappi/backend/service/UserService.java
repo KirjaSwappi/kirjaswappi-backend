@@ -7,7 +7,8 @@ package com.kirjaswappi.backend.service;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,18 +28,16 @@ import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class UserService {
-  @Autowired
-  UserRepository userRepository;
 
-  @Autowired
-  GenreRepository genreRepository;
+  private final UserRepository userRepository;
 
-  @Autowired
-  PhotoService photoService;
+  private final GenreRepository genreRepository;
 
-  @Autowired
-  private BookRepository bookRepository;
+  private final PhotoService photoService;
+
+  private final BookRepository bookRepository;
 
   public User addUser(User user) {
     this.checkUserExistButNotVerified(user);
@@ -46,11 +45,11 @@ public class UserService {
 
     // add salt to password:
     String salt = Util.generateSalt();
-    user.setPassword(user.getPassword(), salt);
+    user.setPassword(user.password(), salt);
 
     // save user:
     UserDao dao = UserMapper.toDao(user, salt);
-    dao.setEmailVerified(false);
+    dao.isEmailVerified(false);
     return UserMapper.toEntity(userRepository.save(dao));
   }
 
@@ -59,15 +58,15 @@ public class UserService {
   }
 
   private void checkIfUserAlreadyExists(User user) {
-    if (userRepository.findByEmailAndIsEmailVerified(user.getEmail(), true).isPresent()) {
-      throw new UserAlreadyExistsException(user.getEmail());
+    if (userRepository.findByEmailAndIsEmailVerified(user.email(), true).isPresent()) {
+      throw new UserAlreadyExistsException(user.email());
     }
   }
 
   private void checkUserExistButNotVerified(User user) {
     // validate user exists and email is not verified:
-    if (userRepository.findByEmailAndIsEmailVerified(user.getEmail(), false).isPresent()) {
-      throw new BadRequestException("userExistsButNotVerified", user.getEmail());
+    if (userRepository.findByEmailAndIsEmailVerified(user.email(), false).isPresent()) {
+      throw new BadRequestException("userExistsButNotVerified", user.email());
     }
   }
 
@@ -79,24 +78,24 @@ public class UserService {
   }
 
   private void setCoverPhotos(UserDao userDao) {
-    if (userDao.getBooks() != null) {
-      userDao.getBooks().forEach(this::fetchAndSetImage);
+    if (userDao.books() != null) {
+      userDao.books().forEach(this::fetchAndSetImage);
     }
-    if (userDao.getFavBooks() != null) {
-      userDao.getFavBooks().forEach(this::fetchAndSetImage);
+    if (userDao.favBooks() != null) {
+      userDao.favBooks().forEach(this::fetchAndSetImage);
     }
   }
 
   private void fetchAndSetImage(BookDao bookDao) {
     var imageUrls = new ArrayList<String>();
-    if (bookDao.getCoverPhotos() != null) {
-      bookDao.getCoverPhotos().forEach(uniqueId -> {
+    if (bookDao.coverPhotos() != null) {
+      bookDao.coverPhotos().forEach(uniqueId -> {
         var imageUrl = photoService.getBookCoverPhoto(uniqueId);
         imageUrls.add(imageUrl);
       });
-      bookDao.setCoverPhotos(imageUrls);
+      bookDao.coverPhotos(imageUrls);
     } else {
-      bookDao.setCoverPhotos(new ArrayList<>());
+      bookDao.coverPhotos(List.of());
     }
   }
 
@@ -116,101 +115,101 @@ public class UserService {
 
   public User updateUser(User user) {
     // validate user exists:
-    var dao = userRepository.findByIdAndIsEmailVerifiedTrue(user.getId())
-        .orElseThrow(() -> new UserNotFoundException(user.getId()));
+    var dao = userRepository.findByIdAndIsEmailVerifiedTrue(user.id())
+        .orElseThrow(() -> new UserNotFoundException(user.id()));
 
     // check email verification status:
     if (!dao.isEmailVerified()) {
-      throw new BadRequestException("userExistsButNotVerified", user.getEmail());
+      throw new BadRequestException("userExistsButNotVerified", user.email());
     }
 
     // update user details:
     updateUserDetails(user, dao);
 
-    return getUser(user.getId());
+    return getUser(user.id());
   }
 
   private void updateUserDetails(User user, UserDao dao) {
-    dao.setFirstName(user.getFirstName());
-    dao.setLastName(user.getLastName());
-    dao.setStreetName(user.getStreetName());
-    dao.setHouseNumber(user.getHouseNumber());
-    dao.setZipCode(user.getZipCode());
-    dao.setCity(user.getCity());
-    dao.setCountry(user.getCountry());
-    dao.setPhoneNumber(user.getPhoneNumber());
-    dao.setAboutMe(user.getAboutMe());
+    dao.firstName(user.firstName());
+    dao.lastName(user.lastName());
+    dao.streetName(user.streetName());
+    dao.houseNumber(user.houseNumber());
+    dao.zipCode(user.zipCode());
+    dao.city(user.city());
+    dao.country(user.country());
+    dao.phoneNumber(user.phoneNumber());
+    dao.aboutMe(user.aboutMe());
     // update favGenres:
-    var favGenres = user.getFavGenres().stream()
+    var favGenres = user.favGenres().stream()
         .map(genre -> genreRepository.findByName(genre.getName())
             .orElseThrow(() -> new BadRequestException("genreNotFound", genre.getName())))
         .toList();
-    dao.setFavGenres(favGenres);
+    dao.favGenres(favGenres);
     userRepository.save(dao);
   }
 
   public User verifyLogin(User user) {
     // get salt from email:
-    UserDao dao = userRepository.findByEmail(user.getEmail())
-        .orElseThrow(() -> new UserNotFoundException(user.getEmail()));
+    UserDao dao = userRepository.findByEmail(user.email())
+        .orElseThrow(() -> new UserNotFoundException(user.email()));
 
     // check email verification status:
     if (!dao.isEmailVerified()) {
-      throw new BadRequestException("userExistsButNotVerified", user.getEmail());
+      throw new BadRequestException("userExistsButNotVerified", user.email());
     }
 
     // hash password with salt:
-    String password = Util.hashPassword(user.getPassword(), dao.getSalt());
+    String password = Util.hashPassword(user.password(), dao.salt());
 
     // validate email and password and return user:
-    var verifiedUser = userRepository.findByEmailAndPassword(dao.getEmail(), password)
-        .orElseThrow(() -> new InvalidCredentials(dao.getEmail(), password));
+    var verifiedUser = userRepository.findByEmailAndPassword(dao.email(), password)
+        .orElseThrow(() -> new InvalidCredentials(dao.email(), password));
 
-    return getUser(verifiedUser.getId());
+    return getUser(verifiedUser.id());
   }
 
   public void verifyCurrentPassword(User user) {
     // get salt from email:
-    UserDao dao = userRepository.findByEmailAndIsEmailVerified(user.getEmail(), true)
-        .orElseThrow(() -> new UserNotFoundException(user.getEmail()));
+    UserDao dao = userRepository.findByEmailAndIsEmailVerified(user.email(), true)
+        .orElseThrow(() -> new UserNotFoundException(user.email()));
 
     // hash password with salt:
-    String password = Util.hashPassword(user.getPassword(), dao.getSalt());
+    String password = Util.hashPassword(user.password(), dao.salt());
 
     // validate email and password:
-    if (userRepository.findByEmailAndPassword(dao.getEmail(), password).isEmpty()) {
-      throw new BadRequestException("currentPasswordMismatch", user.getPassword());
+    if (userRepository.findByEmailAndPassword(dao.email(), password).isEmpty()) {
+      throw new BadRequestException("currentPasswordMismatch", user.password());
     }
   }
 
   // TODO: send email to the user confirming the password change.
   public String changePassword(User user) {
     // get user from email:
-    UserDao dao = userRepository.findByEmail(user.getEmail())
-        .orElseThrow(() -> new UserNotFoundException(user.getEmail()));
+    UserDao dao = userRepository.findByEmail(user.email())
+        .orElseThrow(() -> new UserNotFoundException(user.email()));
 
     // check email verification status:
     if (!dao.isEmailVerified()) {
-      throw new BadRequestException("userExistsButNotVerified", user.getEmail());
+      throw new BadRequestException("userExistsButNotVerified", user.email());
     }
 
     // forbid newPassword to be the same as currentPassword:
-    String currentPassword = dao.getPassword();
-    String newPassword = Util.hashPassword(user.getPassword(), dao.getSalt());
+    String currentPassword = dao.password();
+    String newPassword = Util.hashPassword(user.password(), dao.salt());
     if (currentPassword.equals(newPassword)) {
       throw new BadRequestException("newPasswordCannotBeSameAsCurrentPassword", newPassword);
     }
 
     // add new salt to new password:
     String newSalt = Util.generateSalt();
-    String newPasswordWithNewSalt = Util.hashPassword(user.getPassword(), newSalt);
+    String newPasswordWithNewSalt = Util.hashPassword(user.password(), newSalt);
 
     // save password:
-    dao.setSalt(newSalt);
-    dao.setPassword(newPasswordWithNewSalt);
+    dao.salt(newSalt);
+    dao.password(newPasswordWithNewSalt);
     userRepository.save(dao);
 
-    return dao.getEmail();
+    return dao.email();
   }
 
   // TODO: send confirmation to the verified user email.
@@ -220,39 +219,39 @@ public class UserService {
         .orElseThrow(() -> new UserNotFoundException(email));
 
     // update email verification status:
-    dao.setEmailVerified(true);
+    dao.isEmailVerified(true);
     userRepository.save(dao);
 
-    return dao.getEmail();
+    return dao.email();
   }
 
   public User addFavouriteBook(User user) {
-    var userDao = userRepository.findByIdAndIsEmailVerifiedTrue(user.getId())
-        .orElseThrow(() -> new UserNotFoundException(user.getEmail()));
+    var userDao = userRepository.findByIdAndIsEmailVerifiedTrue(user.id())
+        .orElseThrow(() -> new UserNotFoundException(user.email()));
 
-    if (user.getFavBooks() == null || user.getFavBooks().isEmpty()) {
+    if (user.favBooks() == null || user.favBooks().isEmpty()) {
       throw new BadRequestException("favBooksListIsNullOrEmpty");
     }
-    var bookId = user.getFavBooks().getFirst().getId();
+    var bookId = user.favBooks().getFirst().id();
     var favBookDao = bookRepository.findByIdAndIsDeletedFalse(bookId)
         .orElseThrow(() -> new BookNotFoundException(bookId));
 
     // validations:
-    if (favBookDao.getOwner().getId().equals(user.getId())) {
+    if (favBookDao.owner().id().equals(user.id())) {
       throw new BadRequestException("ownBookCannotBeAddedAsFavBook");
     }
-    if (userDao.getFavBooks() != null && userDao.getFavBooks().stream()
-        .anyMatch(book -> book.getId().equals(favBookDao.getId()))) {
+    if (userDao.favBooks() != null && userDao.favBooks().stream()
+        .anyMatch(book -> book.id().equals(favBookDao.id()))) {
       throw new BadRequestException("bookAlreadyExistsAsFavBook", bookId);
     }
 
-    if (userDao.getFavBooks() != null)
-      userDao.getFavBooks().add(favBookDao);
+    if (userDao.favBooks() != null)
+      userDao.favBooks().add(favBookDao);
     else
-      userDao.setFavBooks(List.of(favBookDao));
+      userDao.favBooks(List.of(favBookDao));
 
     userRepository.save(userDao);
-    return getUser(user.getId());
+    return getUser(user.id());
   }
 
   public User findOrCreateGoogleUser(String email, String firstName, String lastName, String googleSub) {
@@ -260,12 +259,13 @@ public class UserService {
     var userDao = userRepository.findByEmail(email)
         .orElseGet(() -> {
           // create new user if not exists:
-          var newUser = new UserDao();
-          newUser.setEmail(email);
-          newUser.setFirstName(firstName);
-          newUser.setLastName(lastName);
-          newUser.setSalt(googleSub);
-          newUser.setEmailVerified(true);
+          var newUser = UserDao.builder()
+              .email(email)
+              .firstName(firstName)
+              .lastName(lastName)
+              .salt(googleSub)
+              .isEmailVerified(true)
+              .build();
           return userRepository.save(newUser);
         });
 

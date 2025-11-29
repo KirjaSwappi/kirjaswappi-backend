@@ -56,19 +56,19 @@ public class UpdateUserRequest {
 
   public User toEntity() {
     this.validateProperties();
-    var entity = new User();
-    entity.setId(this.id);
-    entity.setFirstName(this.firstName);
-    entity.setLastName(this.lastName);
-    entity.setStreetName(this.streetName);
-    entity.setHouseNumber(this.houseNumber);
-    entity.setZipCode(this.zipCode);
-    entity.setCity(this.city);
-    entity.setCountry(this.country);
-    entity.setPhoneNumber(this.phoneNumber);
-    entity.setAboutMe(this.aboutMe);
-    entity.setFavGenres(this.favGenres == null ? null : this.favGenres.stream().map(Genre::new).toList());
-    return entity;
+    return User.builder()
+        .id(this.id)
+        .firstName(this.firstName)
+        .lastName(this.lastName)
+        .streetName(this.streetName)
+        .houseNumber(this.houseNumber)
+        .zipCode(this.zipCode)
+        .city(this.city)
+        .country(this.country)
+        .phoneNumber(this.phoneNumber)
+        .aboutMe(this.aboutMe)
+        .favGenres(this.favGenres == null ? null : this.favGenres.stream().map(Genre::new).toList())
+        .build();
   }
 
   private void validateProperties() {

@@ -67,7 +67,7 @@ public class UserController {
       @ApiResponse(responseCode = "201", description = "User created.") })
   public ResponseEntity<CreateUserResponse> createUser(@Valid @RequestBody CreateUserRequest user) throws IOException {
     User savedUser = userService.addUser(user.toEntity());
-    otpService.saveAndSendOTP(savedUser.getEmail());
+    otpService.saveAndSendOTP(savedUser.email());
     return ResponseEntity.status(HttpStatus.CREATED).body(new CreateUserResponse(savedUser));
   }
 

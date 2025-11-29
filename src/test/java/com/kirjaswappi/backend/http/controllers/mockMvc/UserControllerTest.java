@@ -9,22 +9,22 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,16 +58,16 @@ public class UserControllerTest {
   @Autowired
   private ObjectMapper objectMapper;
 
-  @MockBean
+  @MockitoBean
   private UserService userService;
 
-  @MockBean
+  @MockitoBean
   private OTPService otpService;
 
-  @MockBean
+  @MockitoBean
   private BookService bookService;
 
-  @MockBean
+  @MockitoBean
   private GoogleIdTokenVerifier googleIdTokenVerifier;
 
   private User user;
@@ -76,9 +76,10 @@ public class UserControllerTest {
 
   @BeforeEach
   void setUp() {
-    user = new User();
-    user.setId("1");
-    user.setEmail("test@example.com");
+    user = User.builder()
+        .id("1")
+        .email("test@example.com")
+        .build();
 
     createUserRequest = new CreateUserRequest();
     createUserRequest.setFirstName("Test");
@@ -92,14 +93,14 @@ public class UserControllerTest {
   @DisplayName("Should create a new user")
   void shouldCreateUser() throws Exception {
     when(userService.addUser(any(User.class))).thenReturn(user);
-    when(otpService.saveAndSendOTP(any(String.class))).thenReturn(user.getEmail());
+    when(otpService.saveAndSendOTP(any(String.class))).thenReturn(user.email());
 
     mockMvc.perform(post(API_BASE + "/signup")
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(createUserRequest))
         .header("Authorization ", "Bearer a.b.c"))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.email").value(user.getEmail()));
+        .andExpect(jsonPath("$.email").value(user.email()));
   }
 
   @Test
@@ -144,7 +145,7 @@ public class UserControllerTest {
     mockMvc.perform(get(API_BASE + "/1")
         .header("Authorization ", "Bearer a.b.c"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.email").value(user.getEmail()));
+        .andExpect(jsonPath("$.email").value(user.email()));
   }
 
   @Test
@@ -155,7 +156,7 @@ public class UserControllerTest {
     mockMvc.perform(get(API_BASE)
         .header("Authorization ", "Bearer a.b.c"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].email").value(user.getEmail()));
+        .andExpect(jsonPath("$[0].email").value(user.email()));
   }
 
   @Test
@@ -180,7 +181,7 @@ public class UserControllerTest {
         .content(objectMapper.writeValueAsString(request))
         .header("Authorization ", "Bearer a.b.c"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.email").value(user.getEmail()));
+        .andExpect(jsonPath("$.email").value(user.email()));
   }
 
   @Test
@@ -223,16 +224,17 @@ public class UserControllerTest {
   void shouldFindUserBooks() throws Exception {
     // Prepare test data
     String userId = "1";
-    Book book = new Book();
-    book.setId("book123");
-    book.setTitle("Test");
-    book.setAuthor("Test Author");
-    book.setGenres(new ArrayList<>());
-    book.setLanguage(Language.ENGLISH);
-    book.setCondition(Condition.FAIR);
-    book.setOwner(user);
+    var book = Book.builder()
+        .id("book123")
+        .title("Test")
+        .author("Test Author")
+        .genres(List.of())
+        .language(Language.ENGLISH)
+        .condition(Condition.FAIR)
+        .owner(user)
+        .build();
 
-    Page<Book> bookPage = new PageImpl<>(List.of(book), PageRequest.of(0, 10), 1);
+    Page<@NonNull Book> bookPage = new PageImpl<>(List.of(book), PageRequest.of(0, 10), 1);
 
     // Setup mocks
     when(bookService.getUserBooksByFilter(
@@ -285,20 +287,21 @@ public class UserControllerTest {
   }
 
   private static User getUpdatedUser() {
-    User updatedUser = new User();
-    updatedUser.setId("1");
-    updatedUser.setFirstName("UpdatedFirstName");
-    updatedUser.setLastName("UpdatedLastName");
-    updatedUser.setStreetName("UpdatedStreetName");
-    updatedUser.setHouseNumber("UpdatedHouseNumber");
-    updatedUser.setZipCode(12345);
-    updatedUser.setCity("UpdatedCity");
-    updatedUser.setCountry("UpdatedCountry");
-    updatedUser.setPhoneNumber("UpdatedPhoneNumber");
-    updatedUser.setAboutMe("UpdatedAboutMe");
-    updatedUser.setFavGenres(List.of(new Genre("GenreId1", "UpdatedGenre1", null),
-        new Genre("GenreId2", "UpdatedGenre2", null)));
-    return updatedUser;
+    return User.builder()
+        .id("1")
+        .firstName("UpdatedFirstName")
+        .lastName("UpdatedLastName")
+        .streetName("UpdatedStreetName")
+        .houseNumber("UpdatedHouseNumber")
+        .zipCode(12345)
+        .city("UpdatedCity")
+        .country("UpdatedCountry")
+        .phoneNumber("UpdatedPhoneNumber")
+        .aboutMe("UpdatedAboutMe")
+        .favGenres(List.of(
+            new Genre("GenreId1", "UpdatedGenre1", null),
+            new Genre("GenreId2", "UpdatedGenre2", null)))
+        .build();
   }
 
   private static UpdateUserRequest getUserUpdateRequest() {
@@ -551,7 +554,7 @@ public class UserControllerTest {
         .content("{\"idToken\":\"" + idTokenString + "\"}")
         .header("Authorization", "Bearer a.b.c"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.email").value(user.getEmail()));
+        .andExpect(jsonPath("$.email").value(user.email()));
   }
 
   @Test

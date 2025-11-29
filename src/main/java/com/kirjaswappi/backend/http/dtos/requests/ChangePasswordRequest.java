@@ -28,18 +28,18 @@ public class ChangePasswordRequest {
 
   public User toChangePasswordEntity(String email) {
     this.validateProperties(email);
-    var entity = new User();
-    entity.setEmail(email.toLowerCase());
-    entity.setPassword(this.newPassword);
-    return entity;
+    return User.builder()
+        .email(email.toLowerCase())
+        .password(this.newPassword)
+        .build();
   }
 
   public User toVerifyPasswordEntity(String email) {
     this.validateProperties(email);
-    var entity = new User();
-    entity.setEmail(email.toLowerCase());
-    entity.setPassword(this.currentPassword);
-    return entity;
+    return User.builder()
+        .email(email.toLowerCase())
+        .password(this.currentPassword)
+        .build();
   }
 
   private void validateProperties(String email) {

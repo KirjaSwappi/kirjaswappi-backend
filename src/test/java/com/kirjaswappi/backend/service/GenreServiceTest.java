@@ -66,12 +66,12 @@ class GenreServiceTest {
   @Test
   @DisplayName("Returns list of genres")
   void getGenresReturnsList() {
-    var dao1 = new GenreDao();
-    dao1.setId("1");
-    dao1.setName("Fantasy");
-    var dao2 = new GenreDao();
-    dao2.setId("2");
-    dao2.setName("SciFi");
+    var dao1 = new GenreDao()
+        .id("1")
+        .name("Fantasy");
+    var dao2 = new GenreDao()
+        .id("2")
+        .name("SciFi");
     when(genreRepository.findAll()).thenReturn(List.of(dao1, dao2));
     List<Genre> genres = genreService.getGenres();
     assertEquals(2, genres.size());
@@ -80,9 +80,9 @@ class GenreServiceTest {
   @Test
   @DisplayName("Updates an existing genre")
   void updateGenreUpdatesGenre() {
-    var dao = new GenreDao();
-    dao.setId("1");
-    dao.setName("Fantasy");
+    var dao = new GenreDao()
+        .id("1")
+        .name("Fantasy");
     when(genreRepository.findById("1")).thenReturn(Optional.of(dao));
     when(genreRepository.save(any())).thenReturn(dao);
     Genre genre = new Genre("1", "FantasyUpdated", null);
@@ -102,8 +102,7 @@ class GenreServiceTest {
   @Test
   @DisplayName("Deletes a genre by ID")
   void deleteGenreDeletesGenre() {
-    var dao = new GenreDao();
-    dao.setId("1");
+    var dao = new GenreDao().id("1");
     when(genreRepository.findById("1")).thenReturn(Optional.of(dao));
     when(genreRepository.existsById("1")).thenReturn(true);
     doNothing().when(genreRepository).deleteById("1");
@@ -409,7 +408,7 @@ class GenreServiceTest {
     when(genreRepository.findById("1")).thenReturn(Optional.of(parentDao));
     when(genreRepository.save(any())).thenAnswer(invocation -> {
       GenreDao saved = invocation.getArgument(0);
-      saved.setId("2");
+      saved = saved.id("2");
       return saved;
     });
 
@@ -472,8 +471,8 @@ class GenreServiceTest {
   void updateGenreRemovesParent() {
     // Arrange
     GenreDao parentDao = createGenreDao("1", "Fiction", null);
-    GenreDao existingDao = createGenreDao("2", "Science Fiction", "1");
-    existingDao.setParent(parentDao);
+    GenreDao existingDao = createGenreDao("2", "Science Fiction", "1")
+        .parent(parentDao);
 
     Genre updatedGenre = new Genre("2", "Science Fiction", null);
 
@@ -514,10 +513,9 @@ class GenreServiceTest {
   void deleteGenreThrowsWhenInFavoriteGenres() {
     // Arrange
     GenreDao genreDao = createGenreDao("1", "Fantasy", null);
-    UserDao userDao = new UserDao();
-    userDao.setId("user1");
-    userDao.setFavGenres(List.of(genreDao));
-    userDao.setBooks(new ArrayList<>());
+    UserDao userDao = new UserDao().id("user1")
+        .favGenres(List.of(genreDao))
+        .books(List.of());
 
     when(genreRepository.existsById("1")).thenReturn(true);
     when(userRepository.findAll()).thenReturn(List.of(userDao));
@@ -537,18 +535,18 @@ class GenreServiceTest {
     // Arrange
     GenreDao genreDao = createGenreDao("1", "Fantasy", null);
 
-    BookDao bookDao = new BookDao();
-    bookDao.setId("book1");
-    bookDao.setGenres(List.of(genreDao));
+    SwapConditionDao swapCondition = new SwapConditionDao()
+        .swappableGenres(List.of(genreDao));
 
-    SwapConditionDao swapCondition = new SwapConditionDao();
-    swapCondition.setSwappableGenres(List.of(genreDao));
-    bookDao.setSwapCondition(swapCondition);
+    BookDao bookDao = new BookDao()
+        .id("book1")
+        .swapCondition(swapCondition)
+        .genres(List.of(genreDao));
 
-    UserDao userDao = new UserDao();
-    userDao.setId("user1");
-    userDao.setFavGenres(new ArrayList<>());
-    userDao.setBooks(List.of(bookDao));
+    UserDao userDao = new UserDao()
+        .id("user1")
+        .favGenres(List.of())
+        .books(List.of(bookDao));
 
     when(genreRepository.existsById("1")).thenReturn(true);
     when(userRepository.findAll()).thenReturn(List.of(userDao));
@@ -569,18 +567,18 @@ class GenreServiceTest {
     GenreDao genreDao = createGenreDao("1", "Fantasy", null);
     GenreDao otherGenreDao = createGenreDao("2", "SciFi", null);
 
-    BookDao bookDao = new BookDao();
-    bookDao.setId("book1");
-    bookDao.setGenres(List.of(otherGenreDao)); // Genre is NOT in book's genres
+    SwapConditionDao swapCondition = new SwapConditionDao()
+        .swappableGenres(List.of(genreDao)); // Genre is in swappable genres
 
-    SwapConditionDao swapCondition = new SwapConditionDao();
-    swapCondition.setSwappableGenres(List.of(genreDao)); // Genre is in swappable genres
-    bookDao.setSwapCondition(swapCondition);
+    BookDao bookDao = new BookDao()
+        .id("book1")
+        .genres(List.of(otherGenreDao)) // Genre is NOT in book's genres
+        .swapCondition(swapCondition);
 
-    UserDao userDao = new UserDao();
-    userDao.setId("user1");
-    userDao.setFavGenres(new ArrayList<>());
-    userDao.setBooks(List.of(bookDao));
+    UserDao userDao = new UserDao()
+        .id("user1")
+        .favGenres(List.of())
+        .books(List.of(bookDao));
 
     when(genreRepository.existsById("1")).thenReturn(true);
     when(userRepository.findAll()).thenReturn(List.of(userDao));
@@ -598,10 +596,10 @@ class GenreServiceTest {
   @DisplayName("deleteGenre succeeds when genre is not being used")
   void deleteGenreSucceedsWhenNotUsed() {
     // Arrange
-    UserDao userDao = new UserDao();
-    userDao.setId("user1");
-    userDao.setFavGenres(new ArrayList<>());
-    userDao.setBooks(new ArrayList<>());
+    UserDao userDao = new UserDao()
+        .id("user1")
+        .favGenres(List.of())
+        .books(List.of());
 
     when(genreRepository.existsById("1")).thenReturn(true);
     when(userRepository.findAll()).thenReturn(List.of(userDao));
@@ -620,10 +618,10 @@ class GenreServiceTest {
   @DisplayName("deleteGenre handles null favGenres gracefully")
   void deleteGenreHandlesNullFavGenres() {
     // Arrange
-    UserDao userDao = new UserDao();
-    userDao.setId("user1");
-    userDao.setFavGenres(null);
-    userDao.setBooks(new ArrayList<>());
+    UserDao userDao = new UserDao()
+        .id("user1")
+        .favGenres(null)
+        .books(List.of());
 
     when(genreRepository.existsById("1")).thenReturn(true);
     when(userRepository.findAll()).thenReturn(List.of(userDao));
@@ -642,10 +640,10 @@ class GenreServiceTest {
   @DisplayName("deleteGenre handles null books gracefully")
   void deleteGenreHandlesNullBooks() {
     // Arrange
-    UserDao userDao = new UserDao();
-    userDao.setId("user1");
-    userDao.setFavGenres(new ArrayList<>());
-    userDao.setBooks(null);
+    UserDao userDao = new UserDao()
+        .id("user1")
+        .favGenres(List.of())
+        .books(null);
 
     when(genreRepository.existsById("1")).thenReturn(true);
     when(userRepository.findAll()).thenReturn(List.of(userDao));
@@ -664,14 +662,13 @@ class GenreServiceTest {
    * Helper method to create GenreDao objects for testing
    */
   private GenreDao createGenreDao(String id, String name, String parentId) {
-    GenreDao dao = new GenreDao();
-    dao.setId(id);
-    dao.setName(name);
+    GenreDao dao = new GenreDao()
+        .id(id)
+        .name(name);
 
     if (parentId != null) {
-      GenreDao parent = new GenreDao();
-      parent.setId(parentId);
-      dao.setParent(parent);
+      GenreDao parent = new GenreDao().id(parentId);
+      dao.parent(parent);
     }
 
     return dao;

@@ -5,6 +5,7 @@
 package com.kirjaswappi.backend.http.dtos.responses;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import com.kirjaswappi.backend.service.entities.BookLocation;
@@ -14,6 +15,7 @@ import com.kirjaswappi.backend.service.entities.BookLocation;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class BookLocationResponse {
 
   private Double latitude;
@@ -31,19 +33,13 @@ public class BookLocationResponse {
    */
   public BookLocationResponse(BookLocation entity) {
     if (entity != null) {
-      this.latitude = entity.getLatitude();
-      this.longitude = entity.getLongitude();
-      this.address = entity.getAddress();
-      this.city = entity.getCity();
-      this.country = entity.getCountry();
-      this.postalCode = entity.getPostalCode();
-      this.radiusKm = entity.getRadiusKm();
+      this.latitude = entity.latitude();
+      this.longitude = entity.longitude();
+      this.address = entity.address();
+      this.city = entity.city();
+      this.country = entity.country();
+      this.postalCode = entity.postalCode();
+      this.radiusKm = entity.radiusKm();
     }
-  }
-
-  /**
-   * Default constructor for serialization.
-   */
-  public BookLocationResponse() {
   }
 }

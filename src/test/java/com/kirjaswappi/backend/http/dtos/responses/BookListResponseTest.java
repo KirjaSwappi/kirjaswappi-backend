@@ -22,23 +22,25 @@ class BookListResponseTest {
   @Test
   @DisplayName("Populates all BookListResponse fields including offeredAgo and bookLocation")
   void constructor_populatesAllFields_withCompleteOwnerInfo() {
-    User owner = new User();
-    owner.setId("owner1");
-    owner.setFirstName("John");
-    owner.setLastName("Doe");
-    owner.setCity("Espoo");
-    Book book = new Book();
-    book.setId("book1");
-    book.setTitle("Test Book");
-    book.setAuthor("Author");
-    book.setGenres(List.of(new Genre("Fiction")));
-    book.setLanguage(Language.ENGLISH);
-    book.setDescription("A book");
-    book.setCondition(Condition.NEW);
-    book.setCoverPhotos(List.of("url"));
-    book.setOwner(owner);
-    book.setBookAddedAt(Instant.now().minusSeconds(3600)); // 1 hour ago
-    book.setBookUpdatedAt(Instant.now().minusSeconds(3600)); // 1 hour ago
+    User owner = new User()
+        .id("owner1")
+        .firstName("John")
+        .lastName("Doe")
+        .city("Espoo");
+
+    Book book = Book.builder()
+        .id("book1")
+        .title("Test Book")
+        .author("Author")
+        .genres(List.of(new Genre("Fiction")))
+        .language(Language.ENGLISH)
+        .description("A book")
+        .condition(Condition.NEW)
+        .coverPhotos(List.of("url"))
+        .owner(owner)
+        .bookAddedAt(Instant.now().minusSeconds(3600)) // 1 hour ago
+        .bookUpdatedAt(Instant.now().minusSeconds(3600)) // 1 hour ago
+        .build();
     // Act
     BookListResponse response = new BookListResponse(book);
     // Assert
@@ -59,18 +61,19 @@ class BookListResponseTest {
   @Test
   @DisplayName("Handles null owner and null location")
   void constructor_handlesNullOwner() {
-    Book book = new Book();
-    book.setId("book2");
-    book.setTitle("T");
-    book.setAuthor("A");
-    book.setGenres(List.of());
-    book.setLanguage(Language.ENGLISH);
-    book.setDescription("D");
-    book.setCondition(Condition.NEW);
-    book.setCoverPhotos(List.of("U"));
-    book.setOwner(null);
-    book.setBookAddedAt(Instant.now().minusSeconds(60)); // 1 min ago
-    book.setBookUpdatedAt(Instant.now().minusSeconds(60)); // 1 min ago
+    Book book = Book.builder()
+        .id("book2")
+        .title("T")
+        .author("A")
+        .genres(List.of())
+        .language(Language.ENGLISH)
+        .description("D")
+        .condition(Condition.NEW)
+        .coverPhotos(List.of("U"))
+        .owner(null)
+        .bookAddedAt(Instant.now().minusSeconds(60)) // 1 min ago
+        .bookUpdatedAt(Instant.now().minusSeconds(60)) // 1 min ago
+        .build();
     // Act
     BookListResponse response = new BookListResponse(book);
     // Assert
@@ -83,23 +86,25 @@ class BookListResponseTest {
   @Test
   @DisplayName("Handles partial owner data")
   void constructor_handlesPartialOwnerData() {
-    User owner = new User();
-    owner.setId("owner2");
-    owner.setFirstName(null);
-    owner.setLastName(null);
-    owner.setCity(null);
-    Book book = new Book();
-    book.setId("id");
-    book.setTitle("t");
-    book.setAuthor("a");
-    book.setGenres(List.of());
-    book.setLanguage(Language.ENGLISH);
-    book.setDescription("d");
-    book.setCondition(Condition.NEW);
-    book.setCoverPhotos(List.of("u"));
-    book.setOwner(owner);
-    book.setBookAddedAt(Instant.now().minusSeconds(86400)); // 1 day ago
-    book.setBookUpdatedAt(Instant.now().minusSeconds(86400)); // 1 day ago
+    User owner = new User()
+        .id("owner2")
+        .firstName(null)
+        .lastName(null)
+        .city(null);
+
+    Book book = Book.builder()
+        .id("id")
+        .title("t")
+        .author("a")
+        .genres(List.of())
+        .language(Language.ENGLISH)
+        .description("d")
+        .condition(Condition.NEW)
+        .coverPhotos(List.of("u"))
+        .owner(owner)
+        .bookAddedAt(Instant.now().minusSeconds(86400)) // 1 day ago
+        .bookUpdatedAt(Instant.now().minusSeconds(86400)) // 1 day ago
+        .build();
     // Act
     BookListResponse response = new BookListResponse(book);
     // Assert
@@ -112,18 +117,19 @@ class BookListResponseTest {
   @Test
   @DisplayName("Existing fields remain unchanged and offeredAgo is correct")
   void existingFieldsRemainUnchanged() {
-    Book book = new Book();
-    book.setId("book3");
-    book.setTitle("Title");
-    book.setAuthor("Author");
-    book.setGenres(List.of(new Genre("Fiction")));
-    book.setLanguage(Language.ENGLISH);
-    book.setDescription("Desc");
-    book.setCondition(Condition.GOOD);
-    book.setCoverPhotos(List.of("url"));
-    book.setOwner(null);
-    book.setBookAddedAt(Instant.now().minusSeconds(2592000));
-    book.setBookUpdatedAt(Instant.now().minusSeconds(2592000)); // 1 month ago
+    Book book = Book.builder()
+        .id("book3")
+        .title("Title")
+        .author("Author")
+        .genres(List.of(new Genre("Fiction")))
+        .language(Language.ENGLISH)
+        .description("Desc")
+        .condition(Condition.GOOD)
+        .coverPhotos(List.of("url"))
+        .owner(null)
+        .bookAddedAt(Instant.now().minusSeconds(2592000))
+        .bookUpdatedAt(Instant.now().minusSeconds(2592000)) // 1 month ago
+        .build();
     // Act
     BookListResponse response = new BookListResponse(book);
     // Assert
@@ -141,50 +147,52 @@ class BookListResponseTest {
   @Test
   @DisplayName("OfferedAgo for different time intervals should be correct")
   void offeredAgo_humanReadableFormats() {
-    User owner = new User();
-    owner.setId("owner-city");
-    owner.setFirstName("Jane");
-    owner.setLastName("Smith");
-    owner.setCity("Helsinki");
-    Book book = new Book();
-    book.setId("bookAgo");
-    book.setTitle("Ago Book");
-    book.setAuthor("Ago Author");
-    book.setGenres(List.of(new Genre("History")));
-    book.setLanguage(Language.ENGLISH);
-    book.setDescription("Ago Desc");
-    book.setCondition(Condition.NEW);
-    book.setCoverPhotos(List.of("ago-url"));
-    book.setOwner(owner);
+    User owner = new User()
+        .id("owner-city")
+        .firstName("Jane")
+        .lastName("Smith")
+        .city("Helsinki");
+
+    Book book = Book.builder()
+        .id("bookAgo")
+        .title("Ago Book")
+        .author("Ago Author")
+        .genres(List.of(new Genre("History")))
+        .language(Language.ENGLISH)
+        .description("Ago Desc")
+        .condition(Condition.NEW)
+        .coverPhotos(List.of("ago-url"))
+        .owner(owner)
+        .build();
 
     // Test seconds ago
-    book.setBookAddedAt(Instant.now().minusSeconds(45));
-    book.setBookUpdatedAt(Instant.now().minusSeconds(45));
+    book = book.withBookAddedAt(Instant.now().minusSeconds(45))
+        .withBookUpdatedAt(Instant.now().minusSeconds(45));
     BookListResponse respSec = new BookListResponse(book);
     assertTrue(respSec.getOfferedAgo().contains("seconds ago"));
 
     // Test minutes ago
-    book.setBookUpdatedAt(Instant.now().minusSeconds(120));
+    book = book.withBookUpdatedAt(Instant.now().minusSeconds(120));
     BookListResponse respMin = new BookListResponse(book);
     assertTrue(respMin.getOfferedAgo().contains("mins ago"));
 
     // Test hours ago
-    book.setBookUpdatedAt(Instant.now().minusSeconds(7200));
+    book = book.withBookUpdatedAt(Instant.now().minusSeconds(7200));
     BookListResponse respHour = new BookListResponse(book);
     assertTrue(respHour.getOfferedAgo().contains("hours ago"));
 
     // Test days ago
-    book.setBookUpdatedAt(Instant.now().minusSeconds(172800));
+    book = book.withBookUpdatedAt(Instant.now().minusSeconds(172800));
     BookListResponse respDay = new BookListResponse(book);
     assertTrue(respDay.getOfferedAgo().contains("days ago"));
 
     // Test months ago
-    book.setBookUpdatedAt(Instant.now().minusSeconds(2592000 * 3)); // 3 months
+    book = book.withBookUpdatedAt(Instant.now().minusSeconds(2592000 * 3)); // 3 months
     BookListResponse respMonth = new BookListResponse(book);
     assertTrue(respMonth.getOfferedAgo().contains("months ago"));
 
     // Test years ago
-    book.setBookUpdatedAt(Instant.now().minusSeconds(31536000 * 2)); // 2 years
+    book = book.withBookUpdatedAt(Instant.now().minusSeconds(31536000 * 2)); // 2 years
     BookListResponse respYear = new BookListResponse(book);
     assertTrue(respYear.getOfferedAgo().contains("years ago"));
 

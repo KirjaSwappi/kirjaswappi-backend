@@ -59,53 +59,51 @@ class UserServiceTest {
   @Test
   @DisplayName("Should return user when found by id")
   void getUserReturnsUserWhenFound() {
-    UserDao userDao = new UserDao();
-    userDao.setId("id");
-    userDao.setEmailVerified(true);
+    UserDao userDao = UserDao.builder().id("id").isEmailVerified(true).build();
+
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));
+
     User result = userService.getUser("id");
-    assertEquals("id", result.getId());
+    assertEquals("id", result.id());
   }
 
   @Test
   @DisplayName("Should throw UserAlreadyExistsException if user already exists and is verified")
   void addUserThrowsIfAlreadyExists() {
-    User user = new User();
-    user.setEmail("test@example.com");
-    when(userRepository.findByEmailAndIsEmailVerified("test@example.com", true)).thenReturn(Optional.of(new UserDao()));
+    User user = new User().email("test@example.com");
+    when(userRepository.findByEmailAndIsEmailVerified("test@example.com", true))
+        .thenReturn(Optional.of(UserDao.builder().build()));
     assertThrows(UserAlreadyExistsException.class, () -> userService.addUser(user));
   }
 
   @Test
   @DisplayName("Should throw BadRequestException if user exists but not verified")
   void addUserThrowsIfExistsButNotVerified() {
-    User user = new User();
-    user.setEmail("test@example.com");
+    User user = new User().email("test@example.com");
     when(userRepository.findByEmailAndIsEmailVerified("test@example.com", false))
-        .thenReturn(Optional.of(new UserDao()));
+        .thenReturn(Optional.of(UserDao.builder().build()));
     assertThrows(BadRequestException.class, () -> userService.addUser(user));
   }
 
   @Test
   @DisplayName("Should save user when adding a new user with all required fields")
   void addUserSavesUser() {
-    User user = new User();
-    user.setEmail("test@example.com");
-    user.setPassword("password");
-    user.setFirstName("Test");
-    user.setLastName("User");
-    user.setFavGenres(List.of());
+    User user = new User()
+        .email("test@example.com")
+        .password("password")
+        .firstName("Test")
+        .lastName("User")
+        .favGenres(List.of());
     when(userRepository.findByEmailAndIsEmailVerified("test@example.com", false)).thenReturn(Optional.empty());
     when(userRepository.findByEmailAndIsEmailVerified("test@example.com", true)).thenReturn(Optional.empty());
-    when(userRepository.save(any())).thenReturn(new UserDao());
+    when(userRepository.save(any())).thenReturn(UserDao.builder().build());
     assertNotNull(userService.addUser(user));
   }
 
   @Test
   @DisplayName("Should throw UserNotFoundException when updating user that does not exist")
   void updateUserThrowsWhenNotFound() {
-    User user = new User();
-    user.setId("id");
+    User user = new User().id("id");
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.empty());
     assertThrows(UserNotFoundException.class, () -> userService.updateUser(user));
   }
@@ -113,11 +111,8 @@ class UserServiceTest {
   @Test
   @DisplayName("Should throw BadRequestException when updating user that is not verified")
   void updateUserThrowsIfNotVerified() {
-    User user = new User();
-    user.setId("id");
-    UserDao dao = new UserDao();
-    dao.setId("id");
-    dao.setEmailVerified(false);
+    User user = new User().id("id");
+    UserDao dao = UserDao.builder().id("id").isEmailVerified(false).build();
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(dao));
     assertThrows(BadRequestException.class, () -> userService.updateUser(user));
   }
@@ -125,16 +120,16 @@ class UserServiceTest {
   @Test
   @DisplayName("Should update user when all required fields are present")
   void updateUserUpdatesUser() {
-    User user = new User();
-    user.setId("id");
-    user.setFirstName("Test");
-    user.setLastName("User");
-    user.setFavGenres(List.of(new Genre("genre")));
-    UserDao dao = new UserDao();
-    dao.setId("id");
-    dao.setEmailVerified(true);
+    User user = new User()
+        .id("id")
+        .firstName("Test")
+        .lastName("User")
+        .favGenres(List.of(new Genre("genre")));
+
+    UserDao dao = UserDao.builder().id("id").isEmailVerified(true).build();
+
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(dao));
-    when(genreRepository.findByName(any())).thenReturn(Optional.of(new GenreDao()));
+    when(genreRepository.findByName(any())).thenReturn(Optional.of(GenreDao.builder().build()));
     when(userRepository.save(any())).thenReturn(dao);
     assertNotNull(userService.updateUser(user));
   }
@@ -149,8 +144,7 @@ class UserServiceTest {
   @Test
   @DisplayName("Should delete user when found by id")
   void deleteUserDeletesUser() {
-    UserDao dao = new UserDao();
-    dao.setId("id");
+    UserDao dao = UserDao.builder().id("id").build();
     when(userRepository.findById("id")).thenReturn(Optional.of(dao));
     doNothing().when(userRepository).delete(dao);
     userService.deleteUser("id");
@@ -160,13 +154,11 @@ class UserServiceTest {
   @Test
   @DisplayName("Should return list of users when users exist")
   void getUsersReturnsList() {
-    UserDao dao1 = new UserDao();
-    dao1.setId("id1");
-    dao1.setEmailVerified(true);
-    UserDao dao2 = new UserDao();
-    dao2.setId("id2");
-    dao2.setEmailVerified(true);
+    UserDao dao1 = UserDao.builder().id("id1").isEmailVerified(true).build();
+    UserDao dao2 = UserDao.builder().id("id2").isEmailVerified(true).build();
+
     when(userRepository.findAllByIsEmailVerifiedTrue()).thenReturn(List.of(dao1, dao2));
+
     List<User> users = userService.getUsers();
     assertEquals(2, users.size());
   }
@@ -181,9 +173,8 @@ class UserServiceTest {
   @Test
   @DisplayName("Should set email as verified when verifying email for existing user")
   void verifyEmailSetsVerified() {
-    UserDao dao = new UserDao();
-    dao.setEmail("test@example.com");
-    dao.setEmailVerified(false);
+    UserDao dao = UserDao.builder().email("test@example.com").isEmailVerified(false).build();
+
     when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(dao));
     when(userRepository.save(dao)).thenReturn(dao);
     String email = userService.verifyEmail("test@example.com");
@@ -194,8 +185,7 @@ class UserServiceTest {
   @Test
   @DisplayName("Should throw UserNotFoundException when adding favourite book for non-existent user")
   void addFavouriteBookThrowsIfUserNotFound() {
-    User user = new User();
-    user.setId("id");
+    User user = new User().id("id");
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.empty());
     assertThrows(UserNotFoundException.class, () -> userService.addFavouriteBook(user));
   }
@@ -203,33 +193,30 @@ class UserServiceTest {
   @Test
   @DisplayName("Should throw BookNotFoundException when adding favourite book that does not exist")
   void addFavouriteBookThrowsIfBookNotFound() {
-    User user = new User();
-    user.setId("id");
-    BookDao bookDao = new BookDao();
-    bookDao.setId("bookId");
-    user.setFavBooks(List.of(new Book()));
-    UserDao userDao = new UserDao();
-    userDao.setId("id");
+
+    BookDao bookDao = BookDao.builder().id("bookId").build();
+    User user = new User().id("id").favBooks(List.of(Book.builder().build()));
+    UserDao userDao = UserDao.builder().id("id").build();
+
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));
     when(bookRepository.findByIdAndIsDeletedFalse(any())).thenReturn(Optional.empty());
+
     assertThrows(BookNotFoundException.class, () -> userService.addFavouriteBook(user));
   }
 
   @Test
   @DisplayName("Should throw BadRequestException when adding own book as favourite")
   void addFavouriteBookThrowsIfOwnBook() {
-    User user = new User();
-    user.setId("id");
-    Book book = new Book();
-    book.setId("bookId");
-    user.setFavBooks(List.of(book));
-    UserDao userDao = new UserDao();
-    userDao.setId("id");
-    BookDao bookDao = new BookDao();
-    bookDao.setId("bookId");
-    UserDao ownerDao = new UserDao();
-    ownerDao.setId("id");
-    bookDao.setOwner(ownerDao);
+
+    Book book = Book.builder().id("bookId").build();
+
+    User user = new User().id("id").favBooks(List.of(book));
+
+    UserDao userDao = UserDao.builder().id("id").build();
+
+    UserDao ownerDao = UserDao.builder().id("id").build();
+    BookDao bookDao = BookDao.builder().id("bookId").owner(ownerDao).build();
+
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));
     when(bookRepository.findByIdAndIsDeletedFalse("bookId")).thenReturn(Optional.of(bookDao));
     assertThrows(BadRequestException.class, () -> userService.addFavouriteBook(user));
@@ -238,23 +225,29 @@ class UserServiceTest {
   @Test
   @DisplayName("Should throw BadRequestException when adding already favourite book")
   void addFavouriteBookThrowsIfAlreadyFav() {
-    User user = new User();
-    user.setId("id");
-    Book book = new Book();
-    book.setId("bookId");
-    book.setLanguage(Language.ENGLISH);
-    book.setCondition(Condition.NEW);
-    user.setFavBooks(List.of(book));
-    UserDao userDao = new UserDao();
-    userDao.setId("id");
-    BookDao bookDao = new BookDao();
-    bookDao.setId("bookId");
-    bookDao.setLanguage("English");
-    bookDao.setCondition("New");
-    UserDao ownerDao = new UserDao();
-    ownerDao.setId("other");
-    bookDao.setOwner(ownerDao);
-    userDao.setFavBooks(List.of(bookDao));
+
+    Book book = Book.builder()
+        .id("bookId")
+        .language(Language.ENGLISH)
+        .condition(Condition.NEW)
+        .build();
+
+    User user = new User().id("id").favBooks(List.of(book));
+
+    UserDao ownerDao = UserDao.builder().id("other").build();
+
+    BookDao bookDao = BookDao.builder()
+        .id("bookId")
+        .language("English")
+        .owner(ownerDao)
+        .condition("New")
+        .build();
+
+    UserDao userDao = UserDao.builder()
+        .id("id")
+        .favBooks(List.of(bookDao))
+        .build();
+
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));
     when(bookRepository.findByIdAndIsDeletedFalse("bookId")).thenReturn(Optional.of(bookDao));
     assertThrows(BadRequestException.class, () -> userService.addFavouriteBook(user));
@@ -263,26 +256,29 @@ class UserServiceTest {
   @Test
   @DisplayName("Should add favourite book successfully when all conditions are met")
   void addFavouriteBookSuccess() {
-    User user = new User();
-    user.setId("id");
-    Book favBook = new Book();
-    favBook.setId("bookId");
-    favBook.setLanguage(Language.ENGLISH);
-    favBook.setCondition(Condition.NEW);
-    favBook.setGenres(
-        List.of(new Genre("genreId", "Genre Name", null)));
-    user.setFavBooks(List.of(favBook));
-    UserDao userDao = new UserDao();
-    userDao.setId("id");
-    BookDao bookDao = new BookDao();
-    bookDao.setId("bookId");
-    bookDao.setLanguage("English");
-    bookDao.setCondition("New");
-    bookDao.setGenres(List.of(new GenreDao("genreId", "Genre Name", null)));
-    UserDao ownerDao = new UserDao();
-    ownerDao.setId("other");
-    bookDao.setOwner(ownerDao);
-    userDao.setFavBooks(null);
+
+    Book favBook = Book.builder()
+        .id("bookId")
+        .language(Language.ENGLISH)
+        .condition(Condition.NEW)
+        .genres(List.of(new Genre("genreId", "Genre Name", null)))
+        .build();
+
+    User user = new User()
+        .id("id")
+        .favBooks(List.of(favBook));
+
+    UserDao ownerDao = UserDao.builder().id("other").build();
+
+    BookDao bookDao = BookDao.builder()
+        .id("bookId")
+        .owner(ownerDao)
+        .language("English")
+        .condition("New")
+        .genres(List.of(GenreDao.builder().id("genreId").name("Genre Name").parent(null).build()))
+        .build();
+
+    UserDao userDao = UserDao.builder().id("id").favBooks(null).build();
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));
     when(bookRepository.findByIdAndIsDeletedFalse("bookId")).thenReturn(Optional.of(bookDao));
     when(userRepository.save(userDao)).thenReturn(userDao);
@@ -297,18 +293,19 @@ class UserServiceTest {
     String firstName = "Test";
     String lastName = "User";
     String googleSub = "google-sub-123";
-    UserDao existingDao = new UserDao();
-    existingDao.setEmail(email);
-    existingDao.setFirstName(firstName);
-    existingDao.setLastName(lastName);
-    existingDao.setSalt(googleSub);
-    existingDao.setEmailVerified(true);
+    UserDao existingDao = UserDao.builder()
+        .email(email)
+        .firstName(firstName)
+        .lastName(lastName)
+        .salt(googleSub)
+        .isEmailVerified(true)
+        .build();
     when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingDao));
 
     User result = userService.findOrCreateGoogleUser(email, firstName, lastName, googleSub);
-    assertEquals(email, result.getEmail());
-    assertEquals(firstName, result.getFirstName());
-    assertEquals(lastName, result.getLastName());
+    assertEquals(email, result.email());
+    assertEquals(firstName, result.firstName());
+    assertEquals(lastName, result.lastName());
   }
 
   @Test
@@ -318,18 +315,22 @@ class UserServiceTest {
     String firstName = "New";
     String lastName = "User";
     String googleSub = "google-sub-456";
+
     when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-    UserDao savedDao = new UserDao();
-    savedDao.setEmail(email);
-    savedDao.setFirstName(firstName);
-    savedDao.setLastName(lastName);
-    savedDao.setSalt(googleSub);
-    savedDao.setEmailVerified(true);
+
+    UserDao savedDao = UserDao.builder()
+        .email(email)
+        .firstName(firstName)
+        .lastName(lastName)
+        .salt(googleSub)
+        .isEmailVerified(true)
+        .build();
+
     when(userRepository.save(any(UserDao.class))).thenReturn(savedDao);
 
     User result = userService.findOrCreateGoogleUser(email, firstName, lastName, googleSub);
-    assertEquals(email, result.getEmail());
-    assertEquals(firstName, result.getFirstName());
-    assertEquals(lastName, result.getLastName());
+    assertEquals(email, result.email());
+    assertEquals(firstName, result.firstName());
+    assertEquals(lastName, result.lastName());
   }
 }

@@ -4,47 +4,38 @@
  */
 package com.kirjaswappi.backend.mapper;
 
-import java.util.List;
-
-import lombok.NoArgsConstructor;
-
-import org.springframework.stereotype.Component;
+import static com.kirjaswappi.backend.common.utils.ListUtil.emptyIfNull;
 
 import com.kirjaswappi.backend.jpa.daos.SwapConditionDao;
 import com.kirjaswappi.backend.service.entities.SwapCondition;
 import com.kirjaswappi.backend.service.enums.SwapType;
 
-@Component
-@NoArgsConstructor
-public class SwapConditionMapper {
+public final class SwapConditionMapper {
+
+  private SwapConditionMapper() {
+    throw new IllegalStateException("Mapper class should not be instantiated");
+  }
+
   public static SwapCondition toEntity(SwapConditionDao dao) {
     if (dao == null) {
       return new SwapCondition();
     }
-    var entity = new SwapCondition();
-    entity.setSwapType(SwapType.fromCode(dao.getSwapType()));
-    entity.setGiveAway(dao.isGiveAway());
-    entity.setOpenForOffers(dao.isOpenForOffers());
-    if (dao.getSwappableGenres() != null) {
-      entity.setSwappableGenres(dao.getSwappableGenres().stream().map(GenreMapper::toEntity).toList());
-    }
-    if (dao.getSwappableBooks() != null) {
-      entity.setSwappableBooks(dao.getSwappableBooks().stream().map(SwappableBookMapper::toEntity).toList());
-    }
-    return entity;
+    return SwapCondition.builder()
+        .swapType(SwapType.fromCode(dao.swapType()))
+        .giveAway(dao.giveAway())
+        .openForOffers(dao.openForOffers())
+        .swappableGenres(emptyIfNull(dao.swappableGenres()).stream().map(GenreMapper::toEntity).toList())
+        .swappableBooks(emptyIfNull(dao.swappableBooks()).stream().map(SwappableBookMapper::toEntity).toList())
+        .build();
   }
 
   public static SwapConditionDao toDao(SwapCondition entity) {
-    var dao = new SwapConditionDao();
-    dao.setSwapType(entity.getSwapType().getCode());
-    dao.setGiveAway(entity.isGiveAway());
-    dao.setOpenForOffers(entity.isOpenForOffers());
-    dao.setSwappableGenres(
-        entity.getSwappableGenres() != null ? entity.getSwappableGenres().stream().map(GenreMapper::toDao).toList()
-            : List.of());
-    dao.setSwappableBooks(entity.getSwappableBooks() != null
-        ? entity.getSwappableBooks().stream().map(SwappableBookMapper::toDao).toList()
-        : List.of());
-    return dao;
+    return SwapConditionDao.builder()
+        .swapType(entity.swapType().getCode())
+        .giveAway(entity.giveAway())
+        .openForOffers(entity.openForOffers())
+        .swappableGenres(emptyIfNull(entity.swappableGenres()).stream().map(GenreMapper::toDao).toList())
+        .swappableBooks(emptyIfNull(entity.swappableBooks()).stream().map(SwappableBookMapper::toDao).toList())
+        .build();
   }
 }

@@ -10,7 +10,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -32,21 +33,18 @@ import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class ChatService {
-  @Autowired
-  private ChatMessageRepository chatMessageRepository;
 
-  @Autowired
-  private SwapRequestRepository swapRequestRepository;
+  private final ChatMessageRepository chatMessageRepository;
 
-  @Autowired
-  private UserService userService;
+  private final SwapRequestRepository swapRequestRepository;
 
-  @Autowired
-  private ImageService imageService;
+  private final UserService userService;
 
-  @Autowired
-  private SimpMessagingTemplate messagingTemplate;
+  private final ImageService imageService;
+
+  private final SimpMessagingTemplate messagingTemplate;
 
   public List<ChatMessage> getChatMessages(String swapRequestId, String userId) {
     // Validate swap request exists
@@ -71,7 +69,7 @@ public class ChatService {
     // Convert each message with image IDs converted to URLs
     return messageDaos.stream()
         .map(dao -> {
-          List<String> imageUrls = convertImageIdsToUrls(dao.getImageIds());
+          List<String> imageUrls = convertImageIdsToUrls(dao.imageIds());
           return ChatMessageMapper.toEntity(dao, imageUrls);
         })
         .toList();
@@ -100,21 +98,22 @@ public class ChatService {
     User sender = userService.getUser(senderId);
 
     // Create chat message
-    ChatMessage chatMessage = new ChatMessage();
-    chatMessage.setSwapRequestId(swapRequestId);
-    chatMessage.setSender(sender);
-    // TODO: filter explicit or dangerous words in message
-    chatMessage.setMessage(message.trim());
-    chatMessage.setReadByReceiver(false);
+    var chatMessage = ChatMessage.builder()
+        .swapRequestId(swapRequestId)
+        .sender(sender)
+        // TODO: filter explicit or dangerous words in message
+        .message(message.trim())
+        .readByReceiver(false)
+        .build();
 
     // Save message
     ChatMessageDao messageDao = ChatMessageMapper.toDao(chatMessage);
     ChatMessageDao savedDao = chatMessageRepository.save(messageDao);
 
     // Clear unread count cache for both users to ensure consistency
-    String receiverId = swapRequest.getSender().getId().equals(senderId)
-        ? swapRequest.getReceiver().getId()
-        : swapRequest.getSender().getId();
+    String receiverId = swapRequest.sender().id().equals(senderId)
+        ? swapRequest.receiver().id()
+        : swapRequest.sender().id();
 
     // Clear cache for both sender and receiver to avoid stale data
     clearUnreadCountCache(receiverId, swapRequestId);
@@ -163,21 +162,22 @@ public class ChatService {
     }
 
     // Create chat message
-    ChatMessage chatMessage = new ChatMessage();
-    chatMessage.setSwapRequestId(swapRequestId);
-    chatMessage.setSender(sender);
-    chatMessage.setMessage(message != null && !message.trim().isEmpty() ? message.trim() : null);
-    chatMessage.setImageIds(imageIds.isEmpty() ? null : imageIds);
-    chatMessage.setReadByReceiver(false);
+    var chatMessage = ChatMessage.builder()
+        .swapRequestId(swapRequestId)
+        .sender(sender)
+        .message(message != null && !message.trim().isEmpty() ? message.trim() : null)
+        .imageIds(imageIds.isEmpty() ? null : imageIds)
+        .readByReceiver(false)
+        .build();
 
     // Save message
     ChatMessageDao messageDao = ChatMessageMapper.toDao(chatMessage);
     ChatMessageDao savedDao = chatMessageRepository.save(messageDao);
 
     // Clear unread count cache for both users to ensure consistency
-    String receiverId = swapRequest.getSender().getId().equals(senderId)
-        ? swapRequest.getReceiver().getId()
-        : swapRequest.getSender().getId();
+    String receiverId = swapRequest.sender().id().equals(senderId)
+        ? swapRequest.receiver().id()
+        : swapRequest.sender().id();
 
     // Clear cache for both sender and receiver to avoid stale data
     clearUnreadCountCache(receiverId, swapRequestId);
@@ -211,12 +211,12 @@ public class ChatService {
     List<ChatMessageDao> allMessages = chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc(swapRequestId);
     List<ChatMessageDao> unreadMessages = allMessages
         .stream()
-        .filter(msg -> !msg.getSender().getId().equals(userId) && !msg.isReadByReceiver())
+        .filter(msg -> !msg.sender().id().equals(userId) && !msg.readByReceiver())
         .toList();
 
     // Mark messages as read
     for (ChatMessageDao message : unreadMessages) {
-      message.setReadByReceiver(true);
+      message.readByReceiver(true);
       chatMessageRepository.save(message);
     }
 
@@ -254,7 +254,7 @@ public class ChatService {
 
   public Optional<Instant> getLatestMessageTimestamp(String swapRequestId) {
     return chatMessageRepository.findFirstBySwapRequestIdOrderBySentAtDesc(swapRequestId)
-        .map(ChatMessageDao::getSentAt);
+        .map(ChatMessageDao::sentAt);
   }
 
   public SwapRequest getSwapRequestForChat(String swapRequestId, String userId) {
@@ -275,8 +275,8 @@ public class ChatService {
   }
 
   private boolean hasAccessToChat(SwapRequestDao swapRequest, String userId) {
-    return swapRequest.getSender().getId().equals(userId) ||
-        swapRequest.getReceiver().getId().equals(userId);
+    return swapRequest.sender().id().equals(userId) ||
+        swapRequest.receiver().id().equals(userId);
   }
 
   private List<String> convertImageIdsToUrls(List<String> imageIds) {

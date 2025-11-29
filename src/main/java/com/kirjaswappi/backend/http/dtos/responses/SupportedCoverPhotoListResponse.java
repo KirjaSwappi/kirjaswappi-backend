@@ -16,7 +16,7 @@ public class SupportedCoverPhotoListResponse {
   private String coverPhotoUrl;
 
   public SupportedCoverPhotoListResponse(Photo entity) {
-    this.id = entity.getId();
-    this.coverPhotoUrl = entity.getCoverPhoto();
+    this.id = entity.id();
+    this.coverPhotoUrl = entity.coverPhoto();
   }
 }

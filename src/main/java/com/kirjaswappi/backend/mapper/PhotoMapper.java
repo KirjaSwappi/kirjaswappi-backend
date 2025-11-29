@@ -4,27 +4,25 @@
  */
 package com.kirjaswappi.backend.mapper;
 
-import lombok.NoArgsConstructor;
-
-import org.springframework.stereotype.Component;
-
 import com.kirjaswappi.backend.jpa.daos.PhotoDao;
 import com.kirjaswappi.backend.service.entities.Photo;
 
-@Component
-@NoArgsConstructor
-public class PhotoMapper {
+public final class PhotoMapper {
+  private PhotoMapper() {
+    throw new IllegalStateException("Mapper class should not be instantiated");
+  }
+
   public static Photo toEntity(String id, String imageUrl) {
-    var entity = new Photo();
-    entity.setId(id);
-    entity.setCoverPhoto(imageUrl);
-    return entity;
+    return Photo.builder()
+        .id(id)
+        .coverPhoto(imageUrl)
+        .build();
   }
 
   public static PhotoDao toDao(Photo entity) {
-    var dao = new PhotoDao();
-    dao.setId(entity.getId());
-    dao.setCoverPhoto(entity.getCoverPhoto());
-    return dao;
+    return PhotoDao.builder()
+        .id(entity.id())
+        .coverPhoto(entity.coverPhoto())
+        .build();
   }
 }

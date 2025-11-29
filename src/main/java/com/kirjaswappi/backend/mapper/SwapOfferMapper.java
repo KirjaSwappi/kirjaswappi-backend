@@ -4,34 +4,33 @@
  */
 package com.kirjaswappi.backend.mapper;
 
-import lombok.NoArgsConstructor;
-
-import org.springframework.stereotype.Component;
-
 import com.kirjaswappi.backend.jpa.daos.SwapOfferDao;
 import com.kirjaswappi.backend.service.entities.SwapOffer;
 
-@Component
-@NoArgsConstructor
-public class SwapOfferMapper {
+public final class SwapOfferMapper {
+
+  private SwapOfferMapper() {
+    throw new IllegalStateException("Mapper class should not be instantiated");
+  }
+
   public static SwapOffer toEntity(SwapOfferDao dao) {
     var entity = new SwapOffer();
-    if (dao.getOfferedBook() != null) {
-      entity.setOfferedBook(SwappableBookMapper.toEntity(dao.getOfferedBook()));
+    if (dao.offeredBook() != null) {
+      entity.offeredBook(SwappableBookMapper.toEntity(dao.offeredBook()));
     }
-    if (dao.getOfferedGenre() != null) {
-      entity.setOfferedGenre(GenreMapper.toEntity(dao.getOfferedGenre()));
+    if (dao.offeredGenre() != null) {
+      entity.offeredGenre(GenreMapper.toEntity(dao.offeredGenre()));
     }
     return entity;
   }
 
   public static SwapOfferDao toDao(SwapOffer entity) {
     var dao = new SwapOfferDao();
-    if (entity.getOfferedBook() != null) {
-      dao.setOfferedBook(SwappableBookMapper.toDao(entity.getOfferedBook()));
+    if (entity.offeredBook() != null) {
+      dao.offeredBook(SwappableBookMapper.toDao(entity.offeredBook()));
     }
-    if (entity.getOfferedGenre() != null) {
-      dao.setOfferedGenre(GenreMapper.toDao(entity.getOfferedGenre()));
+    if (entity.offeredGenre() != null) {
+      dao.offeredGenre(GenreMapper.toDao(entity.offeredGenre()));
     }
     return dao;
   }

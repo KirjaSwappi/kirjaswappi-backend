@@ -10,6 +10,9 @@ import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
+import org.jspecify.annotations.NonNull;
+
+import com.kirjaswappi.backend.service.entities.Book;
 import com.kirjaswappi.backend.service.entities.ChatMessage;
 import com.kirjaswappi.backend.service.entities.User;
 
@@ -27,32 +30,28 @@ public class ChatMessageResponse {
 
   private SwapContextResponse swapContext; // Book information for the swap
 
-  public ChatMessageResponse(ChatMessage entity) {
-    this.id = entity.getId();
-    this.swapRequestId = entity.getSwapRequestId();
-    this.sender = new SenderResponse(entity.getSender());
-    this.message = entity.getMessage();
-    this.imageUrls = entity.getImageIds(); // This will contain URLs when converted by service
-    this.sentAt = entity.getSentAt();
-    this.readByReceiver = entity.isReadByReceiver();
+  public ChatMessageResponse(@NonNull ChatMessage entity) {
+    this.id = entity.id();
+    this.swapRequestId = entity.swapRequestId();
+    this.sender = new SenderResponse(entity.sender());
+    this.message = entity.message();
+    this.imageUrls = entity.imageIds(); // This will contain URLs when converted by service
+    this.sentAt = entity.sentAt();
+    this.readByReceiver = entity.readByReceiver();
     this.ownMessage = false; // Will be set separately
     this.swapContext = null; // Will be set separately
   }
 
   public ChatMessageResponse(ChatMessage entity, String currentUserId) {
-    this.id = entity.getId();
-    this.swapRequestId = entity.getSwapRequestId();
-    this.sender = new SenderResponse(entity.getSender());
-    this.message = entity.getMessage();
-    this.imageUrls = entity.getImageIds(); // This will contain URLs when converted by service
-    this.sentAt = entity.getSentAt();
-    this.readByReceiver = entity.isReadByReceiver();
-    this.ownMessage = entity.getSender().getId().equals(currentUserId);
+    this.id = entity.id();
+    this.swapRequestId = entity.swapRequestId();
+    this.sender = new SenderResponse(entity.sender());
+    this.message = entity.message();
+    this.imageUrls = entity.imageIds(); // This will contain URLs when converted by service
+    this.sentAt = entity.sentAt();
+    this.readByReceiver = entity.readByReceiver();
+    this.ownMessage = entity.sender().id().equals(currentUserId);
     this.swapContext = null; // Will be set separately
-  }
-
-  public boolean isOwnMessage() {
-    return ownMessage;
   }
 
   @Getter
@@ -62,8 +61,8 @@ public class ChatMessageResponse {
     private String name;
 
     public SenderResponse(User entity) {
-      this.id = entity.getId();
-      this.name = entity.getFirstName() + " " + entity.getLastName();
+      this.id = entity.id();
+      this.name = entity.firstName() + " " + entity.lastName();
     }
   }
 
@@ -86,13 +85,13 @@ public class ChatMessageResponse {
       private String condition;
       private String coverPhotoUrl;
 
-      public BookInfoResponse(com.kirjaswappi.backend.service.entities.Book entity) {
-        this.id = entity.getId();
-        this.title = entity.getTitle();
-        this.author = entity.getAuthor();
-        this.condition = entity.getCondition() != null ? entity.getCondition().getCode() : null;
-        this.coverPhotoUrl = entity.getCoverPhotos() != null && !entity.getCoverPhotos().isEmpty()
-            ? entity.getCoverPhotos().get(0)
+      public BookInfoResponse(@NonNull Book entity) {
+        this.id = entity.id();
+        this.title = entity.title();
+        this.author = entity.author();
+        this.condition = entity.condition() != null ? entity.condition().code() : null;
+        this.coverPhotoUrl = entity.coverPhotos() != null && !entity.coverPhotos().isEmpty()
+            ? entity.coverPhotos().getFirst()
             : null;
       }
 
