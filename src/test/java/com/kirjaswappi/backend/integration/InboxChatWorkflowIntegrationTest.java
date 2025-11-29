@@ -13,8 +13,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.kirjaswappi.backend.config.TestContainersConfig;
 import com.kirjaswappi.backend.http.dtos.responses.ChatMessageResponse;
 import com.kirjaswappi.backend.http.dtos.responses.InboxItemResponse;
 import com.kirjaswappi.backend.jpa.daos.*;
@@ -31,8 +33,9 @@ import com.kirjaswappi.backend.service.enums.*;
  * status changes, filtering, sorting, and database consistency.
  */
 @SpringBootTest
+@Import(TestContainersConfig.class)
 @ActiveProfiles("test")
-public class InboxChatWorkflowIntegrationTest {
+class InboxChatWorkflowIntegrationTest {
   @Autowired
   private InboxService inboxService;
 

@@ -36,8 +36,12 @@ public record Book(
 ) {
 
   public Book {
-    bookAddedAt = Instant.now();
-    bookUpdatedAt = Instant.now();
+    if (bookAddedAt == null) {
+      bookAddedAt = Instant.now();
+    }
+    if (bookUpdatedAt == null) {
+      bookUpdatedAt = Instant.now();
+    }
   }
 
   public Duration getOfferedAgo() {

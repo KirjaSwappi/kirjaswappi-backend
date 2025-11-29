@@ -83,7 +83,7 @@ class ChatMessageResponseTest {
     // Check sender
     assertNotNull(response.getSender());
     assertEquals("sender456", response.getSender().getId());
-    assertEquals("Jane Smith", response.getSender().getName());
+    assertEquals("John Smith", response.getSender().getName());
   }
 
   @Test

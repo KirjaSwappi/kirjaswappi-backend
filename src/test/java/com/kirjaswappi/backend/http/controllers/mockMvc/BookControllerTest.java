@@ -18,14 +18,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
@@ -43,7 +43,7 @@ class BookControllerTest {
   @Autowired
   private MockMvc mockMvc;
 
-  @MockBean
+  @MockitoBean
   private BookService bookService;
 
   private static final String BASE_PATH = API_BASE + BOOKS;
@@ -324,7 +324,7 @@ class BookControllerTest {
   @Test
   @DisplayName("Should return a Book successfully")
   void shouldReturnBookWhenFound() throws Exception {
-    Book book = Book.builder().id("123").title("Test Book").build();
+    Book book = Book.builder().id("book123").title("Test Book").build();
 
     when(bookService.getBookById("book123")).thenReturn(book);
 

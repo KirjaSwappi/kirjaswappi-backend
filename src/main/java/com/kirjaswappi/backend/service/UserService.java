@@ -31,13 +31,13 @@ import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 @RequiredArgsConstructor
 public class UserService {
 
-  private UserRepository userRepository;
+  private final UserRepository userRepository;
 
-  private GenreRepository genreRepository;
+  private final GenreRepository genreRepository;
 
-  private PhotoService photoService;
+  private final PhotoService photoService;
 
-  private BookRepository bookRepository;
+  private final BookRepository bookRepository;
 
   public User addUser(User user) {
     this.checkUserExistButNotVerified(user);

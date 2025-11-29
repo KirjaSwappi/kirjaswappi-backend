@@ -1,4 +1,4 @@
-FROM maven:3-sapmachine-24
+FROM maven:3-sapmachine-25
 
 WORKDIR /app
 

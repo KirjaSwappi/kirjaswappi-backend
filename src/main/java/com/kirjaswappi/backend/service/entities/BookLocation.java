@@ -76,7 +76,7 @@ public record BookLocation(
    * @return true if address is not null and not empty
    */
   public boolean hasAddress() {
-    return StringUtils.isBlank(address);
+    return !StringUtils.isBlank(address);
   }
 
   /**

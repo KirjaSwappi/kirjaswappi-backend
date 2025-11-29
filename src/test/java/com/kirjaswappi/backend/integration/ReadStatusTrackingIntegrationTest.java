@@ -13,8 +13,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.kirjaswappi.backend.config.TestContainersConfig;
 import com.kirjaswappi.backend.http.dtos.responses.ChatMessageResponse;
 import com.kirjaswappi.backend.http.dtos.responses.InboxItemResponse;
 import com.kirjaswappi.backend.jpa.daos.*;
@@ -24,8 +27,10 @@ import com.kirjaswappi.backend.service.InboxService;
 import com.kirjaswappi.backend.service.entities.*;
 
 @SpringBootTest
+@Import(TestContainersConfig.class)
 @ActiveProfiles("test")
-public class ReadStatusTrackingIntegrationTest {
+@AutoConfigureMockMvc
+class ReadStatusTrackingIntegrationTest {
   @Autowired
   private InboxService inboxService;
 
@@ -221,6 +226,9 @@ public class ReadStatusTrackingIntegrationTest {
 
   @Test
   void testChatMessageResponseNotificationIndicators() {
+    // Create test messages
+    chatService.sendMessage(testSwapRequest.id(), senderUser.id(), "Hello from sender");
+    chatService.sendMessage(testSwapRequest.id(), receiverUser.id(), "Hello from receiver");
 
     // Get messages as receiver
     List<ChatMessage> messages = chatService.getChatMessages(testSwapRequest.id(), receiverUser.id());

@@ -14,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -21,6 +23,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kirjaswappi.backend.config.TestContainersConfig;
 import com.kirjaswappi.backend.http.dtos.requests.UpdateSwapStatusRequest;
 import com.kirjaswappi.backend.jpa.daos.*;
 import com.kirjaswappi.backend.jpa.repositories.*;
@@ -30,8 +33,10 @@ import com.kirjaswappi.backend.jpa.repositories.*;
  * endpoints end-to-end with real database operations.
  */
 @SpringBootTest
+@Import(TestContainersConfig.class)
 @ActiveProfiles("test")
-public class InboxChatApiIntegrationTest {
+@AutoConfigureMockMvc
+class InboxChatApiIntegrationTest {
 
   @Autowired
   private WebApplicationContext webApplicationContext;

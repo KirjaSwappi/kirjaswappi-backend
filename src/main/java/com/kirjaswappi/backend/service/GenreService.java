@@ -152,9 +152,9 @@ public class GenreService {
 
   private boolean isGenreInBooks(UserDao user, String id) {
     return user.books() != null && user.books().stream()
-        .anyMatch(book -> book.genres().stream().anyMatch(genre -> genre.id().equals(id)) &&
-            book.swapCondition() != null &&
-            book.swapCondition().swappableGenres().stream().anyMatch(g -> g.id().equals(id)));
+        .anyMatch(book -> book.genres().stream().anyMatch(genre -> genre.id().equals(id)) ||
+            (book.swapCondition() != null &&
+                book.swapCondition().swappableGenres().stream().anyMatch(g -> g.id().equals(id))));
   }
 
   public Genre updateGenre(Genre genre) {

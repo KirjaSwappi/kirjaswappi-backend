@@ -6,7 +6,7 @@ This repository contains the `kirjaswappi backend` service for the KirjaSwappi P
 
 ## Local Development Setup
 
-To start developing, you first need to set up your local machine with JDK 24.
+To start developing, you first need to set up your local machine with JDK 25.
 
 To build the application and run all tests, execute
 

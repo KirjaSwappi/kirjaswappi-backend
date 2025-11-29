@@ -118,8 +118,8 @@ class SwapRequestRepositoryTest {
 
     // Then
     assertEquals(2, result.size());
-    assertEquals("swap2", result.getFirst().id()); // Most recent first
-    assertEquals("swap1", result.getFirst().id());
+    assertEquals("swap2", result.get(0).id()); // Most recent first
+    assertEquals("swap1", result.get(1).id());
     verify(swapRequestRepository).findByReceiverIdOrderByRequestedAtDesc("receiver123");
   }
 
@@ -136,8 +136,8 @@ class SwapRequestRepositoryTest {
 
     // Then
     assertEquals(2, result.size());
-    assertEquals("swap2", result.getFirst().id()); // Most recent first
-    assertEquals("swap1", result.getFirst().id());
+    assertEquals("swap2", result.get(0).id()); // Most recent first
+    assertEquals("swap1", result.get(1).id());
     verify(swapRequestRepository).findBySenderIdOrderByRequestedAtDesc("sender123");
   }
 
