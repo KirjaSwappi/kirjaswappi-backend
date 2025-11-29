@@ -59,7 +59,7 @@ class UserServiceTest {
   @Test
   @DisplayName("Should return user when found by id")
   void getUserReturnsUserWhenFound() {
-    UserDao userDao = new UserDao().id("id").isEmailVerified(true);
+    UserDao userDao = UserDao.builder().id("id").isEmailVerified(true).build();
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));
 
@@ -71,7 +71,7 @@ class UserServiceTest {
   @DisplayName("Should throw UserAlreadyExistsException if user already exists and is verified")
   void addUserThrowsIfAlreadyExists() {
     User user = new User().email("test@example.com");
-    when(userRepository.findByEmailAndIsEmailVerified("test@example.com", true)).thenReturn(Optional.of(new UserDao()));
+    when(userRepository.findByEmailAndIsEmailVerified("test@example.com", true)).thenReturn(Optional.of(UserDao.builder().build()));
     assertThrows(UserAlreadyExistsException.class, () -> userService.addUser(user));
   }
 
@@ -80,7 +80,7 @@ class UserServiceTest {
   void addUserThrowsIfExistsButNotVerified() {
     User user = new User().email("test@example.com");
     when(userRepository.findByEmailAndIsEmailVerified("test@example.com", false))
-        .thenReturn(Optional.of(new UserDao()));
+        .thenReturn(Optional.of(UserDao.builder().build()));
     assertThrows(BadRequestException.class, () -> userService.addUser(user));
   }
 
@@ -95,7 +95,7 @@ class UserServiceTest {
         .favGenres(List.of());
     when(userRepository.findByEmailAndIsEmailVerified("test@example.com", false)).thenReturn(Optional.empty());
     when(userRepository.findByEmailAndIsEmailVerified("test@example.com", true)).thenReturn(Optional.empty());
-    when(userRepository.save(any())).thenReturn(new UserDao());
+    when(userRepository.save(any())).thenReturn(UserDao.builder().build());
     assertNotNull(userService.addUser(user));
   }
 
@@ -111,7 +111,7 @@ class UserServiceTest {
   @DisplayName("Should throw BadRequestException when updating user that is not verified")
   void updateUserThrowsIfNotVerified() {
     User user = new User().id("id");
-    UserDao dao = new UserDao().id("id").isEmailVerified(false);
+    UserDao dao = UserDao.builder().id("id").isEmailVerified(false).build();
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(dao));
     assertThrows(BadRequestException.class, () -> userService.updateUser(user));
   }
@@ -125,10 +125,10 @@ class UserServiceTest {
         .lastName("User")
         .favGenres(List.of(new Genre("genre")));
 
-    UserDao dao = new UserDao().id("id").isEmailVerified(true);
+    UserDao dao = UserDao.builder().id("id").isEmailVerified(true).build();
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(dao));
-    when(genreRepository.findByName(any())).thenReturn(Optional.of(new GenreDao()));
+    when(genreRepository.findByName(any())).thenReturn(Optional.of(GenreDao.builder().build()));
     when(userRepository.save(any())).thenReturn(dao);
     assertNotNull(userService.updateUser(user));
   }
@@ -143,7 +143,7 @@ class UserServiceTest {
   @Test
   @DisplayName("Should delete user when found by id")
   void deleteUserDeletesUser() {
-    UserDao dao = new UserDao().id("id");
+    UserDao dao = UserDao.builder().id("id").build();
     when(userRepository.findById("id")).thenReturn(Optional.of(dao));
     doNothing().when(userRepository).delete(dao);
     userService.deleteUser("id");
@@ -153,8 +153,8 @@ class UserServiceTest {
   @Test
   @DisplayName("Should return list of users when users exist")
   void getUsersReturnsList() {
-    UserDao dao1 = new UserDao().id("id1").isEmailVerified(true);
-    UserDao dao2 = new UserDao().id("id2").isEmailVerified(true);
+    UserDao dao1 = UserDao.builder().id("id1").isEmailVerified(true).build();
+    UserDao dao2 = UserDao.builder().id("id2").isEmailVerified(true).build();
 
     when(userRepository.findAllByIsEmailVerifiedTrue()).thenReturn(List.of(dao1, dao2));
 
@@ -172,7 +172,7 @@ class UserServiceTest {
   @Test
   @DisplayName("Should set email as verified when verifying email for existing user")
   void verifyEmailSetsVerified() {
-    UserDao dao = new UserDao().email("test@example.com").isEmailVerified(false);
+    UserDao dao = UserDao.builder().email("test@example.com").isEmailVerified(false).build();
 
     when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(dao));
     when(userRepository.save(dao)).thenReturn(dao);
@@ -193,9 +193,9 @@ class UserServiceTest {
   @DisplayName("Should throw BookNotFoundException when adding favourite book that does not exist")
   void addFavouriteBookThrowsIfBookNotFound() {
 
-    BookDao bookDao = new BookDao().id("bookId");
+    BookDao bookDao = BookDao.builder().id("bookId").build();
     User user = new User().id("id").favBooks(List.of(Book.builder().build()));
-    UserDao userDao = new UserDao().id("id");
+    UserDao userDao = UserDao.builder().id("id").build();
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));
     when(bookRepository.findByIdAndIsDeletedFalse(any())).thenReturn(Optional.empty());
@@ -211,10 +211,10 @@ class UserServiceTest {
 
     User user = new User().id("id").favBooks(List.of(book));
 
-    UserDao userDao = new UserDao().id("id");
+    UserDao userDao = UserDao.builder().id("id").build();
 
-    UserDao ownerDao = new UserDao().id("id");
-    BookDao bookDao = new BookDao().id("bookId").owner(ownerDao);
+    UserDao ownerDao = UserDao.builder().id("id").build();
+    BookDao bookDao = BookDao.builder().id("bookId").owner(ownerDao).build();
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));
     when(bookRepository.findByIdAndIsDeletedFalse("bookId")).thenReturn(Optional.of(bookDao));
@@ -233,17 +233,19 @@ class UserServiceTest {
 
     User user = new User().id("id").favBooks(List.of(book));
 
-    UserDao ownerDao = new UserDao().id("other");
+    UserDao ownerDao = UserDao.builder().id("other").build();
 
-    BookDao bookDao = new BookDao()
+    BookDao bookDao = BookDao.builder()
         .id("bookId")
         .language("English")
         .owner(ownerDao)
-        .condition("New");
+        .condition("New")
+        .build();
 
-    UserDao userDao = new UserDao()
+    UserDao userDao = UserDao.builder()
         .id("id")
-        .favBooks(List.of(bookDao));
+        .favBooks(List.of(bookDao))
+        .build();
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));
     when(bookRepository.findByIdAndIsDeletedFalse("bookId")).thenReturn(Optional.of(bookDao));
@@ -265,16 +267,17 @@ class UserServiceTest {
         .id("id")
         .favBooks(List.of(favBook));
 
-    UserDao ownerDao = new UserDao().id("other");
+    UserDao ownerDao = UserDao.builder().id("other").build();
 
-    BookDao bookDao = new BookDao()
+    BookDao bookDao = BookDao.builder()
         .id("bookId")
         .owner(ownerDao)
         .language("English")
         .condition("New")
-        .genres(List.of(new GenreDao("genreId", "Genre Name", null)));
+        .genres(List.of(GenreDao.builder().id("genreId").name("Genre Name").parent(null).build()))
+        .build();
 
-    UserDao userDao = new UserDao().id("id").favBooks(null);
+    UserDao userDao = UserDao.builder().id("id").favBooks(null).build();
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));
     when(bookRepository.findByIdAndIsDeletedFalse("bookId")).thenReturn(Optional.of(bookDao));
     when(userRepository.save(userDao)).thenReturn(userDao);
@@ -289,12 +292,13 @@ class UserServiceTest {
     String firstName = "Test";
     String lastName = "User";
     String googleSub = "google-sub-123";
-    UserDao existingDao = new UserDao()
+    UserDao existingDao = UserDao.builder()
         .email(email)
         .firstName(firstName)
         .lastName(lastName)
         .salt(googleSub)
-        .isEmailVerified(true);
+        .isEmailVerified(true)
+        .build();
     when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingDao));
 
     User result = userService.findOrCreateGoogleUser(email, firstName, lastName, googleSub);
@@ -313,12 +317,13 @@ class UserServiceTest {
 
     when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
-    UserDao savedDao = new UserDao()
+    UserDao savedDao = UserDao.builder()
         .email(email)
         .firstName(firstName)
         .lastName(lastName)
         .salt(googleSub)
-        .isEmailVerified(true);
+        .isEmailVerified(true)
+        .build();
 
     when(userRepository.save(any(UserDao.class))).thenReturn(savedDao);
 
