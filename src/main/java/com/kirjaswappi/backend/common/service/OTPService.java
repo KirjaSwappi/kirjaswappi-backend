@@ -81,7 +81,7 @@ public class OTPService {
     otpRepository.deleteAllByEmail(email);
 
     // Generate new OTP:
-    var newOTP = OTP.builder().email(email).otp(generateOTP()).build();
+    var newOTP = OTP.builder().email(email).otp(generateOTP()).createdAt(Instant.now()).build();
 
     // Save the new OTP:
     var dao = OTPMapper.toDao(newOTP);
