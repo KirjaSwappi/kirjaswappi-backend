@@ -71,7 +71,8 @@ class UserServiceTest {
   @DisplayName("Should throw UserAlreadyExistsException if user already exists and is verified")
   void addUserThrowsIfAlreadyExists() {
     User user = new User().email("test@example.com");
-    when(userRepository.findByEmailAndIsEmailVerified("test@example.com", true)).thenReturn(Optional.of(UserDao.builder().build()));
+    when(userRepository.findByEmailAndIsEmailVerified("test@example.com", true))
+        .thenReturn(Optional.of(UserDao.builder().build()));
     assertThrows(UserAlreadyExistsException.class, () -> userService.addUser(user));
   }
 
