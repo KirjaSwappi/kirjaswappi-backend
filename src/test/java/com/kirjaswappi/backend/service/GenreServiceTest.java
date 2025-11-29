@@ -667,8 +667,7 @@ class GenreServiceTest {
         .name(name);
 
     if (parentId != null) {
-      GenreDao parent = new GenreDao();
-      parent.id(parentId);
+      GenreDao parent = new GenreDao().id(parentId);
       dao.parent(parent);
     }
 
