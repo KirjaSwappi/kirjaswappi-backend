@@ -22,7 +22,6 @@ import com.kirjaswappi.backend.common.jpa.repositories.AdminUserRepository;
 import com.kirjaswappi.backend.common.service.entities.AdminUser;
 import com.kirjaswappi.backend.common.service.enums.Role;
 import com.kirjaswappi.backend.common.service.exceptions.InvalidCredentials;
-import com.kirjaswappi.backend.common.service.mappers.AdminUserMapper;
 import com.kirjaswappi.backend.common.utils.JwtUtil;
 import com.kirjaswappi.backend.service.exceptions.UserAlreadyExistsException;
 import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
@@ -30,8 +29,6 @@ import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 class AdminUserServiceTest {
   @Mock
   private AdminUserRepository adminUserRepository;
-  @Mock
-  private AdminUserMapper mapper;
   @Mock
   private JwtUtil jwtTokenUtil;
   @InjectMocks
@@ -51,7 +48,6 @@ class AdminUserServiceTest {
   @DisplayName("Should return admin user info when found")
   void getAdminUserInfoSuccess() {
     when(adminUserRepository.findByUsername("admin")).thenReturn(Optional.of(adminUserDao));
-    when(mapper.toEntity(adminUserDao)).thenReturn(adminUser);
     assertEquals(adminUser, adminUserService.getAdminUserInfo("admin"));
   }
 
@@ -66,10 +62,10 @@ class AdminUserServiceTest {
   @DisplayName("Should add user successfully when username does not exist")
   void addUserSuccess() {
     when(adminUserRepository.findByUsername("admin")).thenReturn(Optional.empty());
-    when(mapper.toDao(adminUser)).thenReturn(adminUserDao);
-    when(adminUserRepository.save(adminUserDao)).thenReturn(adminUserDao);
-    when(mapper.toEntity(adminUserDao)).thenReturn(adminUser);
-    assertEquals(adminUser, adminUserService.addUser(adminUser));
+    when(adminUserRepository.save(any(AdminUserDao.class))).thenReturn(adminUserDao);
+    AdminUser result = adminUserService.addUser(adminUser);
+    assertEquals(adminUser.username(), result.username());
+    assertEquals(adminUser.role(), result.role());
   }
 
   @Test
@@ -83,10 +79,9 @@ class AdminUserServiceTest {
   @DisplayName("Should return list of admin users")
   void getAdminUsersReturnsList() {
     when(adminUserRepository.findAll()).thenReturn(List.of(adminUserDao));
-    when(mapper.toEntity(adminUserDao)).thenReturn(adminUser);
     List<AdminUser> result = adminUserService.getAdminUsers();
     assertEquals(1, result.size());
-    assertEquals(adminUser, result.get(0));
+    assertEquals(adminUser.username(), result.get(0).username());
   }
 
   @Test
@@ -109,17 +104,17 @@ class AdminUserServiceTest {
   @DisplayName("Should verify user successfully when password matches")
   void verifyUserSuccess() {
     when(adminUserRepository.findByUsername("admin")).thenReturn(Optional.of(adminUserDao));
-    when(mapper.toEntity(adminUserDao)).thenReturn(adminUser);
     AdminUser input = new AdminUser("admin", "pass", Role.ADMIN);
-    assertEquals(adminUser, adminUserService.verifyUser(input));
+    AdminUser result = adminUserService.verifyUser(input);
+    assertEquals(adminUser.username(), result.username());
+    assertEquals(adminUser.password(), result.password());
   }
 
   @Test
   @DisplayName("Should throw InvalidCredentials when password does not match")
   void verifyUserThrowsOnPasswordMismatch() {
-    AdminUser dbUser = new AdminUser("admin", "otherpass", Role.ADMIN);
-    when(adminUserRepository.findByUsername("admin")).thenReturn(Optional.of(adminUserDao));
-    when(mapper.toEntity(adminUserDao)).thenReturn(dbUser);
+    AdminUserDao dbUserDao = new AdminUserDao(null, "admin", "otherpass", "Admin");
+    when(adminUserRepository.findByUsername("admin")).thenReturn(Optional.of(dbUserDao));
     AdminUser input = new AdminUser("admin", "pass", Role.ADMIN);
     assertThrows(InvalidCredentials.class, () -> adminUserService.verifyUser(input));
   }

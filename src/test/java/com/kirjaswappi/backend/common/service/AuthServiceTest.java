@@ -31,9 +31,7 @@ class AuthServiceTest {
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
-    adminUser = new AdminUser();
-    adminUser.setUsername("admin");
-    adminUser.setPassword("pass");
+    adminUser = AdminUser.builder().username("admin").password("pass").build();
   }
 
   @Test

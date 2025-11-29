@@ -71,14 +71,14 @@ public class JwtUtil {
 
   private boolean isValidUser(String token, AdminUser adminUser) {
     final String username = extractUsername(token);
-    return username.equals(adminUser.getUsername());
+    return username.equals(adminUser.username());
   }
 
   public String generateJwtToken(AdminUser adminUser) {
     Map<String, Object> claims = new HashMap<>();
-    claims.put(ROLE, adminUser.getRole());
+    claims.put(ROLE, adminUser.role());
     claims.put(TOKEN_TYPE, true);
-    return createJwtToken(claims, adminUser.getUsername());
+    return createJwtToken(claims, adminUser.username());
   }
 
   private String createJwtToken(Map<String, Object> claims, String subject) {
@@ -111,9 +111,9 @@ public class JwtUtil {
 
   public String generateRefreshToken(AdminUser adminUser) {
     Map<String, Object> claims = new HashMap<>();
-    claims.put(ROLE, adminUser.getRole());
+    claims.put(ROLE, adminUser.role());
     claims.put(TOKEN_TYPE, false);
-    return createRefreshToken(claims, adminUser.getUsername());
+    return createRefreshToken(claims, adminUser.username());
   }
 
   private String createRefreshToken(Map<String, Object> claims, String subject) {

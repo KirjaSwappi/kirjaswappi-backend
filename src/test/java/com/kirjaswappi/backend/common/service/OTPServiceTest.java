@@ -21,7 +21,6 @@ import org.mockito.MockitoAnnotations;
 import com.kirjaswappi.backend.common.jpa.daos.OTPDao;
 import com.kirjaswappi.backend.common.jpa.repositories.OTPRepository;
 import com.kirjaswappi.backend.common.service.entities.OTP;
-import com.kirjaswappi.backend.common.service.mappers.OTPMapper;
 import com.kirjaswappi.backend.service.UserService;
 import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 import com.kirjaswappi.backend.service.exceptions.ResourceNotFoundException;
@@ -30,8 +29,6 @@ import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 class OTPServiceTest {
   @Mock
   private OTPRepository otpRepository;
-  @Mock
-  private OTPMapper otpMapper;
   @Mock
   private UserService userService;
   @Mock
@@ -46,10 +43,7 @@ class OTPServiceTest {
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
-    otp = new OTP();
-    otp.setEmail(email);
-    otp.setOtp(otpValue);
-    otp.setCreatedAt(Instant.now());
+    otp = OTP.builder().email(email).otp(otpValue).createdAt(Instant.now()).build();
   }
 
   @Test
@@ -63,12 +57,7 @@ class OTPServiceTest {
   @DisplayName("Should throw exception when OTP does not match")
   void verifyOTPThrowsOnInvalid() {
     OTPDao dao = new OTPDao(email, "654321", Instant.now());
-    OTP storedOtp = new OTP();
-    storedOtp.setEmail(email);
-    storedOtp.setOtp("654321");
-    storedOtp.setCreatedAt(Instant.now());
     when(otpRepository.findByEmail(email)).thenReturn(Optional.of(dao));
-    when(otpMapper.toEntity(dao)).thenReturn(storedOtp);
     assertThrows(BadRequestException.class, () -> otpService.verifyOTPByEmail(otp));
   }
 
@@ -76,12 +65,7 @@ class OTPServiceTest {
   @DisplayName("Should throw exception when OTP is expired")
   void verifyOTPThrowsOnExpired() {
     OTPDao dao = new OTPDao(email, otpValue, Instant.now().minus(Duration.ofMinutes(16)));
-    OTP storedOtp = new OTP();
-    storedOtp.setEmail(email);
-    storedOtp.setOtp(otpValue);
-    storedOtp.setCreatedAt(Instant.now().minus(Duration.ofMinutes(16)));
     when(otpRepository.findByEmail(email)).thenReturn(Optional.of(dao));
-    when(otpMapper.toEntity(dao)).thenReturn(storedOtp);
     assertThrows(BadRequestException.class, () -> otpService.verifyOTPByEmail(otp));
   }
 
@@ -89,12 +73,7 @@ class OTPServiceTest {
   @DisplayName("Should verify OTP successfully")
   void verifyOTPSuccess() {
     OTPDao dao = new OTPDao(email, otpValue, Instant.now());
-    OTP storedOtp = new OTP();
-    storedOtp.setEmail(email);
-    storedOtp.setOtp(otpValue);
-    storedOtp.setCreatedAt(Instant.now());
     when(otpRepository.findByEmail(email)).thenReturn(Optional.of(dao));
-    when(otpMapper.toEntity(dao)).thenReturn(storedOtp);
     doNothing().when(otpRepository).deleteAllByEmail(email);
     assertEquals(email, otpService.verifyOTPByEmail(otp));
   }
@@ -108,10 +87,7 @@ class OTPServiceTest {
   @Test
   @DisplayName("Should throw exception when email is null in OTP")
   void verifyOTPThrowsOnNullEmail() {
-    OTP nullEmailOtp = new OTP();
-    nullEmailOtp.setEmail(null);
-    nullEmailOtp.setOtp(otpValue);
-    nullEmailOtp.setCreatedAt(Instant.now());
+    OTP nullEmailOtp = OTP.builder().email(null).otp(otpValue).createdAt(Instant.now()).build();
     assertThrows(ResourceNotFoundException.class, () -> otpService.verifyOTPByEmail(nullEmailOtp));
   }
 
@@ -142,8 +118,7 @@ class OTPServiceTest {
     when(userService.checkIfUserExists(email)).thenReturn(true);
     doNothing().when(otpRepository).deleteAllByEmail(email);
     OTPDao dao = new OTPDao(email, otpValue, Instant.now());
-    when(otpMapper.toDao(any())).thenReturn(dao);
-    when(otpRepository.save(any())).thenReturn(dao);
+    when(otpRepository.save(any(OTPDao.class))).thenReturn(dao);
     doThrow(new RuntimeException("email fail")).when(emailService).sendOTPByEmail(any(), any());
     assertThrows(RuntimeException.class, () -> otpService.saveAndSendOTP(email));
   }
@@ -161,9 +136,8 @@ class OTPServiceTest {
     when(userService.checkIfUserExists(email)).thenReturn(true);
     doNothing().when(otpRepository).deleteAllByEmail(email);
     OTPDao dao = new OTPDao(email, otpValue, Instant.now());
-    when(otpMapper.toDao(any())).thenReturn(dao);
-    when(otpRepository.save(any())).thenReturn(dao);
-    doNothing().when(emailService).sendOTPByEmail(any(), any());
+    when(otpRepository.save(any(OTPDao.class))).thenReturn(dao);
+    doNothing().when(emailService).sendOTPByEmail(anyString(), anyString());
     assertEquals(email, otpService.saveAndSendOTP(email));
   }
 }

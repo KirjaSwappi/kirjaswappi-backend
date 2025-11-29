@@ -4,27 +4,28 @@
  */
 package com.kirjaswappi.backend.common.service.mappers;
 
-import org.springframework.stereotype.Component;
-
 import com.kirjaswappi.backend.common.jpa.daos.AdminUserDao;
 import com.kirjaswappi.backend.common.service.entities.AdminUser;
 import com.kirjaswappi.backend.common.service.enums.Role;
 
-@Component
-public class AdminUserMapper {
-  public AdminUser toEntity(AdminUserDao dao) {
-    var entity = new AdminUser();
-    entity.setUsername(dao.getUsername());
-    entity.setPassword(dao.getPassword());
-    entity.setRole(Role.fromCode(dao.getRole()));
-    return entity;
+public final class AdminUserMapper {
+  private AdminUserMapper() {
+    throw new IllegalStateException("Mapper class should not be instantiated");
   }
 
-  public AdminUserDao toDao(AdminUser user) {
-    var dao = new AdminUserDao();
-    dao.setUsername(user.getUsername());
-    dao.setPassword(user.getPassword());
-    dao.setRole(user.getRole().getCode());
-    return dao;
+  public static AdminUser toEntity(AdminUserDao dao) {
+    return AdminUser.builder()
+        .username(dao.username())
+        .password(dao.password())
+        .role(Role.fromCode(dao.role()))
+        .build();
+  }
+
+  public static AdminUserDao toDao(AdminUser user) {
+    return AdminUserDao.builder()
+        .username(user.username())
+        .password(user.password())
+        .role(user.role().getCode())
+        .build();
   }
 }

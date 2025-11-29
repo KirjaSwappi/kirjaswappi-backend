@@ -12,6 +12,8 @@ import jakarta.annotation.PostConstruct;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -27,15 +29,11 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Async
+@RequiredArgsConstructor
 public class EmailService {
   private final JavaMailSender mailSender;
   private final Environment env;
   private final Logger logger = LoggerFactory.getLogger(EmailService.class);
-
-  public EmailService(JavaMailSender mailSender, Environment env) {
-    this.mailSender = mailSender;
-    this.env = env;
-  }
 
   @PostConstruct
   public void validateConfiguration() {

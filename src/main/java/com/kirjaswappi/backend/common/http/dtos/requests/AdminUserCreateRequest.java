@@ -27,11 +27,11 @@ public class AdminUserCreateRequest {
 
   public AdminUser toEntity() {
     this.validateProperties();
-    var entity = new AdminUser();
-    entity.setUsername(this.username.toLowerCase());
-    entity.setPassword(this.password);
-    entity.setRole(Role.fromCode(this.role));
-    return entity;
+    return AdminUser.builder()
+        .username(this.username.toLowerCase())
+        .password(this.password)
+        .role(Role.fromCode(this.role))
+        .build();
   }
 
   private void validateProperties() {

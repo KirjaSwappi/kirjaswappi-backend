@@ -8,16 +8,16 @@ import java.time.Instant;
 
 import jakarta.validation.constraints.NotNull;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.Accessors;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "otp")
 @Getter
 @Setter
+@Builder
+@Accessors(fluent = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class OTPDao {

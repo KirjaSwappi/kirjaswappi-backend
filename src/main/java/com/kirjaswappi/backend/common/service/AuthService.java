@@ -4,7 +4,8 @@
  */
 package com.kirjaswappi.backend.common.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,11 +15,12 @@ import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class AuthService {
-  @Autowired
-  private JwtUtil jwtUtil;
-  @Autowired
-  private AdminUserService adminUserService;
+
+  private final JwtUtil jwtUtil;
+
+  private final AdminUserService adminUserService;
 
   public AdminUser verifyLogin(AdminUser user) {
     // validate user credentials, if exists return user info

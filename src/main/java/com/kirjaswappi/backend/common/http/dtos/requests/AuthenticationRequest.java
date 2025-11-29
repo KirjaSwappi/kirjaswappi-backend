@@ -24,10 +24,11 @@ public class AuthenticationRequest {
 
   public AdminUser toEntity() {
     this.validateProperties();
-    var entity = new AdminUser();
-    entity.setUsername(this.username.toLowerCase());
-    entity.setPassword(this.password);
-    return entity;
+    return AdminUser
+        .builder()
+        .username(this.username.toLowerCase())
+        .password(this.password)
+        .build();
   }
 
   private void validateProperties() {

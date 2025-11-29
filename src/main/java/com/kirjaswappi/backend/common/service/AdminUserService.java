@@ -6,7 +6,8 @@ package com.kirjaswappi.backend.common.service;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,28 +21,27 @@ import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class AdminUserService {
-  @Autowired
-  private AdminUserRepository adminUserRepository;
-  @Autowired
-  private AdminUserMapper mapper;
+
+  private final AdminUserRepository adminUserRepository;
 
   public AdminUser getAdminUserInfo(String username) {
-    return mapper.toEntity(adminUserRepository.findByUsername(username)
+    return AdminUserMapper.toEntity(adminUserRepository.findByUsername(username)
         .orElseThrow(() -> new UserNotFoundException(username)));
   }
 
   public AdminUser addUser(AdminUser adminUser) {
     // validate username exists:
-    if (adminUserRepository.findByUsername(adminUser.getUsername()).isPresent()) {
-      throw new UserAlreadyExistsException(adminUser.getUsername());
+    if (adminUserRepository.findByUsername(adminUser.username()).isPresent()) {
+      throw new UserAlreadyExistsException(adminUser.username());
     }
-    AdminUserDao dao = mapper.toDao(adminUser);
-    return mapper.toEntity(adminUserRepository.save(dao));
+    AdminUserDao dao = AdminUserMapper.toDao(adminUser);
+    return AdminUserMapper.toEntity(adminUserRepository.save(dao));
   }
 
   public List<AdminUser> getAdminUsers() {
-    return adminUserRepository.findAll().stream().map(mapper::toEntity).toList();
+    return adminUserRepository.findAll().stream().map(AdminUserMapper::toEntity).toList();
   }
 
   public void deleteUser(String username) {
@@ -51,10 +51,10 @@ public class AdminUserService {
   }
 
   public AdminUser verifyUser(AdminUser user) {
-    AdminUser adminUserFromDB = getAdminUserInfo(user.getUsername());
-    if (adminUserFromDB.getPassword().equals(user.getPassword())) {
+    AdminUser adminUserFromDB = getAdminUserInfo(user.username());
+    if (adminUserFromDB.password().equals(user.password())) {
       return adminUserFromDB;
     }
-    throw new InvalidCredentials(user.getPassword());
+    throw new InvalidCredentials(user.password());
   }
 }

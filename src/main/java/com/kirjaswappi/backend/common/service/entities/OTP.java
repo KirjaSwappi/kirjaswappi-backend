@@ -6,17 +6,13 @@ package com.kirjaswappi.backend.common.service.entities;
 
 import java.time.Instant;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class OTP {
-  private String email;
-  private String otp;
-  private Instant createdAt;
+@With
+@Builder
+public record OTP(
+    String email,
+    String otp,
+    Instant createdAt
+) {
 }

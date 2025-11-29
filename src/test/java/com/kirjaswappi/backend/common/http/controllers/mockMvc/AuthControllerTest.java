@@ -46,8 +46,7 @@ class AuthControllerTest {
     request.setUsername("admin");
     request.setPassword("password");
 
-    AdminUser adminUser = new AdminUser();
-    adminUser.setUsername("admin");
+    AdminUser adminUser = AdminUser.builder().username("admin").build();
 
     when(authService.verifyLogin(any())).thenReturn(adminUser);
     when(authService.generateJwtToken(adminUser)).thenReturn("jwt-token");

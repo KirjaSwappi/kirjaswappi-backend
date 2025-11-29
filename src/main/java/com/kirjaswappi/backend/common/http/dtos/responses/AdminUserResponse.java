@@ -16,7 +16,7 @@ public class AdminUserResponse {
   private String role;
 
   public AdminUserResponse(AdminUser adminUser) {
-    this.username = adminUser.getUsername();
-    this.role = adminUser.getRole().getCode();
+    this.username = adminUser.username();
+    this.role = adminUser.role().getCode();
   }
 }
