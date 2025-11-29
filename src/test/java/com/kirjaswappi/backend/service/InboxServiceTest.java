@@ -454,7 +454,7 @@ class InboxServiceTest {
   @DisplayName("Should mark inbox item as read by sender")
   void shouldMarkInboxItemAsReadBySender() {
     // Given
-    receivedSwapRequest.readByReceiverAt(null);
+    receivedSwapRequest.readBySenderAt(null);
     when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
     when(swapRequestRepository.save(any(SwapRequestDao.class))).thenReturn(receivedSwapRequest);
 
