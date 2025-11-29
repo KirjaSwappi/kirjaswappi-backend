@@ -6,14 +6,14 @@ package com.kirjaswappi.backend.common.jpa.repositories;
 
 import java.util.Optional;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import com.kirjaswappi.backend.common.jpa.daos.AdminUserDao;
 
-public interface AdminUserRepository extends MongoRepository<AdminUserDao, String> {
-  Optional<AdminUserDao> findByUsername(String username);
+public interface AdminUserRepository extends MongoRepository<@NotNull AdminUserDao, @NotNull String> {
 
-  Optional<AdminUserDao> findByUsernameAndPassword(String username, String password);
+  Optional<AdminUserDao> findByUsername(String username);
 
   void deleteByUsername(String username);
 }

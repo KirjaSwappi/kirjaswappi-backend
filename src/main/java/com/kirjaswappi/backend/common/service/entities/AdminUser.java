@@ -4,19 +4,15 @@
  */
 package com.kirjaswappi.backend.common.service.entities;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import com.kirjaswappi.backend.common.service.enums.Role;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class AdminUser {
-  String username;
-  String password;
-  Role role;
+@With
+@Builder
+public record AdminUser(
+    String username,
+    String password,
+    Role role
+) {
 }

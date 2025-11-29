@@ -11,7 +11,8 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,15 +26,14 @@ import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class OTPService {
-  @Autowired
-  private OTPRepository otpRepository;
-  @Autowired
-  private OTPMapper otpMapper;
-  @Autowired
-  private UserService userService;
-  @Autowired
-  private EmailService emailService;
+
+  private final OTPRepository otpRepository;
+
+  private final UserService userService;
+
+  private final EmailService emailService;
 
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -45,26 +45,26 @@ public class OTPService {
   }
 
   private OTP getOTP(String email) {
-    return otpMapper.toEntity(otpRepository.findByEmail(email)
+    return OTPMapper.toEntity(otpRepository.findByEmail(email)
         .orElseThrow(() -> new ResourceNotFoundException("otpNotFound", email)));
   }
 
   public String verifyOTPByEmail(OTP otp) {
-    var otpEntity = this.getOTP(otp.getEmail());
+    var otpEntity = this.getOTP(otp.email());
 
     // check provided OTP with the stored OTP:
-    if (!otpEntity.getOtp().equals(otp.getOtp())) {
+    if (!otpEntity.otp().equals(otp.otp())) {
       throw new BadRequestException("otpDoesNotMatch", otp);
     }
 
     // Check if the OTP is older than 15 minutes
-    if (otpEntity.getCreatedAt().plus(Duration.ofMinutes(15)).isBefore(Instant.now())) {
+    if (otpEntity.createdAt().plus(Duration.ofMinutes(15)).isBefore(Instant.now())) {
       throw new BadRequestException("otpExpired", otp);
     }
 
     // Delete the OTP after verification:
-    otpRepository.deleteAllByEmail(otp.getEmail());
-    return otpEntity.getEmail();
+    otpRepository.deleteAllByEmail(otp.email());
+    return otpEntity.email();
   }
 
   private boolean checkUserExists(String email) {
@@ -81,16 +81,14 @@ public class OTPService {
     otpRepository.deleteAllByEmail(email);
 
     // Generate new OTP:
-    var newOTP = new OTP();
-    newOTP.setEmail(email);
-    newOTP.setOtp(generateOTP());
+    var newOTP = OTP.builder().email(email).otp(generateOTP()).build();
 
     // Save the new OTP:
-    var dao = otpMapper.toDao(newOTP);
+    var dao = OTPMapper.toDao(newOTP);
     otpRepository.save(dao);
 
     // Send OTP via email:
-    emailService.sendOTPByEmail(dao.getEmail(), newOTP.getOtp());
-    return dao.getEmail();
+    emailService.sendOTPByEmail(dao.email(), newOTP.otp());
+    return dao.email();
   }
 }

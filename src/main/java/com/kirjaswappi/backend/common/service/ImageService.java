@@ -12,10 +12,10 @@ import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import io.minio.http.Method;
+import lombok.RequiredArgsConstructor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -27,14 +27,14 @@ import com.kirjaswappi.backend.service.exceptions.*;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class ImageService {
   private final Logger logger = LoggerFactory.getLogger(ImageService.class);
 
   @Value("${s3.bucket}")
   private String bucketName;
 
-  @Autowired
-  private MinioClient minioClient;
+  private final MinioClient minioClient;
 
   public void uploadImage(MultipartFile file, String uniqueId) {
     try {

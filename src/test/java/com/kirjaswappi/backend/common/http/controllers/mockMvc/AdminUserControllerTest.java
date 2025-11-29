@@ -50,9 +50,7 @@ class AdminUserControllerTest {
     request.setPassword("securePass");
     request.setRole("Admin");
 
-    var entity = new AdminUser();
-    entity.setUsername("admin123");
-    entity.setRole(Role.ADMIN);
+    var entity = AdminUser.builder().username("admin123").password("securePass").role(Role.ADMIN).build();
 
     when(adminUserService.addUser(any(AdminUser.class))).thenReturn(entity);
 
@@ -66,13 +64,9 @@ class AdminUserControllerTest {
   @Test
   @DisplayName("Should return list of admin users")
   void shouldReturnListOfAdminUsers() throws Exception {
-    var admin1 = new AdminUser();
-    admin1.setUsername("admin1");
-    admin1.setRole(Role.ADMIN);
+    var admin1 = AdminUser.builder().username("admin1").role(Role.ADMIN).build();
 
-    var admin2 = new AdminUser();
-    admin2.setUsername("admin2");
-    admin2.setRole(Role.USER);
+    var admin2 = AdminUser.builder().username("admin2").role(Role.USER).build();
 
     when(adminUserService.getAdminUsers()).thenReturn(List.of(admin1, admin2));
 
