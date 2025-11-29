@@ -377,7 +377,7 @@ class InboxServiceTest {
     when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
         .thenReturn(List.of(receivedSwapRequest)); // Sender: Alice Smith
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(List.of((sentSwapRequest))); // Sender: Bob Johnson
+        .thenReturn(List.of(sentSwapRequest)); // Sender: Bob Johnson
 
     // When
     List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "sender_name");
@@ -395,9 +395,9 @@ class InboxServiceTest {
     // Given
     when(userService.getUser("receiver123")).thenReturn(userEntity);
     when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(List.of((receivedSwapRequest))); // Status: PENDING
+        .thenReturn(List.of(receivedSwapRequest)); // Status: PENDING
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(List.of((sentSwapRequest))); // Status: ACCEPTED
+        .thenReturn(List.of(sentSwapRequest)); // Status: ACCEPTED
 
     // When
     List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "status");
@@ -415,9 +415,9 @@ class InboxServiceTest {
     // Given
     when(userService.getUser("receiver123")).thenReturn(userEntity);
     when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(List.of((receivedSwapRequest)));
+        .thenReturn(List.of(receivedSwapRequest));
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
-        .thenReturn(List.of((sentSwapRequest)));
+        .thenReturn(List.of(sentSwapRequest));
     when(chatService.getLatestMessageTimestamp("received1"))
         .thenReturn(Optional.of(Instant.parse("2025-01-03T10:00:00Z")));
     when(chatService.getLatestMessageTimestamp("sent1")).thenReturn(Optional.of(Instant.parse("2025-01-04T10:00:00Z")));
