@@ -27,8 +27,6 @@ public class AdminUserService {
   private final AdminUserRepository adminUserRepository;
 
   public AdminUser getAdminUserInfo(String username) {
-    var adminUsers = adminUserRepository.findAll();
-    var adminUser = adminUserRepository.findByUsername(username);
     return AdminUserMapper.toEntity(adminUserRepository.findByUsername(username)
         .orElseThrow(() -> new UserNotFoundException(username)));
   }
