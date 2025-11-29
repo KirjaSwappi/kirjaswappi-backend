@@ -24,11 +24,13 @@ public class ResetPasswordRequest {
   private String confirmPassword;
 
   public User toUserEntity(String email) {
+
     this.validateProperties(email);
-    var entity = new User();
-    entity.setEmail(email.toLowerCase());
-    entity.setPassword(this.newPassword);
-    return entity;
+
+    return User.builder()
+        .email(email.toLowerCase())
+        .password(this.newPassword)
+        .build();
   }
 
   private void validateProperties(String email) {

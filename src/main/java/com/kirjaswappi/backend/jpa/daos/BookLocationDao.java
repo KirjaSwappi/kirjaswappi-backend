@@ -4,10 +4,8 @@
  */
 package com.kirjaswappi.backend.jpa.daos;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.Accessors;
 
 import com.mongodb.lang.Nullable;
 
@@ -18,6 +16,8 @@ import com.mongodb.lang.Nullable;
  */
 @Getter
 @Setter
+@Builder
+@Accessors(fluent = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class BookLocationDao {
@@ -70,5 +70,6 @@ public class BookLocationDao {
    * specified.
    */
   @Nullable
+  @Builder.Default
   private Integer radiusKm = 50;
 }

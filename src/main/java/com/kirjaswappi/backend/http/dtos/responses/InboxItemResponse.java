@@ -32,17 +32,17 @@ public class InboxItemResponse {
   private String conversationType; // "sent" or "received"
 
   public InboxItemResponse(SwapRequest entity) {
-    this.id = entity.getId();
-    this.swapType = entity.getSwapType().getCode();
-    this.swapStatus = entity.getSwapStatus().getCode();
-    this.note = entity.getNote();
-    this.requestedAt = entity.getRequestedAt();
-    this.updatedAt = entity.getUpdatedAt();
-    this.sender = new UserSummaryResponse(entity.getSender());
-    this.receiver = new UserSummaryResponse(entity.getReceiver());
-    this.bookToSwapWith = new BookSummaryResponse(entity.getBookToSwapWith());
-    this.swapOffer = entity.getSwapOffer() != null ? new SwapOfferSummaryResponse(entity.getSwapOffer()) : null;
-    this.askForGiveaway = entity.isAskForGiveaway();
+    this.id = entity.id();
+    this.swapType = entity.swapType().getCode();
+    this.swapStatus = entity.swapStatus().getCode();
+    this.note = entity.note();
+    this.requestedAt = entity.requestedAt();
+    this.updatedAt = entity.updatedAt();
+    this.sender = new UserSummaryResponse(entity.sender());
+    this.receiver = new UserSummaryResponse(entity.receiver());
+    this.bookToSwapWith = new BookSummaryResponse(entity.bookToSwapWith());
+    this.swapOffer = entity.swapOffer() != null ? new SwapOfferSummaryResponse(entity.swapOffer()) : null;
+    this.askForGiveaway = entity.askForGiveaway();
     this.unreadMessageCount = 0; // Will be set separately by service
     this.isUnread = false; // Will be set separately by service
     this.hasNewMessages = false; // Will be set separately by service
@@ -64,8 +64,8 @@ public class InboxItemResponse {
     private String name;
 
     public UserSummaryResponse(User entity) {
-      this.id = entity.getId();
-      this.name = entity.getFirstName() + " " + entity.getLastName();
+      this.id = entity.id();
+      this.name = entity.firstName() + " " + entity.lastName();
     }
   }
 
@@ -78,10 +78,10 @@ public class InboxItemResponse {
     private String condition;
 
     public BookSummaryResponse(com.kirjaswappi.backend.service.entities.Book entity) {
-      this.id = entity.getId();
-      this.title = entity.getTitle();
-      this.author = entity.getAuthor();
-      this.condition = entity.getCondition() != null ? entity.getCondition().getCode() : null;
+      this.id = entity.id();
+      this.title = entity.title();
+      this.author = entity.author();
+      this.condition = entity.condition() != null ? entity.condition().code() : null;
     }
   }
 
@@ -92,11 +92,11 @@ public class InboxItemResponse {
     private String offeredGenreName;
 
     public SwapOfferSummaryResponse(com.kirjaswappi.backend.service.entities.SwapOffer entity) {
-      if (entity.getOfferedBook() != null) {
-        this.offeredBookTitle = entity.getOfferedBook().getTitle();
+      if (entity.offeredBook() != null) {
+        this.offeredBookTitle = entity.offeredBook().getTitle();
       }
-      if (entity.getOfferedGenre() != null) {
-        this.offeredGenreName = entity.getOfferedGenre().getName();
+      if (entity.offeredGenre() != null) {
+        this.offeredGenreName = entity.offeredGenre().getName();
       }
     }
   }

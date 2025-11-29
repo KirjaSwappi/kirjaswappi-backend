@@ -38,21 +38,21 @@ public class CreateSwapRequest {
 
   public SwapRequest toEntity() {
     this.validateProperties();
-    var entity = new SwapRequest();
-    var sender = new User();
-    sender.setId(this.senderId);
-    entity.setSender(sender);
-    var receiver = new User();
-    receiver.setId(this.receiverId);
-    entity.setReceiver(receiver);
-    var bookToSwapWith = new Book();
-    bookToSwapWith.setId(this.bookIdToSwapWith);
-    entity.setBookToSwapWith(bookToSwapWith);
-    entity.setSwapType(SwapType.fromCode(this.swapType));
-    entity.setSwapOffer(this.swapOffer == null ? null : this.swapOffer.toEntity());
-    entity.setAskForGiveaway(this.askForGiveaway);
-    entity.setNote(this.note);
-    return entity;
+
+    var sender = new User().id(this.senderId);
+    var receiver = new User().id(this.receiverId);
+
+    var bookToSwapWith = Book.builder().id(this.bookIdToSwapWith).build();
+
+    return SwapRequest.builder()
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(bookToSwapWith)
+        .swapType(SwapType.fromCode(this.swapType))
+        .swapOffer(this.swapOffer == null ? null : this.swapOffer.toEntity())
+        .askForGiveaway(this.askForGiveaway)
+        .note(this.note)
+        .build();
   }
 
   private void validateProperties() {

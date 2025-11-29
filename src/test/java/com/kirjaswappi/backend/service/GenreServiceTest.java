@@ -21,7 +21,10 @@ import org.mockito.MockitoAnnotations;
 
 import com.kirjaswappi.backend.http.dtos.responses.NestedGenresResponse;
 import com.kirjaswappi.backend.http.dtos.responses.ParentGenreResponse;
+import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.GenreDao;
+import com.kirjaswappi.backend.jpa.daos.SwapConditionDao;
+import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.GenreRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.service.entities.Genre;
@@ -63,12 +66,12 @@ class GenreServiceTest {
   @Test
   @DisplayName("Returns list of genres")
   void getGenresReturnsList() {
-    var dao1 = new GenreDao();
-    dao1.setId("1");
-    dao1.setName("Fantasy");
-    var dao2 = new GenreDao();
-    dao2.setId("2");
-    dao2.setName("SciFi");
+    var dao1 = new GenreDao()
+        .id("1")
+        .name("Fantasy");
+    var dao2 = new GenreDao()
+        .id("2")
+        .name("SciFi");
     when(genreRepository.findAll()).thenReturn(List.of(dao1, dao2));
     List<Genre> genres = genreService.getGenres();
     assertEquals(2, genres.size());
@@ -77,9 +80,9 @@ class GenreServiceTest {
   @Test
   @DisplayName("Updates an existing genre")
   void updateGenreUpdatesGenre() {
-    var dao = new GenreDao();
-    dao.setId("1");
-    dao.setName("Fantasy");
+    var dao = new GenreDao()
+        .id("1")
+        .name("Fantasy");
     when(genreRepository.findById("1")).thenReturn(Optional.of(dao));
     when(genreRepository.save(any())).thenReturn(dao);
     Genre genre = new Genre("1", "FantasyUpdated", null);
@@ -99,8 +102,7 @@ class GenreServiceTest {
   @Test
   @DisplayName("Deletes a genre by ID")
   void deleteGenreDeletesGenre() {
-    var dao = new GenreDao();
-    dao.setId("1");
+    var dao = new GenreDao().id("1");
     when(genreRepository.findById("1")).thenReturn(Optional.of(dao));
     when(genreRepository.existsById("1")).thenReturn(true);
     doNothing().when(genreRepository).deleteById("1");
@@ -332,18 +334,341 @@ class GenreServiceTest {
     assertTrue(childNames.contains("Thriller"));
   }
 
+  @Test
+  @DisplayName("getGenreById returns genre when found")
+  void getGenreByIdReturnsGenre() {
+    // Arrange
+    GenreDao dao = createGenreDao("1", "Fantasy", null);
+    when(genreRepository.findById("1")).thenReturn(Optional.of(dao));
+
+    // Act
+    Genre result = genreService.getGenreById("1");
+
+    // Assert
+    assertNotNull(result);
+    assertEquals("1", result.getId());
+    assertEquals("Fantasy", result.getName());
+    assertNull(result.getParent());
+    verify(genreRepository, times(1)).findById("1");
+  }
+
+  @Test
+  @DisplayName("getGenreById throws GenreNotFoundException when not found")
+  void getGenreByIdThrowsWhenNotFound() {
+    // Arrange
+    when(genreRepository.findById("nonexistent")).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(GenreNotFoundException.class, () -> {
+      genreService.getGenreById("nonexistent");
+    });
+    verify(genreRepository, times(1)).findById("nonexistent");
+  }
+
+  @Test
+  @DisplayName("getGenreByName returns genre when found")
+  void getGenreByNameReturnsGenre() {
+    // Arrange
+    GenreDao dao = createGenreDao("1", "Science Fiction", null);
+    when(genreRepository.findByName("Science Fiction")).thenReturn(Optional.of(dao));
+
+    // Act
+    Genre result = genreService.getGenreByName("Science Fiction");
+
+    // Assert
+    assertNotNull(result);
+    assertEquals("1", result.getId());
+    assertEquals("Science Fiction", result.getName());
+    assertNull(result.getParent());
+    verify(genreRepository, times(1)).findByName("Science Fiction");
+  }
+
+  @Test
+  @DisplayName("getGenreByName throws GenreNotFoundException when not found")
+  void getGenreByNameThrowsWhenNotFound() {
+    // Arrange
+    when(genreRepository.findByName("Nonexistent Genre")).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(GenreNotFoundException.class, () -> {
+      genreService.getGenreByName("Nonexistent Genre");
+    });
+    verify(genreRepository, times(1)).findByName("Nonexistent Genre");
+  }
+
+  @Test
+  @DisplayName("addGenre with parent successfully adds child genre")
+  void addGenreWithParentSuccess() {
+    // Arrange
+    GenreDao parentDao = createGenreDao("1", "Fiction", null);
+    Genre parentGenre = new Genre("1", "Fiction", null);
+    Genre childGenre = new Genre(null, "Science Fiction", parentGenre);
+
+    when(genreRepository.existsByName("Science Fiction")).thenReturn(false);
+    when(genreRepository.findById("1")).thenReturn(Optional.of(parentDao));
+    when(genreRepository.save(any())).thenAnswer(invocation -> {
+      GenreDao saved = invocation.getArgument(0);
+      saved = saved.id("2");
+      return saved;
+    });
+
+    // Act
+    Genre result = genreService.addGenre(childGenre);
+
+    // Assert
+    assertNotNull(result);
+    assertEquals("Science Fiction", result.getName());
+    verify(genreRepository, times(1)).existsByName("Science Fiction");
+    verify(genreRepository, times(1)).findById("1");
+    verify(genreRepository, times(1)).save(any());
+  }
+
+  @Test
+  @DisplayName("addGenre with non-existent parent throws GenreNotFoundException")
+  void addGenreWithNonExistentParentThrows() {
+    // Arrange
+    Genre parentGenre = new Genre("nonexistent", "Fiction", null);
+    Genre childGenre = new Genre(null, "Science Fiction", parentGenre);
+
+    when(genreRepository.existsByName("Science Fiction")).thenReturn(false);
+    when(genreRepository.findById("nonexistent")).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(GenreNotFoundException.class, () -> {
+      genreService.addGenre(childGenre);
+    });
+    verify(genreRepository, times(1)).existsByName("Science Fiction");
+    verify(genreRepository, times(1)).findById("nonexistent");
+    verify(genreRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("updateGenre with parent successfully updates genre")
+  void updateGenreWithParentSuccess() {
+    // Arrange
+    GenreDao existingDao = createGenreDao("2", "SciFi", null);
+    GenreDao parentDao = createGenreDao("1", "Fiction", null);
+
+    Genre parentGenre = new Genre("1", "Fiction", null);
+    Genre updatedGenre = new Genre("2", "Science Fiction", parentGenre);
+
+    when(genreRepository.findById("2")).thenReturn(Optional.of(existingDao));
+    when(genreRepository.findById("1")).thenReturn(Optional.of(parentDao));
+    when(genreRepository.save(any())).thenReturn(existingDao);
+
+    // Act
+    Genre result = genreService.updateGenre(updatedGenre);
+
+    // Assert
+    assertNotNull(result);
+    verify(genreRepository, times(1)).findById("2");
+    verify(genreRepository, times(1)).findById("1");
+    verify(genreRepository, times(1)).save(any());
+  }
+
+  @Test
+  @DisplayName("updateGenre removes parent when set to null")
+  void updateGenreRemovesParent() {
+    // Arrange
+    GenreDao parentDao = createGenreDao("1", "Fiction", null);
+    GenreDao existingDao = createGenreDao("2", "Science Fiction", "1")
+        .parent(parentDao);
+
+    Genre updatedGenre = new Genre("2", "Science Fiction", null);
+
+    when(genreRepository.findById("2")).thenReturn(Optional.of(existingDao));
+    when(genreRepository.save(any())).thenReturn(existingDao);
+
+    // Act
+    Genre result = genreService.updateGenre(updatedGenre);
+
+    // Assert
+    assertNotNull(result);
+    verify(genreRepository, times(1)).findById("2");
+    verify(genreRepository, times(1)).save(any());
+  }
+
+  @Test
+  @DisplayName("updateGenre with non-existent parent throws GenreNotFoundException")
+  void updateGenreWithNonExistentParentThrows() {
+    // Arrange
+    GenreDao existingDao = createGenreDao("2", "Science Fiction", null);
+    Genre parentGenre = new Genre("nonexistent", "Fiction", null);
+    Genre updatedGenre = new Genre("2", "Science Fiction", parentGenre);
+
+    when(genreRepository.findById("2")).thenReturn(Optional.of(existingDao));
+    when(genreRepository.findById("nonexistent")).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(GenreNotFoundException.class, () -> {
+      genreService.updateGenre(updatedGenre);
+    });
+    verify(genreRepository, times(1)).findById("2");
+    verify(genreRepository, times(1)).findById("nonexistent");
+    verify(genreRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("deleteGenre throws GenreCannotBeDeletedException when genre is in user's favorite genres")
+  void deleteGenreThrowsWhenInFavoriteGenres() {
+    // Arrange
+    GenreDao genreDao = createGenreDao("1", "Fantasy", null);
+    UserDao userDao = new UserDao().id("user1")
+        .favGenres(List.of(genreDao))
+        .books(List.of());
+
+    when(genreRepository.existsById("1")).thenReturn(true);
+    when(userRepository.findAll()).thenReturn(List.of(userDao));
+
+    // Act & Assert
+    assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
+      genreService.deleteGenre("1");
+    });
+    verify(genreRepository, times(1)).existsById("1");
+    verify(userRepository, times(1)).findAll();
+    verify(genreRepository, never()).deleteById("1");
+  }
+
+  @Test
+  @DisplayName("deleteGenre throws GenreCannotBeDeletedException when genre is in book genres")
+  void deleteGenreThrowsWhenInBookGenres() {
+    // Arrange
+    GenreDao genreDao = createGenreDao("1", "Fantasy", null);
+
+    SwapConditionDao swapCondition = new SwapConditionDao()
+        .swappableGenres(List.of(genreDao));
+
+    BookDao bookDao = new BookDao()
+        .id("book1")
+        .swapCondition(swapCondition)
+        .genres(List.of(genreDao));
+
+    UserDao userDao = new UserDao()
+        .id("user1")
+        .favGenres(List.of())
+        .books(List.of(bookDao));
+
+    when(genreRepository.existsById("1")).thenReturn(true);
+    when(userRepository.findAll()).thenReturn(List.of(userDao));
+
+    // Act & Assert
+    assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
+      genreService.deleteGenre("1");
+    });
+    verify(genreRepository, times(1)).existsById("1");
+    verify(userRepository, times(1)).findAll();
+    verify(genreRepository, never()).deleteById("1");
+  }
+
+  @Test
+  @DisplayName("deleteGenre throws GenreCannotBeDeletedException when genre is only in swappable genres")
+  void deleteGenreThrowsWhenOnlyInSwappableGenres() {
+    // Arrange
+    GenreDao genreDao = createGenreDao("1", "Fantasy", null);
+    GenreDao otherGenreDao = createGenreDao("2", "SciFi", null);
+
+    SwapConditionDao swapCondition = new SwapConditionDao()
+        .swappableGenres(List.of(genreDao)); // Genre is in swappable genres
+
+    BookDao bookDao = new BookDao()
+        .id("book1")
+        .genres(List.of(otherGenreDao)) // Genre is NOT in book's genres
+        .swapCondition(swapCondition);
+
+    UserDao userDao = new UserDao()
+        .id("user1")
+        .favGenres(List.of())
+        .books(List.of(bookDao));
+
+    when(genreRepository.existsById("1")).thenReturn(true);
+    when(userRepository.findAll()).thenReturn(List.of(userDao));
+
+    // Act & Assert
+    assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
+      genreService.deleteGenre("1");
+    });
+    verify(genreRepository, times(1)).existsById("1");
+    verify(userRepository, times(1)).findAll();
+    verify(genreRepository, never()).deleteById("1");
+  }
+
+  @Test
+  @DisplayName("deleteGenre succeeds when genre is not being used")
+  void deleteGenreSucceedsWhenNotUsed() {
+    // Arrange
+    UserDao userDao = new UserDao()
+        .id("user1")
+        .favGenres(List.of())
+        .books(List.of());
+
+    when(genreRepository.existsById("1")).thenReturn(true);
+    when(userRepository.findAll()).thenReturn(List.of(userDao));
+    doNothing().when(genreRepository).deleteById("1");
+
+    // Act
+    genreService.deleteGenre("1");
+
+    // Assert
+    verify(genreRepository, times(1)).existsById("1");
+    verify(userRepository, times(1)).findAll();
+    verify(genreRepository, times(1)).deleteById("1");
+  }
+
+  @Test
+  @DisplayName("deleteGenre handles null favGenres gracefully")
+  void deleteGenreHandlesNullFavGenres() {
+    // Arrange
+    UserDao userDao = new UserDao()
+        .id("user1")
+        .favGenres(null)
+        .books(List.of());
+
+    when(genreRepository.existsById("1")).thenReturn(true);
+    when(userRepository.findAll()).thenReturn(List.of(userDao));
+    doNothing().when(genreRepository).deleteById("1");
+
+    // Act
+    genreService.deleteGenre("1");
+
+    // Assert
+    verify(genreRepository, times(1)).existsById("1");
+    verify(userRepository, times(1)).findAll();
+    verify(genreRepository, times(1)).deleteById("1");
+  }
+
+  @Test
+  @DisplayName("deleteGenre handles null books gracefully")
+  void deleteGenreHandlesNullBooks() {
+    // Arrange
+    UserDao userDao = new UserDao()
+        .id("user1")
+        .favGenres(List.of())
+        .books(null);
+
+    when(genreRepository.existsById("1")).thenReturn(true);
+    when(userRepository.findAll()).thenReturn(List.of(userDao));
+    doNothing().when(genreRepository).deleteById("1");
+
+    // Act
+    genreService.deleteGenre("1");
+
+    // Assert
+    verify(genreRepository, times(1)).existsById("1");
+    verify(userRepository, times(1)).findAll();
+    verify(genreRepository, times(1)).deleteById("1");
+  }
+
   /**
    * Helper method to create GenreDao objects for testing
    */
   private GenreDao createGenreDao(String id, String name, String parentId) {
-    GenreDao dao = new GenreDao();
-    dao.setId(id);
-    dao.setName(name);
+    GenreDao dao = new GenreDao()
+        .id(id)
+        .name(name);
 
     if (parentId != null) {
-      GenreDao parent = new GenreDao();
-      parent.setId(parentId);
-      dao.setParent(parent);
+      GenreDao parent = new GenreDao().id(parentId);
+      dao.parent(parent);
     }
 
     return dao;

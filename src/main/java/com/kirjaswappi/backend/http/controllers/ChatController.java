@@ -13,8 +13,9 @@ import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -29,9 +30,10 @@ import com.kirjaswappi.backend.service.entities.SwapRequest;
 @RestController
 @RequestMapping(API_BASE + SWAP_REQUESTS)
 @Validated
+@RequiredArgsConstructor
 public class ChatController {
-  @Autowired
-  private ChatService chatService;
+
+  private final ChatService chatService;
 
   @GetMapping(ID + CHAT)
   @Operation(summary = "Get chat messages for a swap request", description = "Retrieve all chat messages for a specific swap request with book swap context. User must be sender or receiver. Automatically marks messages as read.", responses = {
@@ -39,7 +41,7 @@ public class ChatController {
       @ApiResponse(responseCode = "403", description = "Access denied - user not authorized to view this chat"),
       @ApiResponse(responseCode = "404", description = "Swap request not found")
   })
-  public ResponseEntity<List<ChatMessageResponse>> getChatMessages(
+  public ResponseEntity<@NonNull List<ChatMessageResponse>> getChatMessages(
       @Parameter(description = "Swap request ID", required = true) @PathVariable String id,
       @Parameter(description = "User ID", required = true) @RequestParam String userId) {
 
@@ -72,7 +74,7 @@ public class ChatController {
       @ApiResponse(responseCode = "403", description = "Access denied - user not authorized to send messages in this chat"),
       @ApiResponse(responseCode = "404", description = "Swap request not found")
   })
-  public ResponseEntity<ChatMessageResponse> sendMessage(
+  public ResponseEntity<@NonNull ChatMessageResponse> sendMessage(
       @Parameter(description = "Swap request ID", required = true) @PathVariable String id,
       @Parameter(description = "User ID", required = true) @RequestParam String userId,
       @Valid @ModelAttribute SendMessageRequest request) {
@@ -97,22 +99,22 @@ public class ChatController {
     ChatMessageResponse.SwapContextResponse context = new ChatMessageResponse.SwapContextResponse();
 
     // Set basic swap information
-    context.setSwapType(swapRequest.getSwapType().getCode());
-    context.setSwapStatus(swapRequest.getSwapStatus().getCode());
-    context.setAskForGiveaway(swapRequest.isAskForGiveaway());
+    context.setSwapType(swapRequest.swapType().getCode());
+    context.setSwapStatus(swapRequest.swapStatus().getCode());
+    context.setAskForGiveaway(swapRequest.askForGiveaway());
 
     // Set requested book information
     context.setRequestedBook(
-        new ChatMessageResponse.SwapContextResponse.BookInfoResponse(swapRequest.getBookToSwapWith()));
+        new ChatMessageResponse.SwapContextResponse.BookInfoResponse(swapRequest.bookToSwapWith()));
 
     // Set offered book/genre information if available
-    if (swapRequest.getSwapOffer() != null) {
-      if (swapRequest.getSwapOffer().getOfferedBook() != null) {
+    if (swapRequest.swapOffer() != null) {
+      if (swapRequest.swapOffer().offeredBook() != null) {
         context.setOfferedBook(
-            new ChatMessageResponse.SwapContextResponse.BookInfoResponse(swapRequest.getSwapOffer().getOfferedBook()));
+            new ChatMessageResponse.SwapContextResponse.BookInfoResponse(swapRequest.swapOffer().offeredBook()));
       }
-      if (swapRequest.getSwapOffer().getOfferedGenre() != null) {
-        context.setOfferedGenreName(swapRequest.getSwapOffer().getOfferedGenre().getName());
+      if (swapRequest.swapOffer().offeredGenre() != null) {
+        context.setOfferedGenreName(swapRequest.swapOffer().offeredGenre().getName());
       }
     }
 

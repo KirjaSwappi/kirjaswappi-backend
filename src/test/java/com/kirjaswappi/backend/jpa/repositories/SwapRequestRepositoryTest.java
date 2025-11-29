@@ -40,63 +40,69 @@ class SwapRequestRepositoryTest {
     MockitoAnnotations.openMocks(this);
 
     // Create test users
-    senderDao = new UserDao();
-    senderDao.setId("sender123");
-    senderDao.setFirstName("John");
-    senderDao.setLastName("Sender");
-    senderDao.setEmail("sender@example.com");
-    senderDao.setPassword("hashedPassword");
-    senderDao.setSalt("salt");
-    senderDao.setEmailVerified(true);
+    senderDao = UserDao.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Sender")
+        .email("sender@example.com")
+        .password("hashedPassword")
+        .salt("salt")
+        .isEmailVerified(true)
+        .build();
 
-    receiverDao = new UserDao();
-    receiverDao.setId("receiver123");
-    receiverDao.setFirstName("Jane");
-    receiverDao.setLastName("Receiver");
-    receiverDao.setEmail("receiver@example.com");
-    receiverDao.setPassword("hashedPassword");
-    receiverDao.setSalt("salt");
-    receiverDao.setEmailVerified(true);
+    receiverDao = UserDao.builder()
+        .id("receiver123")
+        .firstName("Jane")
+        .lastName("Receiver")
+        .email("receiver@example.com")
+        .password("hashedPassword")
+        .salt("salt")
+        .isEmailVerified(true)
+        .build();
 
     // Create test book
-    bookDao = new BookDao();
-    bookDao.setId("book123");
-    bookDao.setTitle("Test Book");
-    bookDao.setAuthor("Test Author");
+    bookDao = BookDao.builder()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .build();
 
     // Create test swap requests with different timestamps and statuses
-    swapRequest1 = new SwapRequestDao();
-    swapRequest1.setId("swap1");
-    swapRequest1.setSender(senderDao);
-    swapRequest1.setReceiver(receiverDao);
-    swapRequest1.setBookToSwapWith(bookDao);
-    swapRequest1.setSwapType("ByBooks");
-    swapRequest1.setAskForGiveaway(false);
-    swapRequest1.setSwapStatus(SwapStatus.PENDING.getCode());
-    swapRequest1.setRequestedAt(Instant.parse("2025-01-01T10:00:00Z"));
-    swapRequest1.setUpdatedAt(Instant.parse("2025-01-01T10:00:00Z"));
+    swapRequest1 = SwapRequestDao.builder()
+        .id("swap1")
+        .sender(senderDao)
+        .receiver(receiverDao)
+        .bookToSwapWith(bookDao)
+        .swapType("ByBooks")
+        .askForGiveaway(false)
+        .swapStatus(SwapStatus.PENDING.getCode())
+        .requestedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .build();
 
-    swapRequest2 = new SwapRequestDao();
-    swapRequest2.setId("swap2");
-    swapRequest2.setSender(senderDao);
-    swapRequest2.setReceiver(receiverDao);
-    swapRequest2.setBookToSwapWith(bookDao);
-    swapRequest2.setSwapType("ByBooks");
-    swapRequest2.setAskForGiveaway(false);
-    swapRequest2.setSwapStatus(SwapStatus.ACCEPTED.getCode());
-    swapRequest2.setRequestedAt(Instant.parse("2025-01-02T10:00:00Z"));
-    swapRequest2.setUpdatedAt(Instant.parse("2025-01-02T10:00:00Z"));
+    swapRequest2 = SwapRequestDao.builder()
+        .id("swap2")
+        .sender(senderDao)
+        .receiver(receiverDao)
+        .bookToSwapWith(bookDao)
+        .swapType("ByBooks")
+        .askForGiveaway(false)
+        .swapStatus(SwapStatus.ACCEPTED.getCode())
+        .requestedAt(Instant.parse("2025-01-02T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-02T10:00:00Z"))
+        .build();
 
-    swapRequest3 = new SwapRequestDao();
-    swapRequest3.setId("swap3");
-    swapRequest3.setSender(receiverDao); // Different sender
-    swapRequest3.setReceiver(senderDao); // Different receiver
-    swapRequest3.setBookToSwapWith(bookDao);
-    swapRequest3.setSwapType("ByBooks");
-    swapRequest3.setAskForGiveaway(false);
-    swapRequest3.setSwapStatus(SwapStatus.REJECTED.getCode());
-    swapRequest3.setRequestedAt(Instant.parse("2025-01-03T10:00:00Z"));
-    swapRequest3.setUpdatedAt(Instant.parse("2025-01-03T10:00:00Z"));
+    swapRequest3 = SwapRequestDao.builder()
+        .id("swap3")
+        .sender(receiverDao)
+        .receiver(senderDao)
+        .bookToSwapWith(bookDao)
+        .swapType("ByBooks")
+        .askForGiveaway(false)
+        .swapStatus(SwapStatus.REJECTED.getCode())
+        .requestedAt(Instant.parse("2025-01-03T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-03T10:00:00Z"))
+        .build();
   }
 
   @Test
@@ -112,8 +118,8 @@ class SwapRequestRepositoryTest {
 
     // Then
     assertEquals(2, result.size());
-    assertEquals("swap2", result.get(0).getId()); // Most recent first
-    assertEquals("swap1", result.get(1).getId());
+    assertEquals("swap2", result.get(0).id()); // Most recent first
+    assertEquals("swap1", result.get(1).id());
     verify(swapRequestRepository).findByReceiverIdOrderByRequestedAtDesc("receiver123");
   }
 
@@ -130,8 +136,8 @@ class SwapRequestRepositoryTest {
 
     // Then
     assertEquals(2, result.size());
-    assertEquals("swap2", result.get(0).getId()); // Most recent first
-    assertEquals("swap1", result.get(1).getId());
+    assertEquals("swap2", result.get(0).id()); // Most recent first
+    assertEquals("swap1", result.get(1).id());
     verify(swapRequestRepository).findBySenderIdOrderByRequestedAtDesc("sender123");
   }
 
@@ -141,10 +147,10 @@ class SwapRequestRepositoryTest {
     // Given
     when(swapRequestRepository.findByReceiverIdAndSwapStatusOrderByRequestedAtDesc("receiver123",
         SwapStatus.PENDING.getCode()))
-            .thenReturn(Arrays.asList(swapRequest1));
+            .thenReturn(List.of(swapRequest1));
     when(swapRequestRepository.findByReceiverIdAndSwapStatusOrderByRequestedAtDesc("receiver123",
         SwapStatus.ACCEPTED.getCode()))
-            .thenReturn(Arrays.asList(swapRequest2));
+            .thenReturn(List.of(swapRequest2));
 
     // When
     List<SwapRequestDao> pendingResult = swapRequestRepository
@@ -154,12 +160,12 @@ class SwapRequestRepositoryTest {
 
     // Then
     assertEquals(1, pendingResult.size());
-    assertEquals("swap1", pendingResult.get(0).getId());
-    assertEquals(SwapStatus.PENDING.getCode(), pendingResult.get(0).getSwapStatus());
+    assertEquals("swap1", pendingResult.getFirst().id());
+    assertEquals(SwapStatus.PENDING.getCode(), pendingResult.getFirst().swapStatus());
 
     assertEquals(1, acceptedResult.size());
-    assertEquals("swap2", acceptedResult.get(0).getId());
-    assertEquals(SwapStatus.ACCEPTED.getCode(), acceptedResult.get(0).getSwapStatus());
+    assertEquals("swap2", acceptedResult.getFirst().id());
+    assertEquals(SwapStatus.ACCEPTED.getCode(), acceptedResult.getFirst().swapStatus());
 
     verify(swapRequestRepository).findByReceiverIdAndSwapStatusOrderByRequestedAtDesc("receiver123",
         SwapStatus.PENDING.getCode());
@@ -173,10 +179,10 @@ class SwapRequestRepositoryTest {
     // Given
     when(swapRequestRepository.findBySenderIdAndSwapStatusOrderByRequestedAtDesc("sender123",
         SwapStatus.PENDING.getCode()))
-            .thenReturn(Arrays.asList(swapRequest1));
+            .thenReturn(List.of(swapRequest1));
     when(swapRequestRepository.findBySenderIdAndSwapStatusOrderByRequestedAtDesc("receiver123",
         SwapStatus.REJECTED.getCode()))
-            .thenReturn(Arrays.asList(swapRequest3));
+            .thenReturn(List.of(swapRequest3));
 
     // When
     List<SwapRequestDao> pendingResult = swapRequestRepository
@@ -186,12 +192,12 @@ class SwapRequestRepositoryTest {
 
     // Then
     assertEquals(1, pendingResult.size());
-    assertEquals("swap1", pendingResult.get(0).getId());
-    assertEquals(SwapStatus.PENDING.getCode(), pendingResult.get(0).getSwapStatus());
+    assertEquals("swap1", pendingResult.getFirst().id());
+    assertEquals(SwapStatus.PENDING.getCode(), pendingResult.getFirst().swapStatus());
 
     assertEquals(1, rejectedResult.size());
-    assertEquals("swap3", rejectedResult.get(0).getId());
-    assertEquals(SwapStatus.REJECTED.getCode(), rejectedResult.get(0).getSwapStatus());
+    assertEquals("swap3", rejectedResult.getFirst().id());
+    assertEquals(SwapStatus.REJECTED.getCode(), rejectedResult.getFirst().swapStatus());
 
     verify(swapRequestRepository).findBySenderIdAndSwapStatusOrderByRequestedAtDesc("sender123",
         SwapStatus.PENDING.getCode());
@@ -204,7 +210,7 @@ class SwapRequestRepositoryTest {
   void shouldReturnEmptyListWhenNoSwapRequestsFoundForReceiver() {
     // Given
     when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("nonexistent"))
-        .thenReturn(Arrays.asList());
+        .thenReturn(List.of());
 
     // When
     List<SwapRequestDao> result = swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("nonexistent");
@@ -219,7 +225,7 @@ class SwapRequestRepositoryTest {
   void shouldReturnEmptyListWhenNoSwapRequestsFoundForSender() {
     // Given
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("nonexistent"))
-        .thenReturn(Arrays.asList());
+        .thenReturn(List.of());
 
     // When
     List<SwapRequestDao> result = swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("nonexistent");
@@ -235,7 +241,7 @@ class SwapRequestRepositoryTest {
     // Given
     when(swapRequestRepository.findByReceiverIdAndSwapStatusOrderByRequestedAtDesc("receiver123",
         SwapStatus.EXPIRED.getCode()))
-            .thenReturn(Arrays.asList());
+            .thenReturn(List.of());
 
     // When
     List<SwapRequestDao> result = swapRequestRepository
@@ -253,7 +259,7 @@ class SwapRequestRepositoryTest {
     // Given
     when(swapRequestRepository.findBySenderIdAndSwapStatusOrderByRequestedAtDesc("sender123",
         SwapStatus.EXPIRED.getCode()))
-            .thenReturn(Arrays.asList());
+            .thenReturn(List.of());
 
     // When
     List<SwapRequestDao> result = swapRequestRepository

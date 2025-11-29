@@ -14,36 +14,37 @@ import com.kirjaswappi.backend.service.entities.BookLocation;
 /**
  * Unit tests for BookLocationMapper.
  */
-public class BookLocationMapperTest {
+class BookLocationMapperTest {
 
   @Test
-  public void testToDao_WithValidEntity_ShouldMapCorrectly() {
+  void testToDao_WithValidEntity_ShouldMapCorrectly() {
     // Arrange
-    BookLocation entity = new BookLocation();
-    entity.setLatitude(60.1699);
-    entity.setLongitude(24.9384);
-    entity.setAddress("Mannerheimintie 12");
-    entity.setCity("Helsinki");
-    entity.setCountry("Finland");
-    entity.setPostalCode("00100");
-    entity.setRadiusKm(50);
+    var entity = BookLocation.builder()
+        .latitude(60.1699)
+        .longitude(24.9384)
+        .address("Mannerheimintie 12")
+        .city("Helsinki")
+        .country("Finland")
+        .postalCode("00100")
+        .radiusKm(50)
+        .build();
 
     // Act
     BookLocationDao dao = BookLocationMapper.toDao(entity);
 
     // Assert
     assertNotNull(dao);
-    assertEquals(60.1699, dao.getLatitude());
-    assertEquals(24.9384, dao.getLongitude());
-    assertEquals("Mannerheimintie 12", dao.getAddress());
-    assertEquals("Helsinki", dao.getCity());
-    assertEquals("Finland", dao.getCountry());
-    assertEquals("00100", dao.getPostalCode());
-    assertEquals(50, dao.getRadiusKm());
+    assertEquals(60.1699, dao.latitude());
+    assertEquals(24.9384, dao.longitude());
+    assertEquals("Mannerheimintie 12", dao.address());
+    assertEquals("Helsinki", dao.city());
+    assertEquals("Finland", dao.country());
+    assertEquals("00100", dao.postalCode());
+    assertEquals(50, dao.radiusKm());
   }
 
   @Test
-  public void testToDao_WithNullEntity_ShouldReturnNull() {
+  void testToDao_WithNullEntity_ShouldReturnNull() {
     // Act
     BookLocationDao dao = BookLocationMapper.toDao(null);
 
@@ -52,29 +53,30 @@ public class BookLocationMapperTest {
   }
 
   @Test
-  public void testToEntity_WithValidDao_ShouldMapCorrectly() {
+  void testToEntity_WithValidDao_ShouldMapCorrectly() {
     // Arrange
-    BookLocationDao dao = new BookLocationDao();
-    dao.setLatitude(60.1699);
-    dao.setLongitude(24.9384);
-    dao.setAddress("Mannerheimintie 12");
-    dao.setCity("Helsinki");
-    dao.setCountry("Finland");
-    dao.setPostalCode("00100");
-    dao.setRadiusKm(50);
+    var dao = BookLocationDao.builder()
+        .latitude(60.1699)
+        .longitude(24.9384)
+        .address("Mannerheimintie 12")
+        .city("Helsinki")
+        .country("Finland")
+        .postalCode("00100")
+        .radiusKm(50)
+        .build();
 
     // Act
-    BookLocation entity = BookLocationMapper.toEntity(dao);
+    var entity = BookLocationMapper.toEntity(dao);
 
     // Assert
     assertNotNull(entity);
-    assertEquals(60.1699, entity.getLatitude());
-    assertEquals(24.9384, entity.getLongitude());
-    assertEquals("Mannerheimintie 12", entity.getAddress());
-    assertEquals("Helsinki", entity.getCity());
-    assertEquals("Finland", entity.getCountry());
-    assertEquals("00100", entity.getPostalCode());
-    assertEquals(50, entity.getRadiusKm());
+    assertEquals(60.1699, entity.latitude());
+    assertEquals(24.9384, entity.longitude());
+    assertEquals("Mannerheimintie 12", entity.address());
+    assertEquals("Helsinki", entity.city());
+    assertEquals("Finland", entity.country());
+    assertEquals("00100", entity.postalCode());
+    assertEquals(50, entity.radiusKm());
   }
 
   @Test
@@ -89,29 +91,28 @@ public class BookLocationMapperTest {
   @Test
   public void testBookLocation_HelperMethods() {
     // Arrange
-    BookLocation location = new BookLocation();
+    BookLocation location = BookLocation.builder().build();
 
     // Test hasCoordinates - should be false initially
     assertFalse(location.hasCoordinates());
 
     // Set valid coordinates
-    location.setLatitude(60.1699);
-    location.setLongitude(24.9384);
+    location = location.withLatitude(60.1699).withLongitude(24.9384);
     assertTrue(location.hasCoordinates());
 
     // Test hasAddress - should be false initially
     assertFalse(location.hasAddress());
 
     // Set address
-    location.setAddress("Mannerheimintie 12");
+    location = location.withAddress("Mannerheimintie 12");
     assertTrue(location.hasAddress());
 
     // Test with empty address
-    location.setAddress("");
+    location = location.withAddress("");
     assertFalse(location.hasAddress());
 
     // Test with whitespace-only address
-    location.setAddress("   ");
+    location = location.withAddress("   ");
     assertFalse(location.hasAddress());
   }
 
@@ -142,13 +143,15 @@ public class BookLocationMapperTest {
     assertFalse(BookLocation.isValidLongitude(200.0));
 
     // Test hasCoordinates with invalid coordinates
-    BookLocation location = new BookLocation();
-    location.setLatitude(90.0); // Invalid - too close to pole
-    location.setLongitude(24.9384);
+    var location = BookLocation.builder()
+        .latitude(90.0) // Invalid - too close to pole
+        .longitude(24.9384)
+        .build();
     assertFalse(location.hasCoordinates());
 
-    location.setLatitude(60.1699);
-    location.setLongitude(181.0); // Invalid - out of range
+    location = location
+        .withLatitude(60.1699)
+        .withLongitude(181.0); // Invalid - out of range
     assertFalse(location.hasCoordinates());
   }
 }

@@ -7,19 +7,20 @@ package com.kirjaswappi.backend.service.entities;
 import java.time.Instant;
 import java.util.List;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.Accessors;
 
-@Getter
-@Setter
-@NoArgsConstructor
-public class ChatMessage {
-  private String id;
-  private String swapRequestId;
-  private User sender;
-  private String message;
-  private List<String> imageIds; // Store unique IDs, not URLs
-  private Instant sentAt;
-  private boolean readByReceiver;
+@With
+@Builder
+@Accessors(fluent = true)
+public record ChatMessage(
+    String id,
+    String swapRequestId,
+    User sender,
+    String message,
+    List<String> imageIds, // Store unique IDs, not URLs
+    Instant sentAt,
+    boolean readByReceiver
+) {
+
 }

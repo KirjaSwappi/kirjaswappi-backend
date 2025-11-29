@@ -50,24 +50,24 @@ public class ReadStatusTrackingTest {
   @BeforeEach
   void setUp() {
     // Create test users
-    senderUser = new UserDao();
-    senderUser.setId("sender123");
-    senderUser.setFirstName("John");
-    senderUser.setLastName("Sender");
+    senderUser = new UserDao()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Sender");
 
-    receiverUser = new UserDao();
-    receiverUser.setId("receiver123");
-    receiverUser.setFirstName("Jane");
-    receiverUser.setLastName("Receiver");
+    receiverUser = new UserDao()
+        .id("receiver123")
+        .firstName("Jane")
+        .lastName("Receiver");
 
     // Create test swap request
-    testSwapRequest = new SwapRequestDao();
-    testSwapRequest.setId("swap123");
-    testSwapRequest.setSender(senderUser);
-    testSwapRequest.setReceiver(receiverUser);
-    testSwapRequest.setSwapStatus("PENDING");
-    testSwapRequest.setRequestedAt(Instant.now());
-    testSwapRequest.setUpdatedAt(Instant.now());
+    testSwapRequest = new SwapRequestDao()
+        .id("swap123")
+        .sender(senderUser)
+        .receiver(receiverUser)
+        .swapStatus("PENDING")
+        .requestedAt(Instant.now())
+        .updatedAt(Instant.now());
   }
 
   @Test
@@ -80,8 +80,8 @@ public class ReadStatusTrackingTest {
     inboxService.markInboxItemAsRead("swap123", "receiver123");
 
     // Then
-    verify(swapRequestRepository).save(argThat(swapRequest -> swapRequest.getReadByReceiverAt() != null &&
-        swapRequest.getReadBySenderAt() == null));
+    verify(swapRequestRepository).save(argThat(swapRequest -> swapRequest.readByReceiverAt() != null &&
+        swapRequest.readBySenderAt() == null));
   }
 
   @Test
@@ -94,18 +94,19 @@ public class ReadStatusTrackingTest {
     inboxService.markInboxItemAsRead("swap123", "sender123");
 
     // Then
-    verify(swapRequestRepository).save(argThat(swapRequest -> swapRequest.getReadBySenderAt() != null &&
-        swapRequest.getReadByReceiverAt() == null));
+    verify(swapRequestRepository).save(argThat(swapRequest -> swapRequest.readBySenderAt() != null &&
+        swapRequest.readByReceiverAt() == null));
   }
 
   @Test
   void testIsInboxItemUnread_InitiallyUnread() {
     // Given
-    SwapRequest swapRequest = new SwapRequest();
-    User receiver = new User();
-    receiver.setId("receiver123");
-    swapRequest.setReceiver(receiver);
-    swapRequest.setReadByReceiverAt(null);
+    User receiver = new User().id("receiver123");
+
+    SwapRequest swapRequest = SwapRequest.builder()
+        .receiver(receiver)
+        .readByReceiverAt(null)
+        .build();
 
     // When
     boolean isUnread = inboxService.isInboxItemUnread(swapRequest, "receiver123");
@@ -117,11 +118,12 @@ public class ReadStatusTrackingTest {
   @Test
   void testIsInboxItemUnread_AfterRead() {
     // Given
-    SwapRequest swapRequest = new SwapRequest();
-    User receiver = new User();
-    receiver.setId("receiver123");
-    swapRequest.setReceiver(receiver);
-    swapRequest.setReadByReceiverAt(Instant.now());
+
+    User receiver = new User().id("receiver123");
+    SwapRequest swapRequest = SwapRequest.builder()
+        .receiver(receiver)
+        .readByReceiverAt(Instant.now())
+        .build();
 
     // When
     boolean isUnread = inboxService.isInboxItemUnread(swapRequest, "receiver123");
@@ -133,18 +135,21 @@ public class ReadStatusTrackingTest {
   @Test
   void testChatMessageResponseWithCurrentUser() {
     // Given
-    ChatMessage message = new ChatMessage();
-    message.setId("msg123");
-    message.setSwapRequestId("swap123");
-    message.setMessage("Test message");
-    message.setSentAt(Instant.now());
-    message.setReadByReceiver(false);
 
-    User sender = new User();
-    sender.setId("sender123");
-    sender.setFirstName("John");
-    sender.setLastName("Sender");
-    message.setSender(sender);
+    User sender = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Sender")
+        .build();
+
+    ChatMessage message = ChatMessage.builder()
+        .id("msg123")
+        .swapRequestId("swap123")
+        .message("Test message")
+        .sentAt(Instant.now())
+        .readByReceiver(false)
+        .sender(sender)
+        .build();
 
     // When - viewing as sender (own message)
     ChatMessageResponse response1 = new ChatMessageResponse(message, "sender123");
@@ -160,31 +165,34 @@ public class ReadStatusTrackingTest {
   @Test
   void testInboxItemResponseNotificationIndicators() {
     // Given
-    SwapRequest swapRequest = new SwapRequest();
-    swapRequest.setId("swap123");
+    User sender = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Sender")
+        .build();
 
-    User sender = new User();
-    sender.setId("sender123");
-    sender.setFirstName("John");
-    sender.setLastName("Sender");
-    swapRequest.setSender(sender);
+    User receiver = User.builder()
+        .id("receiver123")
+        .firstName("Jane")
+        .lastName("Receiver")
+        .build();
 
-    User receiver = new User();
-    receiver.setId("receiver123");
-    receiver.setFirstName("Jane");
-    receiver.setLastName("Receiver");
-    swapRequest.setReceiver(receiver);
+    Book book = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .build();
 
-    Book book = new Book();
-    book.setId("book123");
-    book.setTitle("Test Book");
-    book.setAuthor("Test Author");
-    swapRequest.setBookToSwapWith(book);
-
-    swapRequest.setSwapType(SwapType.BY_BOOKS);
-    swapRequest.setSwapStatus(SwapStatus.PENDING);
-    swapRequest.setRequestedAt(Instant.now());
-    swapRequest.setUpdatedAt(Instant.now());
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap123")
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book)
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.PENDING)
+        .requestedAt(Instant.now())
+        .updatedAt(Instant.now())
+        .build();
 
     // When
     InboxItemResponse response = new InboxItemResponse(swapRequest);

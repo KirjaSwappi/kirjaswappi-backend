@@ -44,13 +44,13 @@ public class InboxController {
         .map(swapRequest -> {
           InboxItemResponse item = new InboxItemResponse(swapRequest);
           // Add unread message count using cached version
-          long unreadCount = inboxService.getUnreadMessageCount(userId, swapRequest.getId());
+          long unreadCount = inboxService.getUnreadMessageCount(userId, swapRequest.id());
           item.setUnreadMessageCount(unreadCount);
           // Set notification indicators
           item.setUnread(inboxService.isInboxItemUnread(swapRequest, userId));
           item.setHasNewMessages(unreadCount > 0);
           // Set conversation type for UI display
-          item.setConversationType(userId.equals(swapRequest.getSender().getId()) ? "sent" : "received");
+          item.setConversationType(userId.equals(swapRequest.sender().id()) ? "sent" : "received");
           return item;
         })
         .toList();

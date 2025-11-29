@@ -22,90 +22,96 @@ class ChatMessageMapperTest {
   @DisplayName("Should map ChatMessageDao to ChatMessage entity correctly")
   void shouldMapDaoToEntity() {
     // Given
-    var userDao = new UserDao();
-    userDao.setId("user123");
-    userDao.setFirstName("John");
-    userDao.setLastName("Doe");
-    userDao.setEmail("john.doe@example.com");
-    userDao.setPassword("hashedPassword");
-    userDao.setSalt("salt");
-    userDao.setEmailVerified(true);
+    var userDao = UserDao.builder()
+        .id("user123")
+        .firstName("John")
+        .lastName("Doe")
+        .email("john.doe@example.com")
+        .password("hashedPassword")
+        .salt("salt")
+        .isEmailVerified(true)
+        .build();
 
-    var dao = new ChatMessageDao();
-    dao.setId("msg123");
-    dao.setSwapRequestId("swap123");
-    dao.setSender(userDao);
-    dao.setMessage("Hello, is this book still available?");
-    dao.setSentAt(Instant.parse("2025-01-01T10:00:00Z"));
-    dao.setReadByReceiver(false);
+    var dao = ChatMessageDao.builder()
+        .id("msg123")
+        .swapRequestId("swap123")
+        .sender(userDao)
+        .message("Hello, is this book still available?")
+        .sentAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .readByReceiver(false)
+        .build();
 
     // When
     var entity = ChatMessageMapper.toEntity(dao);
 
     // Then
     assertNotNull(entity);
-    assertEquals("msg123", entity.getId());
-    assertEquals("swap123", entity.getSwapRequestId());
-    assertNotNull(entity.getSender());
-    assertEquals("user123", entity.getSender().getId());
-    assertEquals("John", entity.getSender().getFirstName());
-    assertEquals("Hello, is this book still available?", entity.getMessage());
-    assertEquals(Instant.parse("2025-01-01T10:00:00Z"), entity.getSentAt());
-    assertFalse(entity.isReadByReceiver());
+    assertEquals("msg123", entity.id());
+    assertEquals("swap123", entity.swapRequestId());
+    assertNotNull(entity.sender());
+    assertEquals("user123", entity.sender().id());
+    assertEquals("John", entity.sender().firstName());
+    assertEquals("Hello, is this book still available?", entity.message());
+    assertEquals(Instant.parse("2025-01-01T10:00:00Z"), entity.sentAt());
+    assertFalse(entity.readByReceiver());
   }
 
   @Test
   @DisplayName("Should map ChatMessage entity to ChatMessageDao correctly")
   void shouldMapEntityToDao() {
     // Given
-    var user = new User();
-    user.setId("user123");
-    user.setFirstName("John");
-    user.setLastName("Doe");
-    user.setEmail("john.doe@example.com");
-    user.setPassword("hashedPassword");
+    var user = User.builder()
+        .id("user123")
+        .firstName("John")
+        .lastName("Doe")
+        .email("john.doe@example.com")
+        .password("hashedPassword")
+        .build();
 
-    var entity = new ChatMessage();
-    entity.setId("msg123");
-    entity.setSwapRequestId("swap123");
-    entity.setSender(user);
-    entity.setMessage("Hello, is this book still available?");
-    entity.setSentAt(Instant.parse("2025-01-01T10:00:00Z"));
-    entity.setReadByReceiver(false);
+    var entity = ChatMessage.builder()
+        .id("msg123")
+        .swapRequestId("swap123")
+        .sender(user)
+        .message("Hello, is this book still available?")
+        .sentAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .readByReceiver(false)
+        .build();
 
     // When
     var dao = ChatMessageMapper.toDao(entity);
 
     // Then
     assertNotNull(dao);
-    assertEquals("msg123", dao.getId());
-    assertEquals("swap123", dao.getSwapRequestId());
-    assertNotNull(dao.getSender());
-    assertEquals("user123", dao.getSender().getId());
-    assertEquals("John", dao.getSender().getFirstName());
-    assertEquals("Hello, is this book still available?", dao.getMessage());
-    assertEquals(Instant.parse("2025-01-01T10:00:00Z"), dao.getSentAt());
-    assertFalse(dao.isReadByReceiver());
+    assertEquals("msg123", dao.id());
+    assertEquals("swap123", dao.swapRequestId());
+    assertNotNull(dao.sender());
+    assertEquals("user123", dao.sender().id());
+    assertEquals("John", dao.sender().firstName());
+    assertEquals("Hello, is this book still available?", dao.message());
+    assertEquals(Instant.parse("2025-01-01T10:00:00Z"), dao.sentAt());
+    assertFalse(dao.readByReceiver());
   }
 
   @Test
   @DisplayName("Should set current time when sentAt is null in entity")
   void shouldSetCurrentTimeWhenSentAtIsNull() {
     // Given
-    var user = new User();
-    user.setId("user123");
-    user.setFirstName("John");
-    user.setLastName("Doe");
-    user.setEmail("john.doe@example.com");
-    user.setPassword("hashedPassword");
+    var user = User.builder()
+        .id("user123")
+        .firstName("John")
+        .lastName("Doe")
+        .email("john.doe@example.com")
+        .password("hashedPassword")
+        .build();
 
-    var entity = new ChatMessage();
-    entity.setId("msg123");
-    entity.setSwapRequestId("swap123");
-    entity.setSender(user);
-    entity.setMessage("Hello, is this book still available?");
-    entity.setSentAt(null); // null sentAt
-    entity.setReadByReceiver(false);
+    var entity = ChatMessage.builder()
+        .id("msg123")
+        .swapRequestId("swap123")
+        .sender(user)
+        .message("Hello, is this book still available?")
+        .sentAt(null) // null sentAt
+        .readByReceiver(false)
+        .build();
 
     var beforeMapping = Instant.now();
 
@@ -115,8 +121,8 @@ class ChatMessageMapperTest {
     var afterMapping = Instant.now();
 
     // Then
-    assertNotNull(dao.getSentAt());
-    assertTrue(dao.getSentAt().isAfter(beforeMapping.minusSeconds(1)));
-    assertTrue(dao.getSentAt().isBefore(afterMapping.plusSeconds(1)));
+    assertNotNull(dao.sentAt());
+    assertTrue(dao.sentAt().isAfter(beforeMapping.minusSeconds(1)));
+    assertTrue(dao.sentAt().isBefore(afterMapping.plusSeconds(1)));
   }
 }

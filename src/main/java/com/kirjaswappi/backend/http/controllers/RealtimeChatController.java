@@ -6,9 +6,10 @@ package com.kirjaswappi.backend.http.controllers;
 
 import java.security.Principal;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -22,14 +23,13 @@ import com.kirjaswappi.backend.service.entities.ChatMessage;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
 
 @Controller
+@RequiredArgsConstructor
 public class RealtimeChatController {
   private static final Logger logger = LoggerFactory.getLogger(RealtimeChatController.class);
 
-  @Autowired
-  private ChatService chatService;
+  private final ChatService chatService;
 
-  @Autowired
-  private SimpMessagingTemplate messagingTemplate;
+  private final SimpMessagingTemplate messagingTemplate;
 
   @MessageMapping("/chat/{swapRequestId}/send")
   public void sendMessage(
@@ -58,9 +58,9 @@ public class RealtimeChatController {
       response.setSwapContext(createSwapContext(swapRequest));
 
       // Determine receiver ID
-      String receiverId = swapRequest.getSender().getId().equals(userId)
-          ? swapRequest.getReceiver().getId()
-          : swapRequest.getSender().getId();
+      String receiverId = swapRequest.sender().id().equals(userId)
+          ? swapRequest.receiver().id()
+          : swapRequest.sender().id();
 
       // Send to both sender and receiver via WebSocket
       messagingTemplate.convertAndSendToUser(userId, "/queue/chat/" + swapRequestId, response);
@@ -77,22 +77,22 @@ public class RealtimeChatController {
     ChatMessageResponse.SwapContextResponse context = new ChatMessageResponse.SwapContextResponse();
 
     // Set basic swap information
-    context.setSwapType(swapRequest.getSwapType().getCode());
-    context.setSwapStatus(swapRequest.getSwapStatus().getCode());
-    context.setAskForGiveaway(swapRequest.isAskForGiveaway());
+    context.setSwapType(swapRequest.swapType().getCode());
+    context.setSwapStatus(swapRequest.swapStatus().getCode());
+    context.setAskForGiveaway(swapRequest.askForGiveaway());
 
     // Set requested book information
     context.setRequestedBook(
-        new ChatMessageResponse.SwapContextResponse.BookInfoResponse(swapRequest.getBookToSwapWith()));
+        new ChatMessageResponse.SwapContextResponse.BookInfoResponse(swapRequest.bookToSwapWith()));
 
     // Set offered book/genre information if available
-    if (swapRequest.getSwapOffer() != null) {
-      if (swapRequest.getSwapOffer().getOfferedBook() != null) {
+    if (swapRequest.swapOffer() != null) {
+      if (swapRequest.swapOffer().offeredBook() != null) {
         context.setOfferedBook(
-            new ChatMessageResponse.SwapContextResponse.BookInfoResponse(swapRequest.getSwapOffer().getOfferedBook()));
+            new ChatMessageResponse.SwapContextResponse.BookInfoResponse(swapRequest.swapOffer().offeredBook()));
       }
-      if (swapRequest.getSwapOffer().getOfferedGenre() != null) {
-        context.setOfferedGenreName(swapRequest.getSwapOffer().getOfferedGenre().getName());
+      if (swapRequest.swapOffer().offeredGenre() != null) {
+        context.setOfferedGenreName(swapRequest.swapOffer().offeredGenre().getName());
       }
     }
 

@@ -10,7 +10,11 @@ import com.kirjaswappi.backend.service.entities.BookLocation;
 /**
  * Mapper for converting between BookLocation entity and BookLocationDao.
  */
-public class BookLocationMapper {
+public final class BookLocationMapper {
+
+  private BookLocationMapper() {
+    throw new IllegalStateException("Mapper class should not be instantiated");
+  }
 
   /**
    * Converts BookLocation entity to BookLocationDao.
@@ -23,21 +27,16 @@ public class BookLocationMapper {
       return null;
     }
 
-    var dao = new BookLocationDao();
-    dao.setLatitude(entity.getLatitude());
-    dao.setLongitude(entity.getLongitude());
-    dao.setAddress(entity.getAddress());
-    dao.setCity(entity.getCity());
-    dao.setCountry(entity.getCountry());
-    dao.setPostalCode(entity.getPostalCode());
-    dao.setRadiusKm(entity.getRadiusKm());
-
-    // Set GeoJSON coordinates if both lat/lng are valid
-    if (entity.hasCoordinates()) {
-      dao.setCoordinates(new Double[] { entity.getLongitude(), entity.getLatitude() });
-    }
-
-    return dao;
+    return BookLocationDao.builder()
+        .latitude(entity.latitude())
+        .longitude(entity.longitude())
+        .address(entity.address())
+        .city(entity.city())
+        .country(entity.country())
+        .postalCode(entity.postalCode())
+        .radiusKm(entity.radiusKm())
+        .coordinates(entity.hasCoordinates() ? new Double[] { entity.longitude(), entity.latitude() } : null)
+        .build();
   }
 
   /**
@@ -51,22 +50,24 @@ public class BookLocationMapper {
       return null;
     }
 
-    var entity = new BookLocation();
-    entity.setLatitude(dao.getLatitude());
-    entity.setLongitude(dao.getLongitude());
-    entity.setAddress(dao.getAddress());
-    entity.setCity(dao.getCity());
-    entity.setCountry(dao.getCountry());
-    entity.setPostalCode(dao.getPostalCode());
-    entity.setRadiusKm(dao.getRadiusKm());
+    Double latitude = dao.latitude();
+    Double longitude = dao.longitude();
 
-    // If coordinates are missing but GeoJSON coordinates exist, use those
-    if ((entity.getLatitude() == null || entity.getLongitude() == null) && dao.getCoordinates() != null
-        && dao.getCoordinates().length == 2) {
-      entity.setLongitude(dao.getCoordinates()[0]);
-      entity.setLatitude(dao.getCoordinates()[1]);
+    // If lat/lon are missing but GeoJSON coordinates exist, use those
+    if ((latitude == null || longitude == null) && dao.coordinates() != null
+        && dao.coordinates().length == 2) {
+      longitude = dao.coordinates()[0];
+      latitude = dao.coordinates()[1];
     }
 
-    return entity;
+    return BookLocation.builder()
+        .latitude(latitude)
+        .longitude(longitude)
+        .address(dao.address())
+        .city(dao.city())
+        .country(dao.country())
+        .postalCode(dao.postalCode())
+        .radiusKm(dao.radiusKm())
+        .build();
   }
 }

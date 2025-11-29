@@ -28,12 +28,12 @@ public class AddFavouriteBookRequest {
 
   public User toEntity() {
     this.validateProperties();
-    var user = new User();
-    user.setId(userId);
-    var book = new Book();
-    book.setId(bookId);
-    user.setFavBooks(List.of(book));
-    return user;
+    var book = Book.builder().id(bookId).build();
+
+    return User.builder()
+        .id(this.userId)
+        .favBooks(List.of(book))
+        .build();
   }
 
   private void validateProperties() {

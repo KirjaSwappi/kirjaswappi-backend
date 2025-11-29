@@ -11,10 +11,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import lombok.Getter;
+import lombok.experimental.Accessors;
 
 import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 
 @Getter
+@Accessors(fluent = true)
 public enum Language {
   ENGLISH("English"),
   FINNISH("Finnish"),
@@ -45,14 +47,14 @@ public enum Language {
   public static Language fromCode(String code) {
     Objects.requireNonNull(code);
     return Arrays.stream(Language.values())
-        .filter(l -> l.getCode().equalsIgnoreCase(code))
+        .filter(l -> l.code().equalsIgnoreCase(code))
         .findFirst()
         .orElseThrow(() -> new BadRequestException("invalidLanguage", code));
   }
 
   public static List<String> getSupportedLanguages() {
     return Stream.of(Language.values())
-        .map(Language::getCode)
+        .map(Language::code)
         .sorted()
         .collect(Collectors.toList());
   }

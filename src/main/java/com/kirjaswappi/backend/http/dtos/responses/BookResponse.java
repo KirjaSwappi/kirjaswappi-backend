@@ -31,18 +31,18 @@ public class BookResponse {
   private BookLocationResponse location;
 
   public BookResponse(Book entity) {
-    this.id = entity.getId();
-    this.title = entity.getTitle();
-    this.author = entity.getAuthor();
-    this.genres = entity.getGenres() == null ? null : entity.getGenres().stream().map(Genre::getName).toList();
-    this.language = entity.getLanguage() == null ? null : entity.getLanguage().getCode();
-    this.description = entity.getDescription() == null ? null : entity.getDescription();
-    this.condition = entity.getCondition() == null ? null : entity.getCondition().getCode();
-    this.coverPhotoUrls = entity.getCoverPhotos() == null ? null : entity.getCoverPhotos();
-    this.owner = entity.getOwner() == null ? null : new OwnerResponse(entity.getOwner());
-    this.swapCondition = entity.getSwapCondition() == null ? null
-        : new SwapConditionResponse(entity.getSwapCondition());
-    this.location = entity.getLocation() == null ? null : new BookLocationResponse(entity.getLocation());
+    this.id = entity.id();
+    this.title = entity.title();
+    this.author = entity.author();
+    this.genres = entity.genres() == null ? null : entity.genres().stream().map(Genre::getName).toList();
+    this.language = entity.language() == null ? null : entity.language().code();
+    this.description = entity.description() == null ? null : entity.description();
+    this.condition = entity.condition() == null ? null : entity.condition().code();
+    this.coverPhotoUrls = entity.coverPhotos() == null ? null : entity.coverPhotos();
+    this.owner = entity.owner() == null ? null : new OwnerResponse(entity.owner());
+    this.swapCondition = entity.swapCondition() == null ? null
+        : new SwapConditionResponse(entity.swapCondition());
+    this.location = entity.location() == null ? null : new BookLocationResponse(entity.location());
   }
 
   @Setter
@@ -52,8 +52,8 @@ public class BookResponse {
     private String name;
 
     public OwnerResponse(User entity) {
-      this.id = entity.getId();
-      this.name = entity.getFirstName() + " " + entity.getLastName();
+      this.id = entity.id();
+      this.name = entity.firstName() + " " + entity.lastName();
     }
   }
 
@@ -67,14 +67,14 @@ public class BookResponse {
     private List<SwappableBookResponse> swappableBooks;
 
     public SwapConditionResponse(SwapCondition entity) {
-      this.swapType = entity.getSwapType().getCode();
-      this.giveAway = entity.isGiveAway();
-      this.openForOffers = entity.isOpenForOffers();
-      if (entity.getSwappableGenres() != null) {
-        this.swappableGenres = entity.getSwappableGenres();
+      this.swapType = entity.swapType().getCode();
+      this.giveAway = entity.giveAway();
+      this.openForOffers = entity.openForOffers();
+      if (entity.swappableGenres() != null) {
+        this.swappableGenres = entity.swappableGenres();
       }
-      if (entity.getSwappableBooks() != null) {
-        this.swappableBooks = entity.getSwappableBooks()
+      if (entity.swappableBooks() != null) {
+        this.swappableBooks = entity.swappableBooks()
             .stream().map(SwappableBookResponse::new).toList();
       }
     }

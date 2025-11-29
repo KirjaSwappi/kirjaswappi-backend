@@ -61,7 +61,7 @@ public class PhotoService {
 
   public String getPhotoByUserEmail(String email, boolean isProfilePhoto) {
     var user = userRepository.findByEmailAndIsEmailVerified(email, true).orElseThrow(UserNotFoundException::new);
-    var uniqueId = isProfilePhoto ? user.getProfilePhoto() : user.getCoverPhoto();
+    var uniqueId = isProfilePhoto ? user.profilePhoto() : user.coverPhoto();
     if (uniqueId == null)
       throw new PhotoNotFoundException();
     return imageService.getDownloadUrl(uniqueId);
@@ -69,7 +69,7 @@ public class PhotoService {
 
   public String getPhotoByUserId(String userId, boolean isProfilePhoto) {
     var user = userRepository.findByIdAndIsEmailVerifiedTrue(userId).orElseThrow(UserNotFoundException::new);
-    var uniqueId = isProfilePhoto ? user.getProfilePhoto() : user.getCoverPhoto();
+    var uniqueId = isProfilePhoto ? user.profilePhoto() : user.coverPhoto();
     if (uniqueId == null)
       throw new PhotoNotFoundException();
     return imageService.getDownloadUrl(uniqueId);
@@ -94,12 +94,12 @@ public class PhotoService {
 
   private String addUserPhoto(String userId, MultipartFile file, boolean isProfilePhoto) {
     var userDao = userRepository.findByIdAndIsEmailVerifiedTrue(userId).orElseThrow(UserNotFoundException::new);
-    var uniqueId = userDao.getId() + "-" + (isProfilePhoto ? "ProfilePhoto" : "CoverPhoto");
+    var uniqueId = userDao.id() + "-" + (isProfilePhoto ? "ProfilePhoto" : "CoverPhoto");
     imageService.uploadImage(file, uniqueId);
     if (isProfilePhoto) {
-      userDao.setProfilePhoto(uniqueId);
+      userDao.profilePhoto(uniqueId);
     } else {
-      userDao.setCoverPhoto(uniqueId);
+      userDao.coverPhoto(uniqueId);
     }
     userRepository.save(userDao);
     return imageService.getDownloadUrl(uniqueId);
@@ -107,14 +107,14 @@ public class PhotoService {
 
   private void deleteUserPhoto(String userId, boolean isProfilePhoto) {
     var userDao = userRepository.findByIdAndIsEmailVerifiedTrue(userId).orElseThrow(UserNotFoundException::new);
-    var uniqueId = isProfilePhoto ? userDao.getProfilePhoto() : userDao.getCoverPhoto();
+    var uniqueId = isProfilePhoto ? userDao.profilePhoto() : userDao.coverPhoto();
     if (uniqueId == null)
       throw new PhotoNotFoundException();
     imageService.deleteImage(uniqueId);
     if (isProfilePhoto) {
-      userDao.setProfilePhoto(null);
+      userDao.profilePhoto(null);
     } else {
-      userDao.setCoverPhoto(null);
+      userDao.coverPhoto(null);
     }
     userRepository.save(userDao);
   }
@@ -122,7 +122,7 @@ public class PhotoService {
   public void deleteSupportedCoverPhoto(String coverPhotoId) {
     var dao = photoRepository.findById(coverPhotoId)
         .orElseThrow(() -> new ResourceNotFoundException("coverPhotoNotFound", coverPhotoId));
-    imageService.deleteImage(dao.getCoverPhoto());
+    imageService.deleteImage(dao.coverPhoto());
     photoRepository.delete(dao);
   }
 
@@ -140,10 +140,10 @@ public class PhotoService {
   public List<Photo> findSupportedCoverPhoto() {
     List<Photo> supportedPhotos = new ArrayList<>();
     for (PhotoDao supportedPhoto : photoRepository.findAll()) {
-      if (supportedPhoto.getCoverPhoto() == null)
+      if (supportedPhoto.coverPhoto() == null)
         throw new PhotoNotFoundException();
-      supportedPhotos.add(PhotoMapper.toEntity(supportedPhoto.getId(),
-          imageService.getDownloadUrl(supportedPhoto.getCoverPhoto())));
+      supportedPhotos.add(PhotoMapper.toEntity(supportedPhoto.id(),
+          imageService.getDownloadUrl(supportedPhoto.coverPhoto())));
     }
     return supportedPhotos;
   }

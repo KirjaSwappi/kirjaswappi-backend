@@ -34,12 +34,12 @@ public class CreateUserRequest {
 
   public User toEntity() {
     this.validateProperties();
-    var entity = new User();
-    entity.setFirstName(this.firstName);
-    entity.setLastName(this.lastName);
-    entity.setEmail(this.email.toLowerCase());
-    entity.setPassword(this.password);
-    return entity;
+    return User.builder()
+        .firstName(this.firstName)
+        .lastName(this.lastName)
+        .email(this.email.toLowerCase())
+        .password(this.password)
+        .build();
   }
 
   private void validateProperties() {
