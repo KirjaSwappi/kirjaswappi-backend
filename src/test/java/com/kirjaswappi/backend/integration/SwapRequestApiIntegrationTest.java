@@ -277,7 +277,7 @@ class SwapRequestApiIntegrationTest {
 
     @Test
     @DisplayName("Should update status to Reserved successfully")
-    void shouldUpdateStatusToCompleted() throws Exception {
+    void shouldUpdateStatusToReserved() throws Exception {
       User sender = createTestUser("sender-1", "Sender");
       User receiver = createTestUser("receiver-1", "Receiver");
       Book book = createTestBook("book-1", "Test Book", receiver);
