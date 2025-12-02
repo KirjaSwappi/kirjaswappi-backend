@@ -65,8 +65,17 @@ public class CreateBookRequest {
       }""")
   private String swapCondition;
 
-  @Schema(description = "Location information for the book")
-  private BookLocationRequest location;
+  @Schema(description = "Location information for the book in JSON format.", example = """
+      {
+        "latitude": 60.1699,
+        "longitude": 24.9384,
+        "address": "Mannerheimintie 12",
+        "city": "Helsinki",
+        "country": "Finland",
+        "postalCode": "00100",
+        "radiusKm": 50
+      }""")
+  private String location;
 
   public Book toEntity() {
     this.validateProperties();
@@ -81,7 +90,6 @@ public class CreateBookRequest {
         .genres(this.genres.stream().map(Genre::new).toList())
         .coverPhotoFiles(this.coverPhotos)
         .owner(user)
-        .location(this.location != null ? this.location.toEntity() : null)
         .build();
   }
 
