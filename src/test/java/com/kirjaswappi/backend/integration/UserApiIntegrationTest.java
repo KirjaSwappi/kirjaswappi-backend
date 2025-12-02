@@ -338,9 +338,8 @@ class UserApiIntegrationTest {
     @DisplayName("Should return 400 when request body is missing")
     void shouldReturn400WhenRequestBodyMissing() throws Exception {
       mockMvc.perform(post(API_BASE + "/login-with-google")
-          .contentType(MediaType.APPLICATION_JSON)
-          .content("{}"))
-          .andExpect(status().isUnauthorized());
+          .contentType(MediaType.APPLICATION_JSON))
+          .andExpect(status().isBadRequest());
     }
   }
 
