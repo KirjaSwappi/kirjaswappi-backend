@@ -20,6 +20,9 @@ public class ValidationUtil {
   }
 
   public static boolean validateEmail(String emailAddress) {
+    if (emailAddress == null || emailAddress.trim().isEmpty()) {
+      return false;
+    }
     String regexPattern = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
     return Pattern.compile(regexPattern).matcher(emailAddress).matches();
   }

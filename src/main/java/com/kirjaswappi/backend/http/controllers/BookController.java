@@ -59,7 +59,7 @@ public class BookController {
       @ApiResponse(responseCode = "201", description = "Book created.") })
   public ResponseEntity<BookResponse> createBook(@Valid @ModelAttribute CreateBookRequest book) {
     Book entity = book.toEntity();
-    this.parseBookSwapCondition(book.getSwapCondition(), entity);
+    entity = this.parseBookSwapCondition(book.getSwapCondition(), entity);
     Book savedBook = bookService.createBook(entity);
     return ResponseEntity.status(HttpStatus.CREATED).body(new BookResponse(savedBook));
   }
@@ -175,7 +175,7 @@ public class BookController {
       throw new BadRequestException("idMismatch", id, request.getId());
     }
     Book entity = request.toEntity();
-    this.parseBookSwapCondition(request.getSwapCondition(), entity);
+    entity = this.parseBookSwapCondition(request.getSwapCondition(), entity);
     Book updatedBook = bookService.updateBook(entity);
     return ResponseEntity.status(HttpStatus.OK).body(new BookResponse(updatedBook));
   }
@@ -196,10 +196,11 @@ public class BookController {
     return ResponseEntity.noContent().build();
   }
 
-  private void parseBookSwapCondition(String swapConditionJson, Book book) {
+  private Book parseBookSwapCondition(String swapConditionJson, Book book) {
     var objectMapper = new ObjectMapper();
     try {
-      objectMapper.readValue(swapConditionJson, SwapConditionRequest.class).toEntity();
+      var swapCondition = objectMapper.readValue(swapConditionJson, SwapConditionRequest.class).toEntity();
+      return book.withSwapCondition(swapCondition);
     } catch (Exception _) {
       throw new BadRequestException("invalidSwapConditionRequest", swapConditionJson);
     }

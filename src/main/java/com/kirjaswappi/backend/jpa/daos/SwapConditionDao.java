@@ -27,9 +27,7 @@ public class SwapConditionDao {
   @NotNull
   private boolean openForOffers;
 
-  @NotNull
   private List<GenreDao> swappableGenres;
 
-  @NotNull
   private List<SwappableBookDao> swappableBooks;
 }
