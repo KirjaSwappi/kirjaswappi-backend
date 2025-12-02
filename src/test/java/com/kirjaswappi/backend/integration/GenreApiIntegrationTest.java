@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -297,5 +298,382 @@ class GenreApiIntegrationTest {
         .parent(parent)
         .build();
     return genreRepository.save(genre);
+  }
+
+  // ========== POST /api/v1/genres - Create Genre Tests ==========
+
+  @Nested
+  @DisplayName("POST /api/v1/genres - Create Genre")
+  class CreateGenreTests {
+
+    @Test
+    @DisplayName("Should create a parent genre successfully")
+    void shouldCreateParentGenreSuccessfully() throws Exception {
+      String requestBody = """
+          {
+            "name": "Fiction",
+            "parentId": null
+          }
+          """;
+
+      mockMvc.perform(post("/api/v1/genres")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isCreated())
+          .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+          .andExpect(jsonPath("$.id").exists())
+          .andExpect(jsonPath("$.name").value("Fiction"));
+    }
+
+    @Test
+    @DisplayName("Should create a child genre with parent reference")
+    void shouldCreateChildGenreWithParentReference() throws Exception {
+      // First create a parent genre
+      GenreDao parent = createGenre("parent-id", "Fiction", null);
+
+      String requestBody = """
+          {
+            "name": "Science Fiction",
+            "parentId": "parent-id"
+          }
+          """;
+
+      mockMvc.perform(post("/api/v1/genres")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isCreated())
+          .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+          .andExpect(jsonPath("$.id").exists())
+          .andExpect(jsonPath("$.name").value("Science Fiction"));
+    }
+
+    @Test
+    @DisplayName("Should create genre with empty parentId string as parent genre")
+    void shouldCreateGenreWithEmptyParentIdAsParentGenre() throws Exception {
+      String requestBody = """
+          {
+            "name": "Non-Fiction",
+            "parentId": ""
+          }
+          """;
+
+      mockMvc.perform(post("/api/v1/genres")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isCreated())
+          .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+          .andExpect(jsonPath("$.id").exists())
+          .andExpect(jsonPath("$.name").value("Non-Fiction"));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when name is blank")
+    void shouldReturn400WhenNameIsBlank() throws Exception {
+      String requestBody = """
+          {
+            "name": "",
+            "parentId": null
+          }
+          """;
+
+      mockMvc.perform(post("/api/v1/genres")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should return 400 when name is null")
+    void shouldReturn400WhenNameIsNull() throws Exception {
+      String requestBody = """
+          {
+            "name": null,
+            "parentId": null
+          }
+          """;
+
+      mockMvc.perform(post("/api/v1/genres")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should return 400 when name is whitespace only")
+    void shouldReturn400WhenNameIsWhitespaceOnly() throws Exception {
+      String requestBody = """
+          {
+            "name": "   ",
+            "parentId": null
+          }
+          """;
+
+      mockMvc.perform(post("/api/v1/genres")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should create genre with special characters in name")
+    void shouldCreateGenreWithSpecialCharactersInName() throws Exception {
+      String requestBody = """
+          {
+            "name": "Children's Books & Literature",
+            "parentId": null
+          }
+          """;
+
+      mockMvc.perform(post("/api/v1/genres")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isCreated())
+          .andExpect(jsonPath("$.name").value("Children's Books & Literature"));
+    }
+
+    @Test
+    @DisplayName("Should return 400 for invalid JSON request body")
+    void shouldReturn400ForInvalidJsonRequestBody() throws Exception {
+      String invalidJson = "{ invalid json }";
+
+      mockMvc.perform(post("/api/v1/genres")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(invalidJson))
+          .andExpect(status().isBadRequest());
+    }
+  }
+
+  // ========== PUT /api/v1/genres/{id} - Update Genre Tests ==========
+
+  @Nested
+  @DisplayName("PUT /api/v1/genres/{id} - Update Genre")
+  class UpdateGenreTests {
+
+    @Test
+    @DisplayName("Should update genre name successfully")
+    void shouldUpdateGenreNameSuccessfully() throws Exception {
+      // Create a genre first
+      GenreDao genre = createGenre("update-test-id", "Fiction", null);
+
+      String requestBody = """
+          {
+            "id": "update-test-id",
+            "name": "Updated Fiction",
+            "parentId": null
+          }
+          """;
+
+      mockMvc.perform(put("/api/v1/genres/update-test-id")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isOk())
+          .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+          .andExpect(jsonPath("$.id").value("update-test-id"))
+          .andExpect(jsonPath("$.name").value("Updated Fiction"));
+    }
+
+    @Test
+    @DisplayName("Should update genre to have a parent")
+    void shouldUpdateGenreToHaveParent() throws Exception {
+      // Create parent and child genres
+      GenreDao parent = createGenre("parent-genre-id", "Fiction", null);
+      GenreDao child = createGenre("child-genre-id", "Science Fiction", null);
+
+      String requestBody = """
+          {
+            "id": "child-genre-id",
+            "name": "Science Fiction",
+            "parentId": "parent-genre-id"
+          }
+          """;
+
+      mockMvc.perform(put("/api/v1/genres/child-genre-id")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value("child-genre-id"))
+          .andExpect(jsonPath("$.name").value("Science Fiction"));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when path id and body id mismatch")
+    void shouldReturn400WhenPathIdAndBodyIdMismatch() throws Exception {
+      GenreDao genre = createGenre("original-id", "Fiction", null);
+
+      String requestBody = """
+          {
+            "id": "different-id",
+            "name": "Updated Fiction",
+            "parentId": null
+          }
+          """;
+
+      mockMvc.perform(put("/api/v1/genres/original-id")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should return 400 when name is blank on update")
+    void shouldReturn400WhenNameIsBlankOnUpdate() throws Exception {
+      GenreDao genre = createGenre("blank-name-test", "Fiction", null);
+
+      String requestBody = """
+          {
+            "id": "blank-name-test",
+            "name": "",
+            "parentId": null
+          }
+          """;
+
+      mockMvc.perform(put("/api/v1/genres/blank-name-test")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should return 400 when id is blank on update")
+    void shouldReturn400WhenIdIsBlankOnUpdate() throws Exception {
+      String requestBody = """
+          {
+            "id": "",
+            "name": "Fiction",
+            "parentId": null
+          }
+          """;
+
+      mockMvc.perform(put("/api/v1/genres/some-id")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should return 400 when updating non-existent genre")
+    void shouldReturn400WhenUpdatingNonExistentGenre() throws Exception {
+      String requestBody = """
+          {
+            "id": "non-existent-id",
+            "name": "Updated Genre",
+            "parentId": null
+          }
+          """;
+
+      mockMvc.perform(put("/api/v1/genres/non-existent-id")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should update genre to remove parent")
+    void shouldUpdateGenreToRemoveParent() throws Exception {
+      // Create parent and child
+      GenreDao parent = createGenre("parent-remove-id", "Fiction", null);
+      GenreDao child = createGenre("child-remove-parent", "Science Fiction", parent);
+
+      String requestBody = """
+          {
+            "id": "child-remove-parent",
+            "name": "Science Fiction",
+            "parentId": null
+          }
+          """;
+
+      mockMvc.perform(put("/api/v1/genres/child-remove-parent")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(requestBody))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value("child-remove-parent"))
+          .andExpect(jsonPath("$.name").value("Science Fiction"));
+    }
+  }
+
+  // ========== DELETE /api/v1/genres/{id} - Delete Genre Tests ==========
+
+  @Nested
+  @DisplayName("DELETE /api/v1/genres/{id} - Delete Genre")
+  class DeleteGenreTests {
+
+    @Test
+    @DisplayName("Should delete genre successfully")
+    void shouldDeleteGenreSuccessfully() throws Exception {
+      GenreDao genre = createGenre("delete-test-id", "Fiction", null);
+
+      mockMvc.perform(delete("/api/v1/genres/delete-test-id"))
+          .andExpect(status().isNoContent());
+
+      // Verify genre is deleted by trying to get it via nested response
+      mockMvc.perform(get("/api/v1/genres"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.parentGenres.Fiction").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("Should delete parent genre with child genres")
+    void shouldDeleteParentGenreWithChildGenres() throws Exception {
+      GenreDao parent = createGenre("parent-to-delete", "Fiction", null);
+      GenreDao child1 = createGenre("child-1", "Science Fiction", parent);
+      GenreDao child2 = createGenre("child-2", "Fantasy", parent);
+
+      mockMvc.perform(delete("/api/v1/genres/parent-to-delete"))
+          .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("Should delete child genre leaving parent intact")
+    void shouldDeleteChildGenreLeavingParentIntact() throws Exception {
+      GenreDao parent = createGenre("parent-intact", "Fiction", null);
+      GenreDao child = createGenre("child-to-delete", "Science Fiction", parent);
+
+      mockMvc.perform(delete("/api/v1/genres/child-to-delete"))
+          .andExpect(status().isNoContent());
+
+      // Verify parent still exists
+      mockMvc.perform(get("/api/v1/genres"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.parentGenres.Fiction").exists())
+          .andExpect(jsonPath("$.parentGenres.Fiction.id").value("parent-intact"));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when deleting non-existent genre")
+    void shouldReturn400WhenDeletingNonExistentGenre() throws Exception {
+      mockMvc.perform(delete("/api/v1/genres/non-existent-genre-id"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should handle deleting genre with special characters in id")
+    void shouldHandleDeletingGenreWithSpecialId() throws Exception {
+      GenreDao genre = createGenre("special-id-123", "Test Genre", null);
+
+      mockMvc.perform(delete("/api/v1/genres/special-id-123"))
+          .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("Should delete multiple genres in sequence")
+    void shouldDeleteMultipleGenresInSequence() throws Exception {
+      GenreDao genre1 = createGenre("seq-delete-1", "Genre 1", null);
+      GenreDao genre2 = createGenre("seq-delete-2", "Genre 2", null);
+      GenreDao genre3 = createGenre("seq-delete-3", "Genre 3", null);
+
+      mockMvc.perform(delete("/api/v1/genres/seq-delete-1"))
+          .andExpect(status().isNoContent());
+
+      mockMvc.perform(delete("/api/v1/genres/seq-delete-2"))
+          .andExpect(status().isNoContent());
+
+      mockMvc.perform(delete("/api/v1/genres/seq-delete-3"))
+          .andExpect(status().isNoContent());
+
+      // Verify all are deleted
+      mockMvc.perform(get("/api/v1/genres"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.parentGenres").isEmpty());
+    }
   }
 }

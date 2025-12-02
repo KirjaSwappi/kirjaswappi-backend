@@ -41,7 +41,9 @@ public class BookListResponse {
     this.language = entity.language().code();
     this.description = entity.description();
     this.condition = entity.condition().code();
-    this.coverPhotoUrl = entity.coverPhotos() != null ? entity.coverPhotos().getFirst() : null;
+    this.coverPhotoUrl = entity.coverPhotos() != null && !entity.coverPhotos().isEmpty()
+        ? entity.coverPhotos().getFirst()
+        : null;
     this.bookLocation = entity.owner() != null ? entity.owner().city() : null;
     this.location = entity.location() != null ? new BookLocationResponse(entity.location()) : null;
     this.offeredAgo = this.getOfferedAgoHumanReadable(entity.getOfferedAgo());
