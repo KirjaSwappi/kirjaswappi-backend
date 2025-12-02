@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kirjaswappi.backend.common.utils.LinkBuilder;
+import com.kirjaswappi.backend.http.dtos.requests.BookLocationRequest;
 import com.kirjaswappi.backend.http.dtos.requests.CreateBookRequest;
 import com.kirjaswappi.backend.http.dtos.requests.SwapConditionRequest;
 import com.kirjaswappi.backend.http.dtos.requests.UpdateBookRequest;
@@ -60,6 +61,7 @@ public class BookController {
   public ResponseEntity<BookResponse> createBook(@Valid @ModelAttribute CreateBookRequest book) {
     Book entity = book.toEntity();
     entity = this.parseBookSwapCondition(book.getSwapCondition(), entity);
+    entity = this.parseBookLocation(book.getLocation(), entity);
     Book savedBook = bookService.createBook(entity);
     return ResponseEntity.status(HttpStatus.CREATED).body(new BookResponse(savedBook));
   }
@@ -176,6 +178,7 @@ public class BookController {
     }
     Book entity = request.toEntity();
     entity = this.parseBookSwapCondition(request.getSwapCondition(), entity);
+    entity = this.parseBookLocation(request.getLocation(), entity);
     Book updatedBook = bookService.updateBook(entity);
     return ResponseEntity.status(HttpStatus.OK).body(new BookResponse(updatedBook));
   }
@@ -203,6 +206,19 @@ public class BookController {
       return book.withSwapCondition(swapCondition);
     } catch (Exception _) {
       throw new BadRequestException("invalidSwapConditionRequest", swapConditionJson);
+    }
+  }
+
+  private Book parseBookLocation(String locationJson, Book book) {
+    if (locationJson == null || locationJson.isBlank()) {
+      return book;
+    }
+    var objectMapper = new ObjectMapper();
+    try {
+      var location = objectMapper.readValue(locationJson, BookLocationRequest.class).toEntity();
+      return book.withLocation(location);
+    } catch (Exception _) {
+      throw new BadRequestException("invalidLocationRequest", locationJson);
     }
   }
 }

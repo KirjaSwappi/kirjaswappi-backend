@@ -256,6 +256,47 @@ class BookApiIntegrationTest {
     }
 
     @Test
+    @DisplayName("Should create book with location data as JSON string")
+    void shouldCreateBookWithLocationAsJsonString() throws Exception {
+      Book book = createTestBookWithLocation("book-6", "JSON Located Book", "Helsinki", "Finland");
+      when(bookService.createBook(any())).thenReturn(book);
+
+      String swapCondition = """
+          {
+            "swapType": "GiveAway",
+            "giveAway": true,
+            "openForOffers": false,
+            "genres": null,
+            "books": null
+          }
+          """;
+
+      String locationJson = """
+          {
+            "latitude": 60.1699,
+            "longitude": 24.9384,
+            "address": "Mannerheimintie 1",
+            "city": "Helsinki",
+            "country": "Finland",
+            "postalCode": "00100",
+            "radiusKm": 50
+          }
+          """;
+
+      mockMvc.perform(multipart(API_BASE)
+          .file(coverPhoto)
+          .param("title", "JSON Located Book")
+          .param("author", "Local Author")
+          .param("language", "English")
+          .param("condition", "Good")
+          .param("genres", "Fiction")
+          .param("ownerId", "user-123")
+          .param("swapCondition", swapCondition)
+          .param("location", locationJson))
+          .andExpect(status().isCreated());
+    }
+
+    @Test
     @DisplayName("Should return 400 when title is missing")
     void shouldReturn400WhenTitleMissing() throws Exception {
       String swapCondition = """
@@ -546,6 +587,51 @@ class BookApiIntegrationTest {
             return request;
           }))
           .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should update book with location data as JSON string")
+    void shouldUpdateBookWithLocationAsJsonString() throws Exception {
+      Book book = createTestBookWithLocation("book-1", "Updated Book", "Helsinki", "Finland");
+      when(bookService.updateBook(any())).thenReturn(book);
+
+      String swapCondition = """
+          {
+            "swapType": "GiveAway",
+            "giveAway": true,
+            "openForOffers": false,
+            "genres": null,
+            "books": null
+          }
+          """;
+
+      String locationJson = """
+          {
+            "latitude": 60.1699,
+            "longitude": 24.9384,
+            "address": "Mannerheimintie 1",
+            "city": "Helsinki",
+            "country": "Finland",
+            "postalCode": "00100",
+            "radiusKm": 50
+          }
+          """;
+
+      mockMvc.perform(multipart(API_BASE + "/book-1")
+          .file(coverPhoto)
+          .param("id", "book-1")
+          .param("title", "Updated Book")
+          .param("author", "Updated Author")
+          .param("language", "English")
+          .param("condition", "Good")
+          .param("genres", "Fiction")
+          .param("swapCondition", swapCondition)
+          .param("location", locationJson)
+          .with(request -> {
+            request.setMethod("PUT");
+            return request;
+          }))
+          .andExpect(status().isOk());
     }
   }
 
