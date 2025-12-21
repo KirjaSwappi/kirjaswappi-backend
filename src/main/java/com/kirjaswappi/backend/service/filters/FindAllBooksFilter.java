@@ -28,7 +28,7 @@ public class FindAllBooksFilter {
       "New", "Like New", "Good", "Fair", "Poor" })
   List<String> conditions;
 
-  @Schema(description = "Filter parameter for the genre of the book.", example = "[\"Fiction\"]", allowableValues = {
+  @Schema(description = "Filter parameter for the genre of the book. Supports both parent genres (e.g., 'Fiction') which will return books from all child genres, and specific child genres.", example = "[\"Fiction\"]", allowableValues = {
       "Fantasy", "Science Fiction", "Mystery", "Horror", "Romance", "Thriller", "Historical Fiction", "Non-Fiction" })
   List<String> genres;
 

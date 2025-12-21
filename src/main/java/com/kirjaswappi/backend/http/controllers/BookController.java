@@ -108,7 +108,7 @@ public class BookController {
   }
 
   @GetMapping
-  @Operation(summary = "Search for books with filtering, sorting, and pagination.", description = "Search for books with optional filter properties including language, condition, genres, city, country, location coordinates, and owner filters. Supports pagination and sorting by title, author, createdAt, condition, or language.", responses = {
+  @Operation(summary = "Search for books with filtering, sorting, and pagination.", description = "Search for books with optional filter properties including language, condition, genres (supports parent genres which return books from all child genres), city, country, location coordinates, and owner filters. Supports pagination and sorting by title, author, createdAt, condition, or language.", responses = {
       @ApiResponse(responseCode = "200", description = "Paginated list of books matching the filter criteria."),
       @ApiResponse(responseCode = "400", description = "Invalid filter parameters provided.") })
   public ResponseEntity<PagedModel<BookListResponse>> findAllBooks(
