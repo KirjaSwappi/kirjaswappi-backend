@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.kirjaswappi.backend.common.service.NotificationService;
+import com.kirjaswappi.backend.common.service.NotificationClient;
 import com.kirjaswappi.backend.jpa.daos.SwapRequestDao;
 import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
 import com.kirjaswappi.backend.mapper.SwapRequestMapper;
@@ -39,7 +39,7 @@ public class SwapService {
 
   private final SwapRequestRepository swapRequestRepository;
 
-  private final NotificationService notificationService;
+  private final NotificationClient notificationClient;
 
   public SwapRequest createSwapRequest(SwapRequest swapRequest) {
     // validation: check if the swap request exists already for this book
@@ -117,7 +117,7 @@ public class SwapService {
       String notificationMessage = String.format("%s %s wants to swap for your book '%s'",
           sender.firstName(), sender.lastName(), bookToSwapWith.title());
 
-      notificationService.sendNotification(receiver.id(), notificationTitle, notificationMessage);
+      notificationClient.sendNotification(receiver.id(), notificationTitle, notificationMessage);
     } catch (Exception e) {
       // Log error but don't fail the swap request creation
       logger.error("Failed to send notification for new swap request. Receiver: {}, Book: {}",
@@ -166,7 +166,7 @@ public class SwapService {
           swapRequest.bookToSwapWith().title(),
           newStatus.getCode().toLowerCase());
 
-      notificationService.sendNotification(swapRequest.sender().id(), notificationTitle, notificationMessage);
+      notificationClient.sendNotification(swapRequest.sender().id(), notificationTitle, notificationMessage);
     } catch (Exception e) {
       // Log error but don't fail the status update
       logger.error("Failed to send notification for swap request status update. Sender: {}, Status: {}",

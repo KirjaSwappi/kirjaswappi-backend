@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 import com.google.protobuf.Timestamp;
 
 @Service
-public class NotificationService {
+public class NotificationService implements NotificationClient {
   private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
 
   private final ManagedChannel channel;

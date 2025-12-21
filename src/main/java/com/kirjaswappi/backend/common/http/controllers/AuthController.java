@@ -38,8 +38,8 @@ public class AuthController {
   @PostMapping
   @Operation(summary = "Authenticate an admin user.", description = "Authenticate via admin user and generate a JWT token.", responses = {
       @ApiResponse(responseCode = "200", description = "JWT token generated."),
-      @ApiResponse(responseCode = "401", description = "Invalid credentials."),
-  })
+      @ApiResponse(responseCode = "400", description = "Invalid request body."),
+      @ApiResponse(responseCode = "401", description = "Invalid credentials.") })
   public ResponseEntity<AuthenticationResponse> createAuthToken(@Valid @RequestBody AuthenticationRequest request) {
     AdminUser adminUser = authService.verifyLogin(request.toEntity());
     String jwtToken = authService.generateJwtToken(adminUser);
@@ -49,7 +49,9 @@ public class AuthController {
 
   @PostMapping(REFRESH)
   @Operation(summary = "Refresh an authentication token.", description = "Refresh an authentication token using a refresh token.", responses = {
-      @ApiResponse(responseCode = "200", description = "JWT token refreshed.") })
+      @ApiResponse(responseCode = "200", description = "JWT token refreshed."),
+      @ApiResponse(responseCode = "400", description = "Invalid refresh token."),
+      @ApiResponse(responseCode = "401", description = "Expired or invalid refresh token.") })
   public ResponseEntity<RefreshAuthenticationResponse> refreshAuthToken(
       @Valid @RequestBody RefreshAuthenticationRequest request) {
     String jwtToken = authService.verifyRefreshToken(request.getRefreshToken());

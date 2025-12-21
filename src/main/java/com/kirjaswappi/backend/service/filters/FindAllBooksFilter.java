@@ -53,6 +53,14 @@ public class FindAllBooksFilter {
   @Schema(description = "Filter books by country", example = "Finland")
   String country;
 
+  @Schema(description = "Sort field for ordering results. Use with Pageable's 'sort' parameter.", example = "createdAt", allowableValues = {
+      "title", "author", "createdAt", "condition", "language" })
+  String sortBy;
+
+  @Schema(description = "Sort direction for ordering results. Use with Pageable's 'sort' parameter.", example = "desc", allowableValues = {
+      "asc", "desc" })
+  String sortDirection;
+
   public Criteria buildSearchAndFilterCriteria() {
     List<Criteria> combinedCriteria = new ArrayList<>();
 
