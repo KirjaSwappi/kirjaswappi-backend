@@ -434,6 +434,33 @@ class BookControllerTest {
   }
 
   @Test
+  @DisplayName("Should filter books by parent genre")
+  void shouldFilterBooksByParentGenre() throws Exception {
+    var owner = User.builder()
+        .id("owner-1")
+        .firstName("Alice")
+        .lastName("Smith")
+        .build();
+
+    var book = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .genres(List.of())
+        .language(Language.ENGLISH)
+        .condition(Condition.FAIR)
+        .owner(owner)
+        .build();
+
+    when(bookService.getAllBooksByFilter(any(), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(book), PageRequest.of(0, 10), 1));
+
+    mockMvc.perform(get(BASE_PATH).param("genres", "Fiction"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$._embedded.books.length()").value(1))
+        .andExpect(jsonPath("$._embedded.books[0].ownerId").value("owner-1"));
+  }
+
+  @Test
   @DisplayName("Should delete a book successfully")
   void shouldReturnNoContentWhenDeletingSingleBook() throws Exception {
     doNothing().when(bookService).deleteBook("book123");

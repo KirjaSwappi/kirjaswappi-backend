@@ -101,8 +101,55 @@ public class BookService {
   }
 
   public Page<@NonNull Book> getAllBooksByFilter(FindAllBooksFilter filter, Pageable pageable) {
+    // Expand parent genres to include their child genres for filtering
+    expandParentGenresInFilter(filter);
+
     var criteria = filter.buildSearchAndFilterCriteria();
     return getBooks(pageable, criteria);
+  }
+
+  /**
+   * Expands parent genres in the filter to include all their child genres. This
+   * allows filtering books by parent genre to return books from all child genres.
+   */
+  private void expandParentGenresInFilter(FindAllBooksFilter filter) {
+    if (filter.getGenres() == null || filter.getGenres().isEmpty()) {
+      return;
+    }
+
+    List<String> expandedGenres = new ArrayList<>();
+
+    for (String genreName : filter.getGenres()) {
+      try {
+        // Try to get the genre by name
+        Genre genre = genreService.getGenreByName(genreName);
+
+        // Check if this is a parent genre (has no parent itself)
+        if (genre.getParent() == null) {
+          // This is a parent genre, add it and all its children
+          expandedGenres.add(genreName);
+
+          // Get all child genres of this parent
+          List<Genre> allGenres = genreService.getGenres();
+          List<String> childGenreNames = allGenres.stream()
+              .filter(g -> g.getParent() != null && genreName.equals(g.getParent().getName()))
+              .map(Genre::getName)
+              .toList();
+
+          expandedGenres.addAll(childGenreNames);
+        } else {
+          // This is already a child genre, just add it
+          expandedGenres.add(genreName);
+        }
+      } catch (Exception e) {
+        // If genre doesn't exist, just add the name as-is
+        // This handles cases where the genre name might not be found
+        expandedGenres.add(genreName);
+      }
+    }
+
+    // Remove duplicates and update the filter
+    filter.setGenres(expandedGenres.stream().distinct().toList());
   }
 
   // keeping the book cover photo for future references
