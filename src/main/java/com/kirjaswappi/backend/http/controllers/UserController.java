@@ -91,7 +91,9 @@ public class UserController {
 
   @PutMapping(ID)
   @Operation(summary = "Update user.", responses = {
-      @ApiResponse(responseCode = "200", description = "User updated.") })
+      @ApiResponse(responseCode = "200", description = "User updated."),
+      @ApiResponse(responseCode = "400", description = "Invalid request or ID mismatch."),
+      @ApiResponse(responseCode = "404", description = "User not found.") })
   public ResponseEntity<UpdateUserResponse> updateUser(@Parameter(description = "User ID.") @PathVariable String id,
       @Valid @RequestBody UpdateUserRequest user) {
     // validate id:
@@ -104,7 +106,8 @@ public class UserController {
 
   @GetMapping(ID)
   @Operation(summary = "Find user by User ID.", responses = {
-      @ApiResponse(responseCode = "200", description = "User found.") })
+      @ApiResponse(responseCode = "200", description = "User found."),
+      @ApiResponse(responseCode = "404", description = "User not found.") })
   public ResponseEntity<UserResponse> getUser(@Parameter(description = "User ID.") @PathVariable String id) {
     User user = userService.getUser(id);
     return ResponseEntity.status(HttpStatus.OK).body(new UserResponse(user));
@@ -120,7 +123,8 @@ public class UserController {
 
   @DeleteMapping(ID)
   @Operation(summary = "Delete user.", responses = {
-      @ApiResponse(responseCode = "204", description = "User deleted.") })
+      @ApiResponse(responseCode = "204", description = "User deleted."),
+      @ApiResponse(responseCode = "404", description = "User not found.") })
   public ResponseEntity<Void> deleteUser(@Parameter(description = "User ID.") @PathVariable String id) {
     userService.deleteUser(id);
     return ResponseEntity.noContent().build();

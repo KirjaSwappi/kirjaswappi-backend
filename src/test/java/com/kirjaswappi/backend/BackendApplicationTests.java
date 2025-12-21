@@ -6,14 +6,12 @@ package com.kirjaswappi.backend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.kirjaswappi.backend.config.TestContainersConfig;
 import com.kirjaswappi.backend.config.TestMailConfig;
 
-@SpringBootTest(classes = { BackendApplication.class, TestMailConfig.class })
-@Import(TestContainersConfig.class)
+@SpringBootTest(classes = { BackendApplication.class, TestContainersConfig.class, TestMailConfig.class })
 @ActiveProfiles("test")
 class BackendApplicationTests {
 

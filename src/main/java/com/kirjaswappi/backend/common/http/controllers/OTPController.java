@@ -33,7 +33,9 @@ public class OTPController {
 
   @PostMapping(SEND_OTP)
   @Operation(summary = "Send OTP to a user.", description = "Send OTP to a user email.", responses = {
-      @ApiResponse(responseCode = "200", description = "OTP sent.") })
+      @ApiResponse(responseCode = "200", description = "OTP sent successfully."),
+      @ApiResponse(responseCode = "400", description = "Invalid email format."),
+      @ApiResponse(responseCode = "500", description = "Failed to send OTP email.") })
   public ResponseEntity<SendOtpResponse> sendOTP(@RequestBody SendOtpRequest request) throws IOException {
     String userEmail = otpService.saveAndSendOTP(request.toEntity());
     return ResponseEntity.status(HttpStatus.OK).body(new SendOtpResponse(userEmail));
@@ -41,7 +43,8 @@ public class OTPController {
 
   @PostMapping(VERIFY_OTP)
   @Operation(summary = "Verify OTP of a user.", description = "Verify OTP of a user.", responses = {
-      @ApiResponse(responseCode = "200", description = "OTP Verified.") })
+      @ApiResponse(responseCode = "200", description = "OTP verified successfully."),
+      @ApiResponse(responseCode = "400", description = "Invalid or expired OTP.") })
   public ResponseEntity<VerifyOtpResponse> verifyOTP(@RequestBody VerifyOtpRequest request) {
     String email = otpService.verifyOTPByEmail(request.toEntity());
     return ResponseEntity.status(HttpStatus.OK).body(new VerifyOtpResponse(email));

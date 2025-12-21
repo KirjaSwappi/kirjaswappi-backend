@@ -68,7 +68,8 @@ public class BookController {
 
   @GetMapping(ID)
   @Operation(summary = "Find book by Book ID.", responses = {
-      @ApiResponse(responseCode = "200", description = "Book found.") })
+      @ApiResponse(responseCode = "200", description = "Book found."),
+      @ApiResponse(responseCode = "404", description = "Book not found.") })
   public ResponseEntity<BookResponse> findBookById(@Parameter(description = "Book ID.") @PathVariable String id) {
     Book book = bookService.getBookById(id);
     return ResponseEntity.status(HttpStatus.OK).body(new BookResponse(book));
@@ -105,8 +106,9 @@ public class BookController {
   }
 
   @GetMapping
-  @Operation(summary = "Search for books with (optional) filter properties, including optional userId and location filters.", responses = {
-      @ApiResponse(responseCode = "200", description = "List of Books.") })
+  @Operation(summary = "Search for books with filtering, sorting, and pagination.", description = "Search for books with optional filter properties including language, condition, genres, location, and owner filters. Supports pagination and sorting by title, author, createdAt, condition, or language.", responses = {
+      @ApiResponse(responseCode = "200", description = "Paginated list of books matching the filter criteria."),
+      @ApiResponse(responseCode = "400", description = "Invalid filter parameters provided.") })
   public ResponseEntity<PagedModel<BookListResponse>> findAllBooks(
       @Valid @ParameterObject FindAllBooksFilter filter,
       @PageableDefault() Pageable pageable) {
@@ -169,7 +171,9 @@ public class BookController {
 
   @PutMapping(value = ID, consumes = "multipart/form-data")
   @Operation(summary = "Update book by Book ID.", responses = {
-      @ApiResponse(responseCode = "200", description = "Book updated.") })
+      @ApiResponse(responseCode = "200", description = "Book updated."),
+      @ApiResponse(responseCode = "400", description = "Invalid request or ID mismatch."),
+      @ApiResponse(responseCode = "404", description = "Book not found.") })
   public ResponseEntity<BookResponse> updateBook(@Parameter(description = "Book ID.") @PathVariable String id,
       @Valid @ModelAttribute UpdateBookRequest request) {
     // validate id:
@@ -185,7 +189,8 @@ public class BookController {
 
   @DeleteMapping(ID)
   @Operation(summary = "Delete book by Book ID.", responses = {
-      @ApiResponse(responseCode = "204", description = "Book deleted.") })
+      @ApiResponse(responseCode = "204", description = "Book deleted."),
+      @ApiResponse(responseCode = "404", description = "Book not found.") })
   public ResponseEntity<Void> deleteBook(@Parameter(description = "Book ID.") @PathVariable String id) {
     bookService.deleteBook(id);
     return ResponseEntity.noContent().build();

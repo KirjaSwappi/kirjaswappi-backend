@@ -19,7 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import com.kirjaswappi.backend.common.service.NotificationService;
+import com.kirjaswappi.backend.common.service.NotificationClient;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.GenreDao;
 import com.kirjaswappi.backend.jpa.daos.SwapConditionDao;
@@ -54,7 +54,7 @@ class SwapServiceTest {
   @Mock
   private GenreService genreService;
   @Mock
-  private NotificationService notificationService;
+  private NotificationClient notificationClient;
   @InjectMocks
   private SwapService swapService;
 
@@ -774,7 +774,7 @@ class SwapServiceTest {
     // Then
     assertNotNull(result);
     verify(swapRequestRepository).save(any());
-    verify(notificationService).sendNotification(eq("receiverId"), anyString(), anyString());
+    verify(notificationClient).sendNotification(eq("receiverId"), anyString(), anyString());
   }
 
   @Test
@@ -823,7 +823,7 @@ class SwapServiceTest {
     swapService.createSwapRequest(swapRequest);
 
     // Then
-    verify(notificationService).sendNotification(
+    verify(notificationClient).sendNotification(
         eq("receiverId"),
         eq("New Swap Request"),
         eq("John Doe wants to swap for your book 'Amazing Book'"));
@@ -873,7 +873,7 @@ class SwapServiceTest {
 
     // Notification service throws exception
     doThrow(new RuntimeException("Notification service unavailable"))
-        .when(notificationService).sendNotification(anyString(), anyString(), anyString());
+        .when(notificationClient).sendNotification(anyString(), anyString(), anyString());
 
     // When & Then - should not throw exception
     assertDoesNotThrow(() -> swapService.createSwapRequest(swapRequest));
@@ -898,7 +898,7 @@ class SwapServiceTest {
     swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId);
 
     // Then
-    verify(notificationService).sendNotification(
+    verify(notificationClient).sendNotification(
         eq("sender123"),
         eq("Swap Request Update"),
         eq("Your swap request for 'Amazing Book' has been accepted"));
@@ -919,7 +919,7 @@ class SwapServiceTest {
 
     // Notification service throws exception
     doThrow(new RuntimeException("Notification service unavailable"))
-        .when(notificationService).sendNotification(anyString(), anyString(), anyString());
+        .when(notificationClient).sendNotification(anyString(), anyString(), anyString());
 
     // When & Then - should not throw exception
     assertDoesNotThrow(() -> swapService.updateSwapRequestStatus(swapRequestId, newStatus, userId));
