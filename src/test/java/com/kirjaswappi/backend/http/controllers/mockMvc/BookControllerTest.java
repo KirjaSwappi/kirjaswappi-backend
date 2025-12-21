@@ -401,6 +401,39 @@ class BookControllerTest {
   }
 
   @Test
+  @DisplayName("Should filter books by city")
+  void shouldFilterBooksByCity() throws Exception {
+    var owner = User.builder()
+        .id("owner-1")
+        .firstName("Alice")
+        .lastName("Smith")
+        .build();
+
+    var location = com.kirjaswappi.backend.service.entities.BookLocation.builder()
+        .city("Helsinki")
+        .country("Finland")
+        .build();
+
+    var book = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .genres(List.of())
+        .language(Language.ENGLISH)
+        .condition(Condition.FAIR)
+        .location(location)
+        .owner(owner)
+        .build();
+
+    when(bookService.getAllBooksByFilter(any(), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(List.of(book), PageRequest.of(0, 10), 1));
+
+    mockMvc.perform(get(BASE_PATH).param("city", "Helsinki"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$._embedded.books.length()").value(1))
+        .andExpect(jsonPath("$._embedded.books[0].location.city").value("Helsinki"));
+  }
+
+  @Test
   @DisplayName("Should delete a book successfully")
   void shouldReturnNoContentWhenDeletingSingleBook() throws Exception {
     doNothing().when(bookService).deleteBook("book123");
