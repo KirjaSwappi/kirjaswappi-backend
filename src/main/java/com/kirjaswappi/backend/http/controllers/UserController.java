@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,7 @@ import com.kirjaswappi.backend.service.filters.FindAllBooksFilter;
 @RestController
 @RequestMapping(API_BASE + USERS)
 @Validated
+@Tag(name = "Users", description = "API for managing user accounts and authentication")
 public class UserController {
   @Autowired
   private UserService userService;

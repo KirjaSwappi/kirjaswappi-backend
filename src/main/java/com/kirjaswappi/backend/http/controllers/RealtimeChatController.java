@@ -6,6 +6,7 @@ package com.kirjaswappi.backend.http.controllers;
 
 import java.security.Principal;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ import com.kirjaswappi.backend.service.entities.SwapRequest;
 
 @Controller
 @RequiredArgsConstructor
+@Tag(name = "Realtime Chat", description = "WebSocket API for real-time chat messaging")
 public class RealtimeChatController {
   private static final Logger logger = LoggerFactory.getLogger(RealtimeChatController.class);
 

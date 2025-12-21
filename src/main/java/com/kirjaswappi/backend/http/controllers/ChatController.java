@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.jspecify.annotations.NonNull;
@@ -31,6 +32,7 @@ import com.kirjaswappi.backend.service.entities.SwapRequest;
 @RequestMapping(API_BASE + SWAP_REQUESTS)
 @Validated
 @RequiredArgsConstructor
+@Tag(name = "Chat", description = "API for managing chat messages in swap conversations")
 public class ChatController {
 
   private final ChatService chatService;

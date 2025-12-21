@@ -7,6 +7,7 @@ package com.kirjaswappi.backend.http.controllers;
 import java.security.Principal;
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ import com.kirjaswappi.backend.service.entities.SwapRequest;
 
 @Controller
 @RequiredArgsConstructor
+@Tag(name = "Realtime Inbox", description = "WebSocket API for real-time inbox notifications")
 public class RealtimeInboxController {
   private static final Logger logger = LoggerFactory.getLogger(RealtimeInboxController.class);
 
