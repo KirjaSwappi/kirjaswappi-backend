@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,7 @@ import com.kirjaswappi.backend.service.enums.SwapStatus;
 @RestController
 @RequestMapping(API_BASE + SWAP_REQUESTS)
 @Validated
+@Tag(name = "Swaps", description = "API for managing book swap requests and transactions")
 public class SwapController {
   @Autowired
   private SwapService swapService;

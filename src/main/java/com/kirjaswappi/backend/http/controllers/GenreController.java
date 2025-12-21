@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -41,6 +42,7 @@ import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 @RestController
 @RequestMapping(API_BASE + GENRES)
 @Validated
+@Tag(name = "Genres", description = "API for managing book genres and categories")
 public class GenreController {
   @Autowired
   private GenreService genreService;

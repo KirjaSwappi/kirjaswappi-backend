@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +52,7 @@ import com.kirjaswappi.backend.service.filters.FindAllBooksFilter;
 @RestController
 @RequestMapping(API_BASE + BOOKS)
 @Validated
+@Tag(name = "Books", description = "API for managing book listings and swaps")
 public class BookController {
   @Autowired
   private BookService bookService;
