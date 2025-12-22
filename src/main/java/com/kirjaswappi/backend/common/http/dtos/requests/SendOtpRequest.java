@@ -15,6 +15,7 @@ import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 
 @Getter
 @Setter
+@Schema(description = "Request payload for sending OTP to user email")
 public class SendOtpRequest {
   @Schema(description = "The email address of the user.", example = "abc@xyz.com", requiredMode = REQUIRED)
   private String email;

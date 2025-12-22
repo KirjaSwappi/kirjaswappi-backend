@@ -12,6 +12,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Schema(description = "Request payload for refreshing authentication token")
 public class RefreshAuthenticationRequest {
   @Schema(description = "The refresh token of the user.", requiredMode = REQUIRED)
   private String refreshToken;

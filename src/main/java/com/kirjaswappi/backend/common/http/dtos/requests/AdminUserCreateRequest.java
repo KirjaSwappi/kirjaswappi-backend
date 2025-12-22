@@ -17,6 +17,7 @@ import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 
 @Getter
 @Setter
+@Schema(description = "Request payload for creating a new admin user")
 public class AdminUserCreateRequest {
   @Schema(description = "The username of the admin user.", example = "admin", requiredMode = REQUIRED)
   private String username;
