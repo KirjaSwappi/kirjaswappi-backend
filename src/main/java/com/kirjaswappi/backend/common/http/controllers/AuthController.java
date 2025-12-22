@@ -11,7 +11,10 @@ import static com.kirjaswappi.backend.common.utils.Constants.REFRESH;
 import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -31,15 +34,18 @@ import com.kirjaswappi.backend.common.service.entities.AdminUser;
 @RestController
 @RequestMapping(API_BASE + AUTHENTICATE)
 @Validated
+@Tag(name = "Authentication", description = "APIs for admin user authentication and token management")
 public class AuthController {
   @Autowired
   private AuthService authService;
 
   @PostMapping
-  @Operation(summary = "Authenticate an admin user.", description = "Authenticate via admin user and generate a JWT token.", responses = {
-      @ApiResponse(responseCode = "200", description = "JWT token generated."),
-      @ApiResponse(responseCode = "400", description = "Invalid request body."),
-      @ApiResponse(responseCode = "401", description = "Invalid credentials.") })
+  @Operation(summary = "Authenticate admin user", description = "Authenticates an admin user with username and password, returning JWT and refresh tokens.", responses = {
+      @ApiResponse(responseCode = "200", description = "Authentication successful", content = @Content(schema = @Schema(implementation = AuthenticationResponse.class))),
+      @ApiResponse(responseCode = "400", description = "Invalid request body"),
+      @ApiResponse(responseCode = "401", description = "Invalid credentials"),
+      @ApiResponse(responseCode = "500", description = "Internal server error")
+  })
   public ResponseEntity<AuthenticationResponse> createAuthToken(@Valid @RequestBody AuthenticationRequest request) {
     AdminUser adminUser = authService.verifyLogin(request.toEntity());
     String jwtToken = authService.generateJwtToken(adminUser);
@@ -48,10 +54,12 @@ public class AuthController {
   }
 
   @PostMapping(REFRESH)
-  @Operation(summary = "Refresh an authentication token.", description = "Refresh an authentication token using a refresh token.", responses = {
-      @ApiResponse(responseCode = "200", description = "JWT token refreshed."),
-      @ApiResponse(responseCode = "400", description = "Invalid refresh token."),
-      @ApiResponse(responseCode = "401", description = "Expired or invalid refresh token.") })
+  @Operation(summary = "Refresh authentication token", description = "Refreshes the JWT token using a valid refresh token.", responses = {
+      @ApiResponse(responseCode = "200", description = "Token refreshed successfully", content = @Content(schema = @Schema(implementation = RefreshAuthenticationResponse.class))),
+      @ApiResponse(responseCode = "400", description = "Invalid refresh token"),
+      @ApiResponse(responseCode = "401", description = "Expired or invalid refresh token"),
+      @ApiResponse(responseCode = "500", description = "Internal server error")
+  })
   public ResponseEntity<RefreshAuthenticationResponse> refreshAuthToken(
       @Valid @RequestBody RefreshAuthenticationRequest request) {
     String jwtToken = authService.verifyRefreshToken(request.getRefreshToken());

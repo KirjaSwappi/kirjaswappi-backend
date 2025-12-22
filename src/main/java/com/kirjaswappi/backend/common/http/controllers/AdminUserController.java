@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -39,22 +40,27 @@ import com.kirjaswappi.backend.common.service.entities.AdminUser;
 @RestController
 @RequestMapping(API_BASE + ADMIN_USERS)
 @Validated
+@Tag(name = "Admin User Management", description = "APIs for managing admin users in the system")
 public class AdminUserController {
   @Autowired
   private AdminUserService adminUserService;
 
   @PostMapping
-  @Operation(summary = "Create an admin user.", responses = {
-      @ApiResponse(responseCode = "201", description = "Admin user created."),
-      @ApiResponse(responseCode = "400", description = "Admin user already exists.", content = @Content(schema = @Schema(oneOf = ErrorResponse.class))) })
+  @Operation(summary = "Create a new admin user", description = "Creates a new admin user with the specified username, password, and role. The username must be unique.", responses = {
+      @ApiResponse(responseCode = "201", description = "Admin user created successfully", content = @Content(schema = @Schema(implementation = AdminUserResponse.class))),
+      @ApiResponse(responseCode = "400", description = "Invalid request data or admin user already exists", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error")
+  })
   public ResponseEntity<AdminUserResponse> createAdminUser(@Valid @RequestBody AdminUserCreateRequest request) {
     AdminUser savedUser = adminUserService.addUser(request.toEntity());
     return ResponseEntity.status(HttpStatus.CREATED).body(new AdminUserResponse(savedUser));
   }
 
   @GetMapping
-  @Operation(summary = "Find all admin users.", responses = {
-      @ApiResponse(responseCode = "200", description = "List of admin users.") })
+  @Operation(summary = "Get all admin users", description = "Retrieves a list of all admin users in the system.", responses = {
+      @ApiResponse(responseCode = "200", description = "List of admin users retrieved successfully", content = @Content(schema = @Schema(implementation = AdminUserResponse[].class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error")
+  })
   public ResponseEntity<List<AdminUserResponse>> findAdminUsers() {
     List<AdminUserResponse> userListResponses = adminUserService.getAdminUsers()
         .stream().map(AdminUserResponse::new).toList();
@@ -62,11 +68,13 @@ public class AdminUserController {
   }
 
   @DeleteMapping(USERNAME)
-  @Operation(summary = "Delete an admin user.", responses = {
-      @ApiResponse(responseCode = "204", description = "Admin user deleted."),
-      @ApiResponse(responseCode = "404", description = "Admin user not found.", content = @Content(schema = @Schema(oneOf = ErrorResponse.class))) })
+  @Operation(summary = "Delete an admin user", description = "Deletes the admin user with the specified username.", responses = {
+      @ApiResponse(responseCode = "204", description = "Admin user deleted successfully"),
+      @ApiResponse(responseCode = "404", description = "Admin user not found", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error")
+  })
   public ResponseEntity<Void> deleteAdminUser(
-      @Parameter(description = "Username of the admin user.") @PathVariable String username) {
+      @Parameter(description = "Username of the admin user to delete", required = true, example = "admin") @PathVariable String username) {
     adminUserService.deleteUser(username);
     return ResponseEntity.noContent().build();
   }

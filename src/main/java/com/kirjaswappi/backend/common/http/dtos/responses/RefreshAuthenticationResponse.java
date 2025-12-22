@@ -6,5 +6,10 @@ package com.kirjaswappi.backend.common.http.dtos.responses;
 
 import java.io.Serializable;
 
-public record RefreshAuthenticationResponse(String jwtToken) implements Serializable {
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Response containing refreshed JWT token")
+public record RefreshAuthenticationResponse(
+    @Schema(description = "New JWT access token", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...") String jwtToken
+) implements Serializable {
 }

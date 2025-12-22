@@ -18,6 +18,7 @@ import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 
 @Getter
 @Setter
+@Schema(description = "Request payload for verifying OTP")
 public class VerifyOtpRequest {
   @Schema(description = "Email of the user.", example = "abc@xyz.com", requiredMode = REQUIRED)
   private String email;
