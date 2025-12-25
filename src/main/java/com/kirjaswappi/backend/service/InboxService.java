@@ -72,6 +72,16 @@ public class InboxService {
     return applySorting(swapRequests, sortBy);
   }
 
+  public SwapRequest getInboxItem(String userId, String swapRequestId) {
+    // Validate user exists
+    userService.getUser(userId);
+
+    return swapRequestRepository.findById(swapRequestId)
+        .map(SwapRequestMapper::toEntity)
+        .filter(request -> request.sender().id().equals(userId) || request.receiver().id().equals(userId))
+        .orElseThrow(() -> new SwapRequestNotFoundException());
+  }
+
   public SwapRequest updateSwapRequestStatus(String swapRequestId, String newStatus, String userId) {
     // Validate new status
     SwapStatus newSwapStatus = SwapStatus.fromCode(newStatus);

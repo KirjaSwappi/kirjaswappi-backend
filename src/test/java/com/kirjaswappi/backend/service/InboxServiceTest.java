@@ -798,6 +798,68 @@ class InboxServiceTest {
     assertThrows(BadRequestException.class,
         () -> inboxService.updateSwapRequestStatus("received1", "INVALID_STATUS", "receiver123"));
     // Validation happens first, so repository should not be called
-    verifyNoInteractions(swapRequestRepository);
+    verify(swapRequestRepository, never()).findById(anyString());
+  }
+
+  @Test
+  @DisplayName("Should get inbox item when user is sender")
+  void shouldGetInboxItemWhenUserIsSender() {
+    // Given
+    when(userService.getUser("sender123")).thenReturn(new User().id("sender123"));
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+
+    // When
+    SwapRequest result = inboxService.getInboxItem("sender123", "received1");
+
+    // Then
+    assertNotNull(result);
+    assertEquals("received1", result.id());
+    verify(userService).getUser("sender123");
+    verify(swapRequestRepository).findById("received1");
+  }
+
+  @Test
+  @DisplayName("Should get inbox item when user is receiver")
+  void shouldGetInboxItemWhenUserIsReceiver() {
+    // Given
+    when(userService.getUser("receiver123")).thenReturn(userEntity);
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+
+    // When
+    SwapRequest result = inboxService.getInboxItem("receiver123", "received1");
+
+    // Then
+    assertNotNull(result);
+    assertEquals("received1", result.id());
+    verify(userService).getUser("receiver123");
+    verify(swapRequestRepository).findById("received1");
+  }
+
+  @Test
+  @DisplayName("Should throw exception when getting inbox item for unauthorized user")
+  void shouldThrowExceptionWhenGettingInboxItemForUnauthorizedUser() {
+    // Given
+    when(userService.getUser("unauthorized123")).thenReturn(new User().id("unauthorized123"));
+    when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
+
+    // When & Then
+    assertThrows(SwapRequestNotFoundException.class,
+        () -> inboxService.getInboxItem("unauthorized123", "received1"));
+    verify(userService).getUser("unauthorized123");
+    verify(swapRequestRepository).findById("received1");
+  }
+
+  @Test
+  @DisplayName("Should throw exception when getting nonexistent inbox item")
+  void shouldThrowExceptionWhenGettingNonexistentInboxItem() {
+    // Given
+    when(userService.getUser("sender123")).thenReturn(new User().id("sender123"));
+    when(swapRequestRepository.findById("nonexistent")).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(SwapRequestNotFoundException.class,
+        () -> inboxService.getInboxItem("sender123", "nonexistent"));
+    verify(userService).getUser("sender123");
+    verify(swapRequestRepository).findById("nonexistent");
   }
 }

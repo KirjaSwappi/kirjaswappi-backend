@@ -70,7 +70,7 @@ public class RealtimeInboxController {
   public void handleInboxUpdateEvent(InboxUpdateEvent event) {
     try {
       logger.debug("Handling inbox update event for user: {} (type: {})", event.getUserId(), event.getEventType());
-      broadcastInboxUpdate(event.getUserId());
+      broadcastInboxUpdate(event.getUserId(), event.getSwapRequestId());
     } catch (Exception e) {
       logger.error("Error handling inbox update event for user: {}", event.getUserId(), e);
     }
@@ -80,9 +80,9 @@ public class RealtimeInboxController {
    * Broadcasts inbox update to a specific user. Made private as it should only be
    * called through event handling.
    */
-  private void broadcastInboxUpdate(String userId) {
+  private void broadcastInboxUpdate(String userId, String swapRequestId) {
     try {
-      sendInboxUpdate(userId, null, null);
+      sendInboxItemUpdate(userId, swapRequestId);
     } catch (Exception e) {
       logger.error("Error broadcasting inbox update to user: {}", userId, e);
     }
@@ -92,18 +92,7 @@ public class RealtimeInboxController {
     try {
       List<SwapRequest> swapRequests = inboxService.getUnifiedInbox(userId, status, sortBy);
       List<InboxItemResponse> response = swapRequests.stream()
-          .map(swapRequest -> {
-            InboxItemResponse item = new InboxItemResponse(swapRequest);
-            // Add unread message count using cached version
-            long unreadCount = inboxService.getUnreadMessageCount(userId, swapRequest.id());
-            item.setUnreadMessageCount(unreadCount);
-            // Set notification indicators
-            item.setUnread(inboxService.isInboxItemUnread(swapRequest, userId));
-            item.setHasNewMessages(unreadCount > 0);
-            // Set conversation type for UI display
-            item.setConversationType(userId.equals(swapRequest.sender().id()) ? "sent" : "received");
-            return item;
-          })
+          .map(swapRequest -> createInboxItemResponse(swapRequest, userId))
           .toList();
 
       messagingTemplate.convertAndSendToUser(userId, "/queue/inbox/update", response);
@@ -112,5 +101,31 @@ public class RealtimeInboxController {
     } catch (Exception e) {
       logger.error("Error sending inbox update to user: {}", userId, e);
     }
+  }
+
+  private void sendInboxItemUpdate(String userId, String swapRequestId) {
+    try {
+      SwapRequest swapRequest = inboxService.getInboxItem(userId, swapRequestId);
+      InboxItemResponse response = createInboxItemResponse(swapRequest, userId);
+
+      messagingTemplate.convertAndSendToUser(userId, "/queue/inbox/item-update", response);
+      logger.debug("Sent inbox item update to user: {} for swap request: {}", userId, swapRequestId);
+
+    } catch (Exception e) {
+      logger.error("Error sending inbox item update to user: {} for swap request: {}", userId, swapRequestId, e);
+    }
+  }
+
+  private InboxItemResponse createInboxItemResponse(SwapRequest swapRequest, String userId) {
+    InboxItemResponse item = new InboxItemResponse(swapRequest);
+    // Add unread message count using cached version
+    long unreadCount = inboxService.getUnreadMessageCount(userId, swapRequest.id());
+    item.setUnreadMessageCount(unreadCount);
+    // Set notification indicators
+    item.setUnread(inboxService.isInboxItemUnread(swapRequest, userId));
+    item.setHasNewMessages(unreadCount > 0);
+    // Set conversation type for UI display
+    item.setConversationType(userId.equals(swapRequest.sender().id()) ? "sent" : "received");
+    return item;
   }
 }
