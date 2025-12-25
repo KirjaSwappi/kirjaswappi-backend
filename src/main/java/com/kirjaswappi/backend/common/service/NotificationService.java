@@ -5,6 +5,7 @@
 package com.kirjaswappi.backend.common.service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.grpc.ManagedChannel;
@@ -16,14 +17,21 @@ import notification.NotificationServiceGrpc;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.google.protobuf.Timestamp;
+import com.kirjaswappi.backend.jpa.daos.NotificationOutboxDao;
+import com.kirjaswappi.backend.jpa.repositories.NotificationOutboxRepository;
 
 @Service
 public class NotificationService implements NotificationClient {
   private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
+
+  @Autowired
+  private NotificationOutboxRepository notificationOutboxRepository;
 
   private final ManagedChannel channel;
   private final NotificationServiceGrpc.NotificationServiceBlockingStub stub;
@@ -60,6 +68,43 @@ public class NotificationService implements NotificationClient {
     }
 
     try {
+      NotificationOutboxDao outbox = NotificationOutboxDao.builder()
+          .userId(userId)
+          .title(title)
+          .message(message)
+          .status("PENDING")
+          .createdAt(Instant.now())
+          .retryCount(0)
+          .build();
+
+      notificationOutboxRepository.save(outbox);
+      logger.debug("Notification queued in outbox for user: {}", userId);
+    } catch (Exception e) {
+      logger.error("Failed to queue notification for user: {}", userId, e);
+    }
+  }
+
+  @Scheduled(fixedDelay = 5000) // Run every 5 seconds
+  public void processOutbox() {
+    if (!enabled || stub == null) {
+      return;
+    }
+
+    List<NotificationOutboxDao> pendingNotifications = notificationOutboxRepository
+        .findByStatusOrderByCreatedAtAsc("PENDING");
+    if (pendingNotifications.isEmpty()) {
+      return;
+    }
+
+    logger.debug("Processing {} pending notifications", pendingNotifications.size());
+
+    for (NotificationOutboxDao notification : pendingNotifications) {
+      processNotification(notification);
+    }
+  }
+
+  private void processNotification(NotificationOutboxDao notification) {
+    try {
       Instant now = Instant.now();
       Timestamp timestamp = Timestamp.newBuilder()
           .setSeconds(now.getEpochSecond())
@@ -67,24 +112,42 @@ public class NotificationService implements NotificationClient {
           .build();
 
       NotificationRequest request = NotificationRequest.newBuilder()
-          .setUserId(userId)
-          .setTitle(title)
-          .setMessage(message)
+          .setUserId(notification.userId())
+          .setTitle(notification.title())
+          .setMessage(notification.message())
           .setTime(timestamp)
           .build();
 
       NotificationResponse response = stub.sendNotification(request);
 
       if (response.getSuccess()) {
-        logger.debug("Notification sent successfully to user: {}", userId);
+        notification.status("SENT")
+            .sentAt(Instant.now());
+        logger.debug("Notification sent successfully to user: {}", notification.userId());
       } else {
-        logger.warn("Failed to send notification to user: {}", userId);
+        handleHelper(notification, "Service returned failure");
       }
     } catch (StatusRuntimeException e) {
-      logger.error("Failed to send notification to user: {} - {}", userId, e.getStatus());
+      handleHelper(notification, "gRPC Status: " + e.getStatus());
     } catch (Exception e) {
-      logger.error("Unexpected error sending notification to user: {}", userId, e);
+      handleHelper(notification, "Exception: " + e.getMessage());
+    } finally {
+      notificationOutboxRepository.save(notification);
     }
+  }
+
+  private void handleHelper(NotificationOutboxDao notification, String error) {
+    int maxRetries = 3;
+    if (notification.retryCount() >= maxRetries) {
+      notification.status("FAILED");
+      logger.error("Notification failed permanently for user: {}. Error: {}", notification.userId(), error);
+    } else {
+      notification.retryCount(notification.retryCount() + 1);
+      // Keep status PENDING to try again
+      logger.warn("Notification failed for user: {}. Retrying ({}/{}). Error: {}",
+          notification.userId(), notification.retryCount(), maxRetries, error);
+    }
+    notification.errorMessage(error);
   }
 
   public void shutdown() {
