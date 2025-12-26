@@ -13,6 +13,7 @@ import lombok.*;
 import lombok.experimental.Accessors;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -28,6 +29,7 @@ public class ChatMessageDao {
   private String id;
 
   @NotNull
+  @Indexed
   private String swapRequestId;
 
   @NotNull
@@ -39,6 +41,7 @@ public class ChatMessageDao {
   private List<String> imageIds; // Store unique IDs, not URLs
 
   @NotNull
+  @Indexed
   private Instant sentAt;
 
   @NotNull

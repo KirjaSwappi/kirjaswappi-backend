@@ -9,6 +9,8 @@ import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,6 +72,7 @@ public class UserService {
     }
   }
 
+  @Cacheable(value = "users", key = "#id")
   public User getUser(String id) {
     var userDao = userRepository.findByIdAndIsEmailVerifiedTrue(id)
         .orElseThrow(() -> new UserNotFoundException(id));
@@ -106,6 +109,7 @@ public class UserService {
     }).toList();
   }
 
+  @CacheEvict(value = "users", key = "#id")
   public void deleteUser(String id) {
     // validate user exists:
     var dao = userRepository.findById(id)
@@ -113,6 +117,7 @@ public class UserService {
     userRepository.delete(dao);
   }
 
+  @CacheEvict(value = "users", key = "#user.id")
   public User updateUser(User user) {
     // validate user exists:
     var dao = userRepository.findByIdAndIsEmailVerifiedTrue(user.id())

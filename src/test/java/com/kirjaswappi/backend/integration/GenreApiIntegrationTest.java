@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -42,6 +43,9 @@ class GenreApiIntegrationTest {
   @Autowired
   private GenreRepository genreRepository;
 
+  @Autowired
+  private CacheManager cacheManager;
+
   private MockMvc mockMvc;
 
   @BeforeEach
@@ -50,6 +54,14 @@ class GenreApiIntegrationTest {
 
     // Clean up existing data
     genreRepository.deleteAll();
+
+    // Clear caches to prevent leakage between tests
+    if (cacheManager.getCache("genres") != null) {
+      cacheManager.getCache("genres").clear();
+    }
+    if (cacheManager.getCache("nested_genres") != null) {
+      cacheManager.getCache("nested_genres").clear();
+    }
   }
 
   @Test
@@ -297,7 +309,17 @@ class GenreApiIntegrationTest {
         .name(name)
         .parent(parent)
         .build();
-    return genreRepository.save(genre);
+    GenreDao saved = genreRepository.save(genre);
+
+    // Clear caches because direct repository save bypasses service eviction
+    if (cacheManager.getCache("genres") != null) {
+      cacheManager.getCache("genres").clear();
+    }
+    if (cacheManager.getCache("nested_genres") != null) {
+      cacheManager.getCache("nested_genres").clear();
+    }
+
+    return saved;
   }
 
   // ========== POST /api/v1/genres - Create Genre Tests ==========

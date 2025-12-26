@@ -8,6 +8,18 @@ spring:
       database: kirjaswappi_test
       autoIndexCreation: true
 
+  cache:
+    type: simple
+    cache-names:
+      - users
+      - books
+      - genres
+      - nested_genres
+
+  rabbitmq:
+    enabled: false
+
+
   mail:
     host: smtp.example.com
     port: 587
