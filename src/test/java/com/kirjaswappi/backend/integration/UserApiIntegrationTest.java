@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -59,6 +60,9 @@ class UserApiIntegrationTest {
   private GenreRepository genreRepository;
 
   @Autowired
+  private CacheManager cacheManager;
+
+  @Autowired
   private ObjectMapper objectMapper;
 
   private MockMvc mockMvc;
@@ -71,6 +75,11 @@ class UserApiIntegrationTest {
     bookRepository.deleteAll();
     userRepository.deleteAll();
     genreRepository.deleteAll();
+
+    // Clear caches to prevent leakage between tests
+    if (cacheManager.getCache("users") != null) {
+      cacheManager.getCache("users").clear();
+    }
   }
 
   @Nested

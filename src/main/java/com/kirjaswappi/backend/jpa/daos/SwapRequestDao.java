@@ -12,12 +12,18 @@ import lombok.*;
 import lombok.experimental.Accessors;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import com.mongodb.lang.Nullable;
 
 @Document(collection = "swap_requests")
+@CompoundIndexes({
+    @CompoundIndex(name = "receiver_status_requested_idx", def = "{'receiver': 1, 'swapStatus': 1, 'requestedAt': -1}"),
+    @CompoundIndex(name = "sender_status_requested_idx", def = "{'sender': 1, 'swapStatus': 1, 'requestedAt': -1}")
+})
 @Getter
 @Setter
 @Builder

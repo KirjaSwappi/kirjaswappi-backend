@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -67,6 +69,7 @@ public class BookService {
   }
 
   // TODO: send notification to the swap requests senders for this book.
+  @CacheEvict(value = "books", key = "#updatedBook.id")
   public Book updateBook(Book updatedBook) {
     var existingBookDao = bookRepository.findByIdAndIsDeletedFalse(updatedBook.id())
         .orElseThrow(() -> new BookNotFoundException(updatedBook.id()));
@@ -77,6 +80,7 @@ public class BookService {
     return getBookById(updatedBookDao.id());
   }
 
+  @Cacheable(value = "books", key = "#id")
   public Book getBookById(String id) {
     var bookDao = bookRepository.findByIdAndIsDeletedFalse(id)
         .orElseThrow(() -> new BookNotFoundException(id));
@@ -153,6 +157,7 @@ public class BookService {
   }
 
   // keeping the book cover photo for future references
+  @CacheEvict(value = "books", key = "#id")
   public void deleteBook(String id) {
     var bookDao = bookRepository.findByIdAndIsDeletedFalse(id).orElseThrow(() -> new BookNotFoundException(id));
     removeBookFromOwner(bookDao);

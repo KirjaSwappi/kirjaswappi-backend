@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,12 +40,14 @@ public class GenreService {
 
   private final UserRepository userRepository;
 
+  @Cacheable(value = "genres")
   public List<Genre> getGenres() {
     // fetch all the genres
     return genreRepository.findAll().stream().map(GenreMapper::toEntity)
         .toList();
   }
 
+  @Cacheable(value = "nested_genres")
   public NestedGenresResponse getNestedGenres() {
     // Fetch all genres from the database
     List<Genre> allGenres = genreRepository.findAll().stream()
@@ -109,6 +113,7 @@ public class GenreService {
     return new NestedGenresResponse(parentGenresMap);
   }
 
+  @CacheEvict(value = { "genres", "nested_genres" }, allEntries = true)
   public Genre addGenre(Genre genre) {
     // check if the genre already exists:
     if (genreRepository.existsByName(genre.getName())) {
@@ -127,6 +132,7 @@ public class GenreService {
     }
   }
 
+  @CacheEvict(value = { "genres", "nested_genres" }, allEntries = true)
   public void deleteGenre(String id) {
     // Check if genre exists:
     if (!genreRepository.existsById(id)) {
@@ -157,6 +163,7 @@ public class GenreService {
                 book.swapCondition().swappableGenres().stream().anyMatch(g -> g.id().equals(id))));
   }
 
+  @CacheEvict(value = { "genres", "nested_genres" }, allEntries = true)
   public Genre updateGenre(Genre genre) {
     var dao = genreRepository.findById(genre.getId())
         .orElseThrow(() -> new GenreNotFoundException(genre.getId()));
