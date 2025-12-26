@@ -4,14 +4,17 @@
  */
 package com.kirjaswappi.backend.http.dtos.responses;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class NestedGenresResponse {
+@NoArgsConstructor
+public class NestedGenresResponse implements Serializable {
   private Map<String, ParentGenreResponse> parentGenres;
 
   public NestedGenresResponse(Map<String, ParentGenreResponse> parentGenres) {

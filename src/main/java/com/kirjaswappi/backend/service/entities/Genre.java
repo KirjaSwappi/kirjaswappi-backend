@@ -4,6 +4,8 @@
  */
 package com.kirjaswappi.backend.service.entities;
 
+import java.io.Serializable;
+
 import lombok.*;
 
 @Getter
@@ -11,7 +13,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Genre {
+public class Genre implements Serializable {
   private String id;
   private String name;
   private Genre parent;
