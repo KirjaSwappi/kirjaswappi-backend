@@ -7,6 +7,9 @@ spring:
       autoIndexCreation: true
       uri: ${MONGODB_URI}
       database: ${MONGODB_DATABASE}
+  cache:
+    type: redis
+
 
   threads:
     virtual:
