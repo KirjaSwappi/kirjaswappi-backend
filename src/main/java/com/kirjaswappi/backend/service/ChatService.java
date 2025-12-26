@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.kirjaswappi.backend.common.service.ImageService;
+import com.kirjaswappi.backend.common.service.ProfanityFilterService;
 import com.kirjaswappi.backend.jpa.daos.ChatMessageDao;
 import com.kirjaswappi.backend.jpa.daos.SwapRequestDao;
 import com.kirjaswappi.backend.jpa.repositories.ChatMessageRepository;
@@ -46,7 +47,10 @@ public class ChatService {
 
   private final SimpMessagingTemplate messagingTemplate;
 
+  private final ProfanityFilterService profanityFilterService;
+
   public List<ChatMessage> getChatMessages(String swapRequestId, String userId) {
+
     // Validate swap request exists
     Optional<SwapRequestDao> swapRequestOpt = swapRequestRepository.findById(swapRequestId);
     if (swapRequestOpt.isEmpty()) {
@@ -101,8 +105,7 @@ public class ChatService {
     var chatMessage = ChatMessage.builder()
         .swapRequestId(swapRequestId)
         .sender(sender)
-        // TODO: filter explicit or dangerous words in message
-        .message(message.trim())
+        .message(profanityFilterService.filter(message.trim()))
         .readByReceiver(false)
         .build();
 
@@ -165,8 +168,9 @@ public class ChatService {
     var chatMessage = ChatMessage.builder()
         .swapRequestId(swapRequestId)
         .sender(sender)
-        .message(message != null && !message.trim().isEmpty() ? message.trim() : null)
+        .message(message != null && !message.trim().isEmpty() ? profanityFilterService.filter(message.trim()) : null)
         .imageIds(imageIds.isEmpty() ? null : imageIds)
+
         .readByReceiver(false)
         .build();
 

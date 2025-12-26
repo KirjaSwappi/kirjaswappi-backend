@@ -26,4 +26,10 @@ public interface SwapRequestRepository extends MongoRepository<SwapRequestDao, S
 
   // Inbox query methods with status filtering for sent requests
   List<SwapRequestDao> findBySenderIdAndSwapStatusOrderByRequestedAtDesc(String senderId, String swapStatus);
+
+  // Find all swap requests for a specific book
+  List<SwapRequestDao> findByBookToSwapWithId(String bookToSwapWithId);
+
+  // Find active swap requests for a specific book
+  List<SwapRequestDao> findByBookToSwapWithIdAndSwapStatus(String bookToSwapWithId, String swapStatus);
 }

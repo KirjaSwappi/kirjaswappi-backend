@@ -24,10 +24,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.query.Criteria;
 
+import com.kirjaswappi.backend.common.service.NotificationClient;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.SwapConditionDao;
 import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.BookRepository;
+import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.mapper.BookMapper;
 import com.kirjaswappi.backend.service.entities.Book;
@@ -46,6 +48,10 @@ class BookServiceTest {
   private UserRepository userRepository;
   @Mock
   private PhotoService photoService;
+  @Mock
+  private SwapRequestRepository swapRequestRepository;
+  @Mock
+  private NotificationClient notificationClient;
   @InjectMocks
   private BookService bookService;
 

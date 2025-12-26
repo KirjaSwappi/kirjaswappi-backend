@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .email-header {
+            background-color: #007bff;
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+        }
+        .email-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .email-body {
+            padding: 30px 20px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: left;
+        }
+        .email-body h2 {
+            color: #007bff;
+            font-size: 22px;
+            margin-top: 0;
+        }
+        .email-footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 12px;
+            color: #777777;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <h1>KirjaSwappi</h1>
+        </div>
+        <div class="email-body">
+            {{content}}
+        </div>
+        <div class="email-footer">
+            <p>&copy; 2025 KirjaSwappi. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

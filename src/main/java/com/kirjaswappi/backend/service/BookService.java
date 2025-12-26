@@ -27,10 +27,12 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.kirjaswappi.backend.common.service.NotificationClient;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.SwappableBookDao;
 import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.BookRepository;
+import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.mapper.*;
 import com.kirjaswappi.backend.service.entities.Book;
@@ -53,7 +55,12 @@ public class BookService {
 
   private final PhotoService photoService;
 
+  private final SwapRequestRepository swapRequestRepository;
+
+  private final NotificationClient notificationClient;
+
   private static final List<String> ALLOWED_SORT_FIELDS = Arrays.asList("title", "author", "language", "condition",
+
       "genres.name", "bookUpdatedAt");
 
   public Book createBook(Book book) {
@@ -77,6 +84,9 @@ public class BookService {
     var updatedBookDao = bookRepository.save(existingBookDao);
     updatedBookDao = updateBookCoverPhoto(updatedBook, updatedBookDao);
     addCoverPhotoToSwappableBooksIfExists(updatedBook, updatedBookDao);
+
+    notifySwapRequestSendersAboutBookChange(updatedBook.id(), "updated");
+
     return getBookById(updatedBookDao.id());
   }
 
@@ -162,6 +172,8 @@ public class BookService {
     var bookDao = bookRepository.findByIdAndIsDeletedFalse(id).orElseThrow(() -> new BookNotFoundException(id));
     removeBookFromOwner(bookDao);
     bookRepository.deleteLogically(id);
+
+    notifySwapRequestSendersAboutBookChange(id, "deleted");
   }
 
   public void deleteAllBooks() {
@@ -421,5 +433,23 @@ public class BookService {
     var filter = new FindAllBooksFilter();
     filter.setCountry(country);
     return getAllBooksByFilter(filter, pageable);
+  }
+
+  private void notifySwapRequestSendersAboutBookChange(String bookId, String action) {
+    try {
+      var bookDao = bookRepository.findById(bookId).orElse(null);
+      if (bookDao == null)
+        return;
+
+      var swapRequests = swapRequestRepository.findByBookToSwapWithIdAndSwapStatus(bookId, "PENDING");
+      for (var request : swapRequests) {
+        String title = "Book " + action.substring(0, 1).toUpperCase() + action.substring(1);
+        String message = String.format("The book '%s' you requested has been %s by its owner.",
+            bookDao.title(), action);
+        notificationClient.sendNotification(request.sender().id(), title, message);
+      }
+    } catch (Exception e) {
+      // Log error but don't fail the primary action
+    }
   }
 }
