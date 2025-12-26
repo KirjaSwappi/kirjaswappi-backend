@@ -4,14 +4,18 @@
  */
 package com.kirjaswappi.backend.http.dtos.responses;
 
+import java.io.Serializable;
+
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import com.kirjaswappi.backend.service.entities.Genre;
 
 @Getter
 @Setter
-public class ChildGenreResponse {
+@NoArgsConstructor
+public class ChildGenreResponse implements Serializable {
   private String id;
   private String name;
 

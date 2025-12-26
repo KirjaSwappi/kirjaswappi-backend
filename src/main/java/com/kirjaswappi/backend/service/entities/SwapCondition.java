@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.service.entities;
 
+import java.io.Serializable;
 import java.util.List;
 
 import lombok.Builder;
@@ -19,7 +20,7 @@ import com.kirjaswappi.backend.service.enums.SwapType;
 @Builder
 @Accessors(fluent = true)
 @NoArgsConstructor
-public class SwapCondition {
+public class SwapCondition implements Serializable {
   private SwapType swapType;
   private boolean giveAway;
   private boolean openForOffers;

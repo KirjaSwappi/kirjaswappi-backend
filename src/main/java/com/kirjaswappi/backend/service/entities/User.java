@@ -6,6 +6,7 @@ package com.kirjaswappi.backend.service.entities;
 
 import static com.kirjaswappi.backend.common.utils.Util.hashPassword;
 
+import java.io.Serializable;
 import java.util.List;
 
 import lombok.*;
@@ -20,7 +21,7 @@ import com.mongodb.lang.Nullable;
 @Accessors(fluent = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class User implements Serializable {
   private String id;
   private String firstName;
   private String lastName;

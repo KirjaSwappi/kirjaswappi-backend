@@ -12,6 +12,7 @@ import lombok.*;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.kirjaswappi.backend.service.enums.Condition;
 import com.kirjaswappi.backend.service.enums.Language;
 
@@ -26,7 +27,7 @@ public record Book(
     Condition condition,
     List<Genre> genres,
     List<String> coverPhotos,
-    List<MultipartFile> coverPhotoFiles,
+    @JsonIgnore List<MultipartFile> coverPhotoFiles,
     User owner,
     SwapCondition swapCondition,
     BookLocation location,
