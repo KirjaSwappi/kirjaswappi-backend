@@ -23,6 +23,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
 
 /**
  * Service responsible for sending emails, including OTP verification emails.
@@ -60,6 +61,53 @@ public class EmailService {
     } catch (Exception e) {
       logger.error("Unexpected error while sending OTP email to {}: {}", email, e.getMessage(), e);
     }
+  }
+
+  /**
+   * Sends a confirmation email after a password change.
+   *
+   * @param email The user's email address
+   */
+  public void sendPasswordChangeConfirmation(String email) {
+    String subject = "Password Changed Successfully";
+    try {
+      String template = loadGenericEmailTemplate();
+      String content = "<h2>Password Updated</h2>"
+          + "<p>Hello,</p>"
+          + "<p>This is a confirmation that your KirjaSwappi account password has been changed successfully.</p>"
+          + "<p>If you did not perform this action, please contact support immediately.</p>"
+          + "<p>Best regards,<br/>The KirjaSwappi Team</p>";
+      String emailText = template.replace("{{title}}", subject).replace("{{content}}", content);
+      sendEmail(email, subject, emailText);
+    } catch (IOException e) {
+      logger.error("Failed to load generic email template: {}", e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Sends a confirmation email after successful email verification.
+   *
+   * @param email The user's email address
+   */
+  public void sendEmailVerificationConfirmation(String email) {
+    String subject = "Email Verified Successfully";
+    try {
+      String template = loadGenericEmailTemplate();
+      String content = "<h2>Welcome to KirjaSwappi!</h2>"
+          + "<p>Hello,</p>"
+          + "<p>Your email address has been successfully verified. You can now use all features of KirjaSwappi.</p>"
+          + "<p>Happy book swapping!</p>"
+          + "<p>Best regards,<br/>The KirjaSwappi Team</p>";
+      String emailText = template.replace("{{title}}", subject).replace("{{content}}", content);
+      sendEmail(email, subject, emailText);
+    } catch (IOException e) {
+      logger.error("Failed to load generic email template: {}", e.getMessage(), e);
+    }
+  }
+
+  private String loadGenericEmailTemplate() throws IOException {
+    Resource resource = new ClassPathResource("templates/GenericEmailTemplate.html");
+    return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
   }
 
   /**

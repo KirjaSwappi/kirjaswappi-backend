@@ -24,6 +24,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.kirjaswappi.backend.common.service.ImageService;
+import com.kirjaswappi.backend.common.service.ProfanityFilterService;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.ChatMessageDao;
 import com.kirjaswappi.backend.jpa.daos.SwapRequestDao;
@@ -47,6 +48,8 @@ class ChatServiceTest {
   private ImageService imageService;
   @Mock
   private SimpMessagingTemplate messagingTemplate;
+  @Mock
+  private ProfanityFilterService profanityFilterService;
   @InjectMocks
   private ChatService chatService;
 
@@ -97,6 +100,9 @@ class ChatServiceTest {
         .sentAt(Instant.now())
         .readByReceiver(false)
         .build();
+
+    // Default mock behavior for profanity filter
+    when(profanityFilterService.filter(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
   }
 
   @Test

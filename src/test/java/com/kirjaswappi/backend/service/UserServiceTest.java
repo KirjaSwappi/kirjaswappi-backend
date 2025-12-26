@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import com.kirjaswappi.backend.common.service.EmailService;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.GenreDao;
 import com.kirjaswappi.backend.jpa.daos.UserDao;
@@ -40,6 +41,8 @@ class UserServiceTest {
   private BookRepository bookRepository;
   @Mock
   private GenreRepository genreRepository;
+  @Mock
+  private EmailService emailService;
   @InjectMocks
   private UserService userService;
 
@@ -194,8 +197,8 @@ class UserServiceTest {
   @DisplayName("Should throw BookNotFoundException when adding favourite book that does not exist")
   void addFavouriteBookThrowsIfBookNotFound() {
 
-    BookDao bookDao = BookDao.builder().id("bookId").build();
     User user = new User().id("id").favBooks(List.of(Book.builder().build()));
+
     UserDao userDao = UserDao.builder().id("id").build();
 
     when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));

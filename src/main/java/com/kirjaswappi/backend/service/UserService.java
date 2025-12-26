@@ -14,6 +14,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.kirjaswappi.backend.common.service.EmailService;
 import com.kirjaswappi.backend.common.service.exceptions.InvalidCredentials;
 import com.kirjaswappi.backend.common.utils.Util;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
@@ -41,7 +42,10 @@ public class UserService {
 
   private final BookRepository bookRepository;
 
+  private final EmailService emailService;
+
   public User addUser(User user) {
+
     this.checkUserExistButNotVerified(user);
     this.checkIfUserAlreadyExists(user);
 
@@ -187,7 +191,6 @@ public class UserService {
     }
   }
 
-  // TODO: send email to the user confirming the password change.
   public String changePassword(User user) {
     // get user from email:
     UserDao dao = userRepository.findByEmail(user.email())
@@ -202,7 +205,7 @@ public class UserService {
     String currentPassword = dao.password();
     String newPassword = Util.hashPassword(user.password(), dao.salt());
     if (currentPassword.equals(newPassword)) {
-      throw new BadRequestException("newPasswordCannotBeSameAsCurrentPassword", newPassword);
+      throw new BadRequestException("newPasswordCannotBeSameAsCurrentPassword", user.password());
     }
 
     // add new salt to new password:
@@ -214,11 +217,13 @@ public class UserService {
     dao.password(newPasswordWithNewSalt);
     userRepository.save(dao);
 
+    emailService.sendPasswordChangeConfirmation(dao.email());
+
     return dao.email();
   }
 
-  // TODO: send confirmation to the verified user email.
   public String verifyEmail(String email) {
+
     // get user from email:
     UserDao dao = userRepository.findByEmail(email)
         .orElseThrow(() -> new UserNotFoundException(email));
@@ -226,6 +231,8 @@ public class UserService {
     // update email verification status:
     dao.isEmailVerified(true);
     userRepository.save(dao);
+
+    emailService.sendEmailVerificationConfirmation(dao.email());
 
     return dao.email();
   }

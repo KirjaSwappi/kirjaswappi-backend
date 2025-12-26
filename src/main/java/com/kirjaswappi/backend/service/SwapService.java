@@ -122,7 +122,6 @@ public class SwapService {
       // Log error but don't fail the swap request creation
       logger.error("Failed to send notification for new swap request. Receiver: {}, Book: {}",
           receiver.id(), bookToSwapWith.title(), e);
-      // TODO: Consider adding retry mechanism or dead letter queue
     }
 
     return SwapRequestMapper.toEntity(createdDao);
@@ -171,7 +170,6 @@ public class SwapService {
       // Log error but don't fail the status update
       logger.error("Failed to send notification for swap request status update. Sender: {}, Status: {}",
           swapRequest.sender().id(), newStatus.getCode(), e);
-      // TODO: Consider adding retry mechanism or dead letter queue
     }
 
     return SwapRequestMapper.toEntity(updatedDao);
