@@ -23,6 +23,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 @Profile("cloud")
 public class RedisCacheConfig {
 
+  private static final String CACHE_PREFIX = "v2:";
+
   @Bean
   public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
     ObjectMapper objectMapper = new ObjectMapper();
@@ -32,6 +34,7 @@ public class RedisCacheConfig {
 
     RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
         .entryTtl(Duration.ofDays(7))
+        .prefixCacheNameWith(CACHE_PREFIX)
         .serializeKeysWith(
             RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
         .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
