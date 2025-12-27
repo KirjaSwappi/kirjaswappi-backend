@@ -29,8 +29,7 @@ public class RedisCacheConfig {
   public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
     ObjectMapper objectMapper = new ObjectMapper();
     objectMapper.registerModule(new JavaTimeModule());
-    // Enable default typing for polymorphic deserialization (crucial for Redis
-    // caching)
+    // Enable default typing for polymorphic deserialization
     objectMapper.activateDefaultTyping(
         objectMapper.getPolymorphicTypeValidator(),
         ObjectMapper.DefaultTyping.NON_FINAL,
