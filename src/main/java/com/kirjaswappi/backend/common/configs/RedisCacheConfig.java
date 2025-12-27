@@ -23,12 +23,18 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 @Profile("cloud")
 public class RedisCacheConfig {
 
-  private static final String CACHE_PREFIX = "v2:";
+  private static final String CACHE_PREFIX = "v3:";
 
   @Bean
   public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
     ObjectMapper objectMapper = new ObjectMapper();
     objectMapper.registerModule(new JavaTimeModule());
+    // Enable default typing for polymorphic deserialization
+    objectMapper.activateDefaultTyping(
+        objectMapper.getPolymorphicTypeValidator(),
+        ObjectMapper.DefaultTyping.NON_FINAL,
+        com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY);
+
     // Use GenericJackson2JsonRedisSerializer to handle polymorphic types
     GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 

@@ -56,7 +56,7 @@ public class FilterApiRequest extends OncePerRequestFilter {
 
       // 2. Early Exit if No Token
       if (jwt == null || SecurityContextHolder.getContext().getAuthentication() != null) {
-        logger.warn("No JWT Token found in request");
+        logger.debug("No JWT Token found in request");
         filterChain.doFilter(request, response);
         return;
       }
