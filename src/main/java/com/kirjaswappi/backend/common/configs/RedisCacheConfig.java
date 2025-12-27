@@ -23,7 +23,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 @Profile("cloud")
 public class RedisCacheConfig {
 
-  private static final String CACHE_PREFIX = "v3:";
+  private static final String CACHE_PREFIX = "v4:";
 
   @Bean
   public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -34,6 +34,12 @@ public class RedisCacheConfig {
         objectMapper.getPolymorphicTypeValidator(),
         ObjectMapper.DefaultTyping.NON_FINAL,
         com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY);
+
+    // Support fluent accessors (like name() instead of getName()) and handle empty
+    // beans
+    objectMapper.configure(com.fasterxml.jackson.databind.SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+    objectMapper.setVisibility(com.fasterxml.jackson.annotation.PropertyAccessor.FIELD,
+        com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY);
 
     // Use GenericJackson2JsonRedisSerializer to handle polymorphic types
     GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
