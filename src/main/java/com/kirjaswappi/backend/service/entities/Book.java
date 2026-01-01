@@ -45,6 +45,7 @@ public record Book(
     }
   }
 
+  @JsonIgnore
   public Duration getOfferedAgo() {
     return Duration.between(bookUpdatedAt, Instant.now());
   }
