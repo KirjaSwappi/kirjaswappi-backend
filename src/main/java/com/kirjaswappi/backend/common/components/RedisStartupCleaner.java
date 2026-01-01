@@ -26,7 +26,7 @@ public class RedisStartupCleaner implements ApplicationRunner {
   @Override
   public void run(ApplicationArguments args) throws Exception {
     try (var connection = redisConnectionFactory.getConnection()) {
-      connection.serverCommands().flushDb();
+      connection.serverCommands().flushAll();
       logger.info("Redis cache cleared successfully on startup.");
     } catch (Exception e) {
       logger.error("Failed to clear Redis cache on startup", e);
