@@ -28,7 +28,7 @@ import com.kirjaswappi.backend.service.entities.User;
 @Profile("cloud")
 public class RedisCacheConfig {
 
-  private static final String CACHE_PREFIX = "v4:";
+  private static final String CACHE_PREFIX = "v5:";
 
   @Bean
   @SuppressWarnings("deprecation")
@@ -67,6 +67,9 @@ public class RedisCacheConfig {
         .withCacheConfiguration("nested_genres", config.entryTtl(Duration.ofDays(7))
             .serializeValuesWith(RedisSerializationContext.SerializationPair
                 .fromSerializer(new Jackson2JsonRedisSerializer<>(objectMapper, NestedGenresResponse.class))))
+        .withCacheConfiguration("imageUrls", config.entryTtl(Duration.ofDays(7))
+            .serializeValuesWith(RedisSerializationContext.SerializationPair
+                .fromSerializer(new Jackson2JsonRedisSerializer<>(objectMapper, String.class))))
         .build();
   }
 }
