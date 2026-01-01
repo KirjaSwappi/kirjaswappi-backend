@@ -67,6 +67,9 @@ public class RedisCacheConfig {
         .withCacheConfiguration("nested_genres", config.entryTtl(Duration.ofDays(7))
             .serializeValuesWith(RedisSerializationContext.SerializationPair
                 .fromSerializer(new Jackson2JsonRedisSerializer<>(objectMapper, NestedGenresResponse.class))))
+        .withCacheConfiguration("imageUrls", config.entryTtl(Duration.ofDays(7))
+            .serializeValuesWith(RedisSerializationContext.SerializationPair
+                .fromSerializer(new Jackson2JsonRedisSerializer<>(objectMapper, String.class))))
         .build();
   }
 }
