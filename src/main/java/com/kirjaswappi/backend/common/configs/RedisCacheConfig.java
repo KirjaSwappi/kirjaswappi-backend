@@ -28,7 +28,7 @@ import com.kirjaswappi.backend.service.entities.User;
 @Profile("cloud")
 public class RedisCacheConfig {
 
-  private static final String CACHE_PREFIX = "v4:";
+  private static final String CACHE_PREFIX = "v5:";
 
   @Bean
   @SuppressWarnings("deprecation")
