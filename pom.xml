@@ -286,7 +286,7 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-				<version>4.0.1</version>
+				<version>4.0.2</version>
 			</plugin>
 
 			<!-- Compiler Plugin -->
