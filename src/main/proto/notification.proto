@@ -3,6 +3,8 @@ syntax = "proto3";
 package notification;
 
 option go_package = "github.com/kirjaswappi/kirjaswappi-notification/proto;notification";
+option java_multiple_files = true;
+option java_package = "com.kirjaswappi.backend.proto.notification";
 
 
 
