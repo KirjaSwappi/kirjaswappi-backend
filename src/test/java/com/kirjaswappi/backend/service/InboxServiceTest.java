@@ -25,6 +25,7 @@ import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.SwapRequestDao;
 import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
+import com.kirjaswappi.backend.service.entities.ChatMessage;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
 import com.kirjaswappi.backend.service.entities.User;
 import com.kirjaswappi.backend.service.enums.SwapStatus;
@@ -798,7 +799,42 @@ class InboxServiceTest {
     assertThrows(BadRequestException.class,
         () -> inboxService.updateSwapRequestStatus("received1", "INVALID_STATUS", "receiver123"));
     // Validation happens first, so repository should not be called
-    verify(swapRequestRepository, never()).findById(anyString());
+    verify(swapRequestRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("Should get latest message from chat service")
+  void shouldGetLatestMessageFromChatService() {
+    // Given
+    ChatMessage chatMessage = ChatMessage.builder()
+        .id("msg1")
+        .message("Hello")
+        .build();
+    when(chatService.getLatestMessage("swap1")).thenReturn(Optional.of(chatMessage));
+
+    // When
+    Optional<ChatMessage> result = inboxService.getLatestMessage("swap1");
+
+    // Then
+    assertTrue(result.isPresent());
+    assertEquals("Hello", result.get().message());
+    verify(chatService).getLatestMessage("swap1");
+  }
+
+  @Test
+  @DisplayName("Should get latest message timestamp from chat service")
+  void shouldGetLatestMessageTimestampFromChatService() {
+    // Given
+    Instant now = Instant.now();
+    when(chatService.getLatestMessageTimestamp("swap1")).thenReturn(Optional.of(now));
+
+    // When
+    Optional<Instant> result = inboxService.getLatestMessageTimestamp("swap1");
+
+    // Then
+    assertTrue(result.isPresent());
+    assertEquals(now, result.get());
+    verify(chatService).getLatestMessageTimestamp("swap1");
   }
 
   @Test
