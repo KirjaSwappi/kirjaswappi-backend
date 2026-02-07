@@ -128,6 +128,14 @@ public class InboxService {
     return SwapRequestMapper.toEntity(updatedDao);
   }
 
+  public Optional<Instant> getLatestMessageTimestamp(String swapRequestId) {
+    return chatService.getLatestMessageTimestamp(swapRequestId);
+  }
+
+  public Optional<com.kirjaswappi.backend.service.entities.ChatMessage> getLatestMessage(String swapRequestId) {
+    return chatService.getLatestMessage(swapRequestId);
+  }
+
   public long getUnreadMessageCount(String userId, String swapRequestId) {
     return chatService.getUnreadMessageCount(swapRequestId, userId);
   }

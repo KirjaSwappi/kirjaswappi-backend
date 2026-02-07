@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMock
 import com.kirjaswappi.backend.http.controllers.InboxController;
 import com.kirjaswappi.backend.service.InboxService;
 import com.kirjaswappi.backend.service.entities.Book;
+import com.kirjaswappi.backend.service.entities.ChatMessage;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
 import com.kirjaswappi.backend.service.entities.User;
 import com.kirjaswappi.backend.service.enums.Condition;
@@ -67,7 +69,7 @@ class InboxControllerTest {
         .condition(Condition.GOOD)
         .build();
 
-// Received swap request
+    // Received swap request
     SwapRequest receivedSwap = SwapRequest.builder()
         .id("received1")
         .sender(sender)
@@ -80,7 +82,7 @@ class InboxControllerTest {
         .askForGiveaway(false)
         .build();
 
-// Sent swap request
+    // Sent swap request
     SwapRequest sentSwap = SwapRequest.builder()
         .id("sent1")
         .sender(receiver)
@@ -100,6 +102,16 @@ class InboxControllerTest {
     when(inboxService.isInboxItemUnread(receivedSwap, "receiver123")).thenReturn(true);
     when(inboxService.isInboxItemUnread(sentSwap, "receiver123")).thenReturn(false);
 
+    // Mock latest messages
+    ChatMessage lastMessageSent = ChatMessage.builder()
+        .id("msg1")
+        .message("Hello there")
+        .sender(sender)
+        .sentAt(Instant.parse("2025-01-02T12:00:00Z"))
+        .build();
+    when(inboxService.getLatestMessage("sent1")).thenReturn(Optional.of(lastMessageSent));
+    when(inboxService.getLatestMessage("received1")).thenReturn(Optional.empty());
+
     // When & Then
     mockMvc.perform(get(API_PATH)
         .param("userId", "receiver123"))
@@ -113,6 +125,8 @@ class InboxControllerTest {
         .andExpect(jsonPath("$[0].swapStatus").value("Accepted"))
         .andExpect(jsonPath("$[0].unreadMessageCount").value(0))
         .andExpect(jsonPath("$[0].hasNewMessages").value(false))
+        .andExpect(jsonPath("$[0].lastMessageContent").value("Hello there"))
+        .andExpect(jsonPath("$[0].lastMessageSenderId").value("sender123"))
         .andExpect(jsonPath("$[1].id").value("received1"))
         .andExpect(jsonPath("$[1].conversationType").value("received"))
         .andExpect(jsonPath("$[1].swapType").value("ByBooks"))
@@ -269,7 +283,8 @@ class InboxControllerTest {
         .askForGiveaway(false)
         .build();
 
-    List<SwapRequest> swapRequests = Arrays.asList(swapRequest1, swapRequest2); // Sorted alphabetically by book title
+    List<SwapRequest> swapRequests = Arrays.asList(swapRequest1, swapRequest2); // Sorted alphabetically by book
+                                                                                // title
     when(inboxService.getUnifiedInbox("receiver123", null, "book_title")).thenReturn(swapRequests);
     when(inboxService.getUnreadMessageCount("receiver123", "swap1")).thenReturn(0L);
     when(inboxService.getUnreadMessageCount("receiver123", "swap2")).thenReturn(0L);
@@ -294,5 +309,66 @@ class InboxControllerTest {
     verify(inboxService).getUnreadMessageCount("receiver123", "swap2");
     verify(inboxService).isInboxItemUnread(swapRequest1, "receiver123");
     verify(inboxService).isInboxItemUnread(swapRequest2, "receiver123");
+  }
+
+  @Test
+  @DisplayName("Should return attachment message when text is empty")
+  void shouldReturnAttachmentMessageWhenTextIsEmpty() throws Exception {
+    User sender = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
+
+    User receiver = User.builder()
+        .id("receiver123")
+        .firstName("Jane")
+        .lastName("Smith")
+        .build();
+
+    Book book = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .condition(Condition.GOOD)
+        .build();
+
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap1")
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book)
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.PENDING)
+        .requestedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .askForGiveaway(false)
+        .build();
+
+    List<SwapRequest> swapRequests = List.of(swapRequest);
+    when(inboxService.getUnifiedInbox("receiver123", null, null)).thenReturn(swapRequests);
+    when(inboxService.getUnreadMessageCount("receiver123", "swap1")).thenReturn(1L);
+    when(inboxService.isInboxItemUnread(swapRequest, "receiver123")).thenReturn(true);
+
+    // Mock latest message with image but no text
+    ChatMessage lastMessage = ChatMessage.builder()
+        .id("msg1")
+        .message("") // Empty text
+        .imageIds(List.of("img1")) // Has image
+        .sender(sender)
+        .sentAt(Instant.parse("2025-01-01T12:00:00Z"))
+        .build();
+    when(inboxService.getLatestMessage("swap1")).thenReturn(Optional.of(lastMessage));
+
+    // When & Then
+    mockMvc.perform(get(API_PATH)
+        .param("userId", "receiver123"))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$[0].lastMessageContent").value("John sent an attachment"))
+        .andExpect(jsonPath("$[0].lastMessageIsImage").value(true));
+
+    verify(inboxService).getUnifiedInbox("receiver123", null, null);
+    verify(inboxService).getLatestMessage("swap1");
   }
 }

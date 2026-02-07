@@ -30,6 +30,10 @@ public class InboxItemResponse {
   private boolean isUnread;
   private boolean hasNewMessages;
   private String conversationType; // "sent" or "received"
+  private String lastMessageContent;
+  private String lastMessageSenderId;
+  private Instant lastMessageSentAt;
+  private boolean lastMessageIsImage;
 
   public InboxItemResponse(SwapRequest entity) {
     this.id = entity.id();
@@ -47,6 +51,10 @@ public class InboxItemResponse {
     this.isUnread = false; // Will be set separately by service
     this.hasNewMessages = false; // Will be set separately by service
     this.conversationType = null; // Will be set separately by service
+    this.lastMessageContent = null; // Will be set separately by service
+    this.lastMessageSenderId = null; // Will be set separately by service
+    this.lastMessageSentAt = null; // Will be set separately by service
+    this.lastMessageIsImage = false; // Will be set separately by service
   }
 
   public void setConversationType(String conversationType) {

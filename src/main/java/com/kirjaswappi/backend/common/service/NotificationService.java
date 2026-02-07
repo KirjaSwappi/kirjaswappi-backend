@@ -22,7 +22,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.google.protobuf.Timestamp;
 import com.kirjaswappi.backend.jpa.daos.NotificationOutboxDao;
 import com.kirjaswappi.backend.jpa.repositories.NotificationOutboxRepository;
 
@@ -106,16 +105,11 @@ public class NotificationService implements NotificationClient {
   private void processNotification(NotificationOutboxDao notification) {
     try {
       Instant now = Instant.now();
-      Timestamp timestamp = Timestamp.newBuilder()
-          .setSeconds(now.getEpochSecond())
-          .setNanos(now.getNano())
-          .build();
-
       NotificationRequest request = NotificationRequest.newBuilder()
           .setUserId(notification.userId())
           .setTitle(notification.title())
           .setMessage(notification.message())
-          .setTime(timestamp)
+          .setTime(now.toEpochMilli())
           .build();
 
       NotificationResponse response = stub.sendNotification(request);

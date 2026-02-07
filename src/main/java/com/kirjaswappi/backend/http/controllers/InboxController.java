@@ -53,6 +53,22 @@ public class InboxController {
           item.setHasNewMessages(unreadCount > 0);
           // Set conversation type for UI display
           item.setConversationType(userId.equals(swapRequest.sender().id()) ? "sent" : "received");
+
+          // Add latest message details
+          inboxService.getLatestMessage(swapRequest.id()).ifPresent(message -> {
+            String content = message.message();
+            if (content == null || content.trim().isEmpty()) {
+              if (message.imageIds() != null && !message.imageIds().isEmpty()) {
+                content = message.sender().firstName() + " sent an attachment";
+              }
+            }
+            item.setLastMessageContent(content);
+            item.setLastMessageSenderId(message.sender().id());
+            item.setLastMessageSentAt(message.sentAt());
+            // ChatMessage reuses imageIds field for URLs in response objects
+            item.setLastMessageIsImage(message.imageIds() != null && !message.imageIds().isEmpty());
+          });
+
           return item;
         })
         .toList();

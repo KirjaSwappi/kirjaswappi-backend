@@ -261,6 +261,14 @@ public class ChatService {
         .map(ChatMessageDao::sentAt);
   }
 
+  public Optional<ChatMessage> getLatestMessage(String swapRequestId) {
+    return chatMessageRepository.findFirstBySwapRequestIdOrderBySentAtDesc(swapRequestId)
+        .map(dao -> {
+          List<String> imageUrls = convertImageIdsToUrls(dao.imageIds());
+          return ChatMessageMapper.toEntity(dao, imageUrls);
+        });
+  }
+
   public SwapRequest getSwapRequestForChat(String swapRequestId, String userId) {
     // Validate swap request exists
     Optional<SwapRequestDao> swapRequestOpt = swapRequestRepository.findById(swapRequestId);

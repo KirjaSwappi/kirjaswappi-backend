@@ -4,7 +4,7 @@ package notification;
 
 option go_package = "github.com/kirjaswappi/kirjaswappi-notification/proto;notification";
 
-import "google/protobuf/timestamp.proto";
+
 
 service NotificationService {
   rpc SendNotification (NotificationRequest) returns (NotificationResponse);
@@ -14,7 +14,7 @@ message NotificationRequest {
   string userId = 1;
   string title = 2;
   string message = 3;
-  google.protobuf.Timestamp time = 4;
+  int64 time = 4;
 }
 
 message NotificationResponse {
