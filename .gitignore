@@ -33,5 +33,4 @@ replay_pid*
 # Target Folder #
 target/
 
-AGENT.md
 .agent/
