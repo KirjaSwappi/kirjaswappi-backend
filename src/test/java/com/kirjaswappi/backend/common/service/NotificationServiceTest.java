@@ -11,8 +11,6 @@ import java.time.Instant;
 import java.util.List;
 
 import io.grpc.ManagedChannel;
-import notification.Notification;
-import notification.NotificationServiceGrpc;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +21,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.kirjaswappi.backend.jpa.daos.NotificationOutboxDao;
 import com.kirjaswappi.backend.jpa.repositories.NotificationOutboxRepository;
+import com.kirjaswappi.backend.proto.notification.NotificationResponse;
+import com.kirjaswappi.backend.proto.notification.NotificationServiceGrpc;
 
 class NotificationServiceTest {
 
@@ -78,7 +78,7 @@ class NotificationServiceTest {
     when(notificationOutboxRepository.findByStatusOrderByCreatedAtAsc("PENDING"))
         .thenReturn(List.of(pendingNotification));
 
-    Notification.NotificationResponse successResponse = Notification.NotificationResponse.newBuilder()
+    NotificationResponse successResponse = NotificationResponse.newBuilder()
         .setSuccess(true)
         .build();
     when(stub.sendNotification(any())).thenReturn(successResponse);

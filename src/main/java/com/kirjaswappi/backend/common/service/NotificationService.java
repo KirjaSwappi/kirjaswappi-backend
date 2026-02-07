@@ -11,9 +11,6 @@ import java.util.concurrent.TimeUnit;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
-import notification.Notification.NotificationRequest;
-import notification.Notification.NotificationResponse;
-import notification.NotificationServiceGrpc;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +21,9 @@ import org.springframework.stereotype.Service;
 
 import com.kirjaswappi.backend.jpa.daos.NotificationOutboxDao;
 import com.kirjaswappi.backend.jpa.repositories.NotificationOutboxRepository;
+import com.kirjaswappi.backend.proto.notification.NotificationRequest;
+import com.kirjaswappi.backend.proto.notification.NotificationResponse;
+import com.kirjaswappi.backend.proto.notification.NotificationServiceGrpc;
 
 @Service
 public class NotificationService implements NotificationClient {
