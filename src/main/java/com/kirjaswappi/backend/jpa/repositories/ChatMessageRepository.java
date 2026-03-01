@@ -15,7 +15,7 @@ import com.kirjaswappi.backend.jpa.daos.ChatMessageDao;
 public interface ChatMessageRepository extends MongoRepository<ChatMessageDao, String> {
   List<ChatMessageDao> findBySwapRequestIdOrderBySentAtAsc(String swapRequestId);
 
-  @Query(value = "{ 'swapRequestId': ?0, 'readByReceiver': false, 'sender.$id': { $ne: { $oid: ?1 } } }", count = true)
+  @Query(value = "{ 'swapRequestId': ?0, 'readByReceiver': false, 'sender.$id': { $ne: ?1 } }", count = true)
   long countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot(String swapRequestId, String userId);
 
   Optional<ChatMessageDao> findFirstBySwapRequestIdOrderBySentAtDesc(String swapRequestId);
