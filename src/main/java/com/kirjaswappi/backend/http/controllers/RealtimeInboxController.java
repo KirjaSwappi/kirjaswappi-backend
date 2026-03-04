@@ -95,7 +95,7 @@ public class RealtimeInboxController {
           .map(swapRequest -> createInboxItemResponse(swapRequest, userId))
           .toList();
 
-      messagingTemplate.convertAndSendToUser(userId, "/queue/inbox/update", response);
+      messagingTemplate.convertAndSendToUser(userId, "/inbox/update", response);
       logger.debug("Sent inbox update to user: {} with {} items", userId, response.size());
 
     } catch (Exception e) {
@@ -108,7 +108,7 @@ public class RealtimeInboxController {
       SwapRequest swapRequest = inboxService.getInboxItem(userId, swapRequestId);
       InboxItemResponse response = createInboxItemResponse(swapRequest, userId);
 
-      messagingTemplate.convertAndSendToUser(userId, "/queue/inbox/item-update", response);
+      messagingTemplate.convertAndSendToUser(userId, "/inbox/item-update", response);
       logger.debug("Sent inbox item update to user: {} for swap request: {}", userId, swapRequestId);
 
     } catch (Exception e) {

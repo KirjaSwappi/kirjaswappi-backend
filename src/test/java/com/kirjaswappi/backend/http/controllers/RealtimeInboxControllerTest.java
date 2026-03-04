@@ -74,7 +74,7 @@ class RealtimeInboxControllerTest {
     // Verify it sends to the ITEM update queue
     verify(messagingTemplate).convertAndSendToUser(
         eq(userId),
-        eq("/queue/inbox/item-update"), // Critical check: ensuring delta path
+        eq("/inbox/item-update"), // Critical check: ensuring delta path
         any(Object.class));
   }
 }

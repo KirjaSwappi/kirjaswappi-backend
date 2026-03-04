@@ -65,8 +65,8 @@ public class RealtimeChatController {
           : swapRequest.sender().id();
 
       // Send to both sender and receiver via WebSocket
-      messagingTemplate.convertAndSendToUser(userId, "/queue/chat/" + swapRequestId, response);
-      messagingTemplate.convertAndSendToUser(receiverId, "/queue/chat/" + swapRequestId, response);
+      messagingTemplate.convertAndSendToUser(userId, "/chat/" + swapRequestId, response);
+      messagingTemplate.convertAndSendToUser(receiverId, "/chat/" + swapRequestId, response);
 
       logger.debug("Real-time message sent successfully for swap request: {}", swapRequestId);
 
