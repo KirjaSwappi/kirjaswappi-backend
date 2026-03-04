@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
 
+import org.bson.types.ObjectId;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -244,7 +245,7 @@ public class ChatService {
 
     // Count unread messages not sent by the current user
     return chatMessageRepository.countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot(
-        swapRequestId, userId);
+        swapRequestId, new ObjectId(userId));
   }
 
   @CacheEvict(value = "unreadCounts", key = "#userId + '_' + #swapRequestId", beforeInvocation = true)
