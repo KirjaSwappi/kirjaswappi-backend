@@ -7,6 +7,7 @@ package com.kirjaswappi.backend.jpa.repositories;
 import java.util.List;
 import java.util.Optional;
 
+import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
@@ -16,7 +17,7 @@ public interface ChatMessageRepository extends MongoRepository<ChatMessageDao, S
   List<ChatMessageDao> findBySwapRequestIdOrderBySentAtAsc(String swapRequestId);
 
   @Query(value = "{ 'swapRequestId': ?0, 'readByReceiver': false, 'sender.$id': { $ne: ?1 } }", count = true)
-  long countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot(String swapRequestId, String userId);
+  long countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot(String swapRequestId, ObjectId userId);
 
   Optional<ChatMessageDao> findFirstBySwapRequestIdOrderBySentAtDesc(String swapRequestId);
 }

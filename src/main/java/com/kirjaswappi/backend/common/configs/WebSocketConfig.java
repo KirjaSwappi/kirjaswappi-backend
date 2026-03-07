@@ -60,11 +60,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     config.setUserDestinationPrefix("/user");
   }
 
+  @org.springframework.beans.factory.annotation.Value("${FRONTEND_URL:*}")
+  private String[] allowedOriginPatterns;
+
   @Override
   public void registerStompEndpoints(StompEndpointRegistry registry) {
     // Register STOMP endpoint with SockJS fallback
     registry.addEndpoint("/ws")
-        .setAllowedOriginPatterns("${FRONTEND_URL:*}")
+        .setAllowedOriginPatterns(allowedOriginPatterns)
         .withSockJS();
   }
 }
