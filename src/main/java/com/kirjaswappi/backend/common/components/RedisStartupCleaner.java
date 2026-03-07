@@ -29,7 +29,7 @@ public class RedisStartupCleaner implements ApplicationRunner {
       connection.serverCommands().flushAll();
       logger.info("Redis cache cleared successfully on startup.");
     } catch (Exception e) {
-      logger.error("Failed to clear Redis cache on startup", e);
+      logger.warn("Failed to clear Redis cache on startup: {}", e.getMessage());
     }
   }
 }
