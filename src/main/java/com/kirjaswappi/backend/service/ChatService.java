@@ -225,6 +225,17 @@ public class ChatService {
       chatMessageRepository.save(message);
     }
 
+    // Also mark the swap request inbox item as read so the inbox endpoint returns
+    // unread=false
+    Instant now = Instant.now();
+    if (swapRequest.receiver().id().equals(userId) && swapRequest.readByReceiverAt() == null) {
+      swapRequest.readByReceiverAt(now);
+      swapRequestRepository.save(swapRequest);
+    } else if (swapRequest.sender().id().equals(userId) && swapRequest.readBySenderAt() == null) {
+      swapRequest.readBySenderAt(now);
+      swapRequestRepository.save(swapRequest);
+    }
+
     // Clear unread count cache AFTER marking messages as read to ensure consistency
     clearUnreadCountCache(userId, swapRequestId);
   }
