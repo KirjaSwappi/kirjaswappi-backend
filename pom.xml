@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.2</version>
+		<version>4.0.3</version>
 		<relativePath/>
 	</parent>
 
@@ -155,7 +155,7 @@
 		<dependency>
 			<groupId>io.getunleash</groupId>
 			<artifactId>unleash-client-java</artifactId>
-			<version>12.1.1</version>
+			<version>12.2.0</version>
 		</dependency>
 
 		<!-- Sign in with Google -->
@@ -286,7 +286,7 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-				<version>4.0.2</version>
+				<version>4.0.3</version>
 			</plugin>
 
 			<!-- Compiler Plugin -->
