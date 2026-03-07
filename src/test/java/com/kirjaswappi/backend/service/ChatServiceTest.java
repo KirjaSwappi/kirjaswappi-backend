@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -237,8 +238,9 @@ class ChatServiceTest {
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     String receiverHex = "64e8f5d1a2b3c4d5e6f78901";
 
-    when(chatMessageRepository.countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot("swap123", receiverHex))
-        .thenReturn(3L);
+    when(chatMessageRepository.countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot("swap123",
+        new ObjectId(receiverHex)))
+            .thenReturn(3L);
 
     // When
     long count = chatService.getUnreadMessageCount("swap123", receiverHex);
@@ -246,7 +248,8 @@ class ChatServiceTest {
     // Then
     assertEquals(3L, count);
     verify(swapRequestRepository).findById("swap123");
-    verify(chatMessageRepository).countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot("swap123", receiverHex);
+    verify(chatMessageRepository).countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot("swap123",
+        new ObjectId(receiverHex));
   }
 
   @Test
@@ -562,7 +565,7 @@ class ChatServiceTest {
     // Given
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     when(chatMessageRepository.countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot("swap123",
-        "64e8f5d1a2b3c4d5e6f78901"))
+        new ObjectId("64e8f5d1a2b3c4d5e6f78901")))
             .thenReturn(0L);
 
     // When
@@ -571,7 +574,7 @@ class ChatServiceTest {
     // Then
     assertEquals(0L, count);
     verify(chatMessageRepository).countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot("swap123",
-        "64e8f5d1a2b3c4d5e6f78901");
+        new ObjectId("64e8f5d1a2b3c4d5e6f78901"));
   }
 
   @Test
