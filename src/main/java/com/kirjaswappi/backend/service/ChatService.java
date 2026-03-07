@@ -316,7 +316,7 @@ public class ChatService {
   private void broadcastInboxUpdate(String userId) {
     try {
       // Send inbox refresh signal to user's WebSocket connection
-      messagingTemplate.convertAndSendToUser(userId, "/queue/inbox/refresh", "refresh");
+      messagingTemplate.convertAndSendToUser(userId, "/queue/inbox.refresh", "refresh");
     } catch (Exception e) {
       // Log error but don't fail the message sending
       // Real-time updates are nice-to-have, not critical
