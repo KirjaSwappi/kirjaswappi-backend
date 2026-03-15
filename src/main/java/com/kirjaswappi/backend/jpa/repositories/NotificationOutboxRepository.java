@@ -21,5 +21,5 @@ public interface NotificationOutboxRepository extends MongoRepository<Notificati
   // Optionally find by status and sort by creation time
   List<NotificationOutboxDao> findByStatusOrderByCreatedAtAsc(String status);
 
-  void deleteByStatusAndCreatedAtBefore(String status, Instant before);
+  long deleteByStatusAndCreatedAtBefore(String status, Instant before);
 }

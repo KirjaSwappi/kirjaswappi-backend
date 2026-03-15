@@ -5,6 +5,7 @@
 package com.kirjaswappi.backend.common.service;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.time.Instant;
@@ -146,5 +147,35 @@ class NotificationServiceTest {
     // Then
     verify(stub).sendNotification(any());
     verify(notificationOutboxRepository).save(argThat(notification -> notification.status().equals("FAILED")));
+  }
+
+  @Test
+  @DisplayName("Should delete FAILED notifications older than retention period when enabled")
+  void shouldCleanupOldFailedNotificationsWhenEnabled() {
+    // Given
+    when(notificationOutboxRepository.deleteByStatusAndCreatedAtBefore(eq("FAILED"), any(Instant.class)))
+        .thenReturn(3L);
+
+    // When
+    notificationService.cleanupFailedNotifications();
+
+    // Then
+    verify(notificationOutboxRepository).deleteByStatusAndCreatedAtBefore(
+        eq("FAILED"),
+        argThat(cutoff -> cutoff.isBefore(Instant.now()) && cutoff.isAfter(Instant.now().minusSeconds(8 * 24 * 60 * 60))));
+  }
+
+  @Test
+  @DisplayName("Should skip cleanup when disabled")
+  void shouldSkipCleanupWhenDisabled() {
+    // Given
+    NotificationService disabledService = new NotificationService("localhost", 9090, false);
+    ReflectionTestUtils.setField(disabledService, "notificationOutboxRepository", notificationOutboxRepository);
+
+    // When
+    disabledService.cleanupFailedNotifications();
+
+    // Then
+    verifyNoInteractions(notificationOutboxRepository);
   }
 }
