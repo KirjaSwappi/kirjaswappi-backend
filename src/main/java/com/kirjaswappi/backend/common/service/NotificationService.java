@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.common.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.google.protobuf.Timestamp;
 import com.kirjaswappi.backend.jpa.daos.NotificationOutboxDao;
 import com.kirjaswappi.backend.jpa.repositories.NotificationOutboxRepository;
 import com.kirjaswappi.backend.proto.notification.NotificationRequest;
@@ -28,6 +30,13 @@ import com.kirjaswappi.backend.proto.notification.NotificationServiceGrpc;
 @Service
 public class NotificationService implements NotificationClient {
   private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
+
+  private static final String STATUS_PENDING = "PENDING";
+  private static final String STATUS_SENT = "SENT";
+  private static final String STATUS_FAILED = "FAILED";
+  private static final int MAX_RETRIES = 3;
+  private static final Duration FAILED_RETENTION = Duration.ofDays(7);
+  private static final long CLEANUP_INTERVAL_MS = 86_400_000L; // 1 day
 
   @Autowired
   private NotificationOutboxRepository notificationOutboxRepository;
@@ -60,6 +69,7 @@ public class NotificationService implements NotificationClient {
     }
   }
 
+  @Override
   public void sendNotification(String userId, String title, String message) {
     if (!enabled) {
       logger.debug("Notification service is disabled, skipping notification for user: {}", userId);
@@ -71,7 +81,7 @@ public class NotificationService implements NotificationClient {
           .userId(userId)
           .title(title)
           .message(message)
-          .status("PENDING")
+          .status(STATUS_PENDING)
           .createdAt(Instant.now())
           .retryCount(0)
           .build();
@@ -90,7 +100,7 @@ public class NotificationService implements NotificationClient {
     }
 
     List<NotificationOutboxDao> pendingNotifications = notificationOutboxRepository
-        .findByStatusOrderByCreatedAtAsc("PENDING");
+        .findByStatusOrderByCreatedAtAsc(STATUS_PENDING);
     if (pendingNotifications.isEmpty()) {
       return;
     }
@@ -109,13 +119,16 @@ public class NotificationService implements NotificationClient {
           .setUserId(notification.userId())
           .setTitle(notification.title())
           .setMessage(notification.message())
-          .setTime(now.toEpochMilli())
+          .setTime(Timestamp.newBuilder()
+              .setSeconds(now.getEpochSecond())
+              .setNanos(now.getNano())
+              .build())
           .build();
 
       NotificationResponse response = stub.sendNotification(request);
 
       if (response.getSuccess()) {
-        notification.status("SENT")
+        notification.status(STATUS_SENT)
             .sentAt(Instant.now());
         logger.debug("Notification sent successfully to user: {}", notification.userId());
       } else {
@@ -131,19 +144,30 @@ public class NotificationService implements NotificationClient {
   }
 
   private void handleHelper(NotificationOutboxDao notification, String error) {
-    int maxRetries = 3;
-    if (notification.retryCount() >= maxRetries) {
-      notification.status("FAILED");
+    if (notification.retryCount() >= MAX_RETRIES) {
+      notification.status(STATUS_FAILED);
       logger.error("Notification failed permanently for user: {}. Error: {}", notification.userId(), error);
     } else {
       notification.retryCount(notification.retryCount() + 1);
       // Keep status PENDING to try again
       logger.warn("Notification failed for user: {}. Retrying ({}/{}). Error: {}",
-          notification.userId(), notification.retryCount(), maxRetries, error);
+          notification.userId(), notification.retryCount(), MAX_RETRIES, error);
     }
     notification.errorMessage(error);
   }
 
+  @Scheduled(fixedDelay = CLEANUP_INTERVAL_MS)
+  public void cleanupFailedNotifications() {
+    if (!enabled) {
+      return;
+    }
+
+    Instant cutoff = Instant.now().minus(FAILED_RETENTION);
+    long deleted = notificationOutboxRepository.deleteByStatusAndCreatedAtBefore(STATUS_FAILED, cutoff);
+    logger.debug("Cleaned up {} FAILED notifications older than {} days", deleted, FAILED_RETENTION.toDays());
+  }
+
+  @Override
   public void shutdown() {
     if (!enabled || channel == null) {
       return;

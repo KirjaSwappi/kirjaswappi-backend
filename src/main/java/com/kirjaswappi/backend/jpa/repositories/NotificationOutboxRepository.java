@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.jpa.repositories;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -19,4 +20,6 @@ public interface NotificationOutboxRepository extends MongoRepository<Notificati
 
   // Optionally find by status and sort by creation time
   List<NotificationOutboxDao> findByStatusOrderByCreatedAtAsc(String status);
+
+  long deleteByStatusAndCreatedAtBefore(String status, Instant before);
 }

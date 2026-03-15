@@ -6,7 +6,7 @@ option go_package = "github.com/kirjaswappi/kirjaswappi-notification/proto;notif
 option java_multiple_files = true;
 option java_package = "com.kirjaswappi.backend.proto.notification";
 
-
+import "google/protobuf/timestamp.proto";
 
 service NotificationService {
   rpc SendNotification (NotificationRequest) returns (NotificationResponse);
@@ -16,7 +16,10 @@ message NotificationRequest {
   string userId = 1;
   string title = 2;
   string message = 3;
-  int64 time = 4;
+  // Field 4 was historically int64 (epoch millis) in this proto, while the notification
+  // service always used google.protobuf.Timestamp. Both services were updated atomically
+  // to use google.protobuf.Timestamp, so the field number is intentionally preserved.
+  google.protobuf.Timestamp time = 4;
 }
 
 message NotificationResponse {
