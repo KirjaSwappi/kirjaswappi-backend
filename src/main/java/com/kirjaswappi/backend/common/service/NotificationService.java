@@ -8,6 +8,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.google.protobuf.Timestamp;
+
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
@@ -60,6 +62,7 @@ public class NotificationService implements NotificationClient {
     }
   }
 
+  @Override
   public void sendNotification(String userId, String title, String message) {
     if (!enabled) {
       logger.debug("Notification service is disabled, skipping notification for user: {}", userId);
@@ -109,7 +112,10 @@ public class NotificationService implements NotificationClient {
           .setUserId(notification.userId())
           .setTitle(notification.title())
           .setMessage(notification.message())
-          .setTime(now.toEpochMilli())
+          .setTime(Timestamp.newBuilder()
+              .setSeconds(now.getEpochSecond())
+              .setNanos(now.getNano())
+              .build())
           .build();
 
       NotificationResponse response = stub.sendNotification(request);
@@ -142,6 +148,17 @@ public class NotificationService implements NotificationClient {
           notification.userId(), notification.retryCount(), maxRetries, error);
     }
     notification.errorMessage(error);
+  }
+
+  @Scheduled(fixedDelay = 86400000) // Run once a day
+  public void cleanupFailedNotifications() {
+    if (!enabled) {
+      return;
+    }
+
+    Instant cutoff = Instant.now().minusSeconds(7 * 24 * 60 * 60); // 7 days ago
+    notificationOutboxRepository.deleteByStatusAndCreatedAtBefore("FAILED", cutoff);
+    logger.debug("Cleaned up FAILED notifications older than 7 days");
   }
 
   public void shutdown() {

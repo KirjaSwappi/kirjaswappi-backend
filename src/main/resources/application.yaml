@@ -86,6 +86,7 @@ notification:
   service:
     host: ${NOTIFICATION_SERVICE_HOST:notify.kirjaswappi.fi}
     port: ${NOTIFICATION_SERVICE_PORT:50051}
+    enabled: ${NOTIFICATION_SERVICE_ENABLED:true}
 
 management:
   endpoints:
