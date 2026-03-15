@@ -9,8 +9,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.google.protobuf.Timestamp;
-
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
@@ -22,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.google.protobuf.Timestamp;
 import com.kirjaswappi.backend.jpa.daos.NotificationOutboxDao;
 import com.kirjaswappi.backend.jpa.repositories.NotificationOutboxRepository;
 import com.kirjaswappi.backend.proto.notification.NotificationRequest;

@@ -162,7 +162,8 @@ class NotificationServiceTest {
     // Then
     verify(notificationOutboxRepository).deleteByStatusAndCreatedAtBefore(
         eq("FAILED"),
-        argThat(cutoff -> cutoff.isBefore(Instant.now()) && cutoff.isAfter(Instant.now().minusSeconds(8 * 24 * 60 * 60))));
+        argThat(
+            cutoff -> cutoff.isBefore(Instant.now()) && cutoff.isAfter(Instant.now().minusSeconds(8 * 24 * 60 * 60))));
   }
 
   @Test
