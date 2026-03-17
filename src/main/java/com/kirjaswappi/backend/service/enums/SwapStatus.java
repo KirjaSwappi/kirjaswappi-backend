@@ -7,6 +7,7 @@ package com.kirjaswappi.backend.service.enums;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import lombok.Getter;
@@ -25,6 +26,19 @@ public enum SwapStatus {
 
   SwapStatus(String code) {
     this.code = code;
+  }
+
+  public boolean canTransitionTo(SwapStatus target) {
+    return getAllowedTransitions().contains(target);
+  }
+
+  private Set<SwapStatus> getAllowedTransitions() {
+    return switch (this) {
+    case PENDING -> Set.of(ACCEPTED, REJECTED, EXPIRED);
+    case ACCEPTED -> Set.of(RESERVED, EXPIRED);
+    case RESERVED -> Set.of(EXPIRED);
+    case REJECTED, EXPIRED -> Set.of();
+    };
   }
 
   public static SwapStatus fromCode(String code) {
