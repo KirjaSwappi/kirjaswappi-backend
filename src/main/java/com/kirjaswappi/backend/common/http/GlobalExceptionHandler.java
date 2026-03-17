@@ -6,11 +6,9 @@ package com.kirjaswappi.backend.common.http;
 
 import static com.kirjaswappi.backend.common.utils.PathProvider.getCurrentPath;
 
-import java.util.Map;
-
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -114,9 +112,17 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(HttpMessageNotReadableException.class)
-  public ResponseEntity<?> handleJsonParseError(HttpMessageNotReadableException ex) {
-    return ResponseEntity
-        .badRequest()
-        .body(Map.of("error", "Invalid JSON payload", "details", ex.getMessage()));
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorResponse handleJsonParseError(HttpMessageNotReadableException ex) {
+    return new ErrorResponse(new ErrorResponse.Error("invalidJsonPayload", ex.getMostSpecificCause().getMessage()));
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorResponse handleValidationException(MethodArgumentNotValidException ex) {
+    var error = new ErrorResponse.Error("validationFailed", "Request validation failed");
+    ex.getBindingResult().getFieldErrors().forEach(fieldError -> error.addErrorDetail(
+        "invalidField", fieldError.getDefaultMessage(), fieldError.getField()));
+    return new ErrorResponse(error);
   }
 }
