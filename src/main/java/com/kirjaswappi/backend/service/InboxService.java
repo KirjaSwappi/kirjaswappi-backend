@@ -23,6 +23,7 @@ import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
 import com.kirjaswappi.backend.mapper.SwapRequestMapper;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
 import com.kirjaswappi.backend.service.enums.SwapStatus;
+import com.kirjaswappi.backend.service.exceptions.InvalidStatusTransitionException;
 import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 
 @Service
@@ -102,9 +103,8 @@ public class InboxService {
 
     // Validate status transition
     SwapStatus currentStatus = SwapStatus.fromCode(swapRequestDao.swapStatus());
-    if (!isValidStatusTransition(currentStatus, newSwapStatus)) {
-      throw new IllegalArgumentException(
-          "Invalid status transition from " + currentStatus.getCode() + " to " + newSwapStatus.getCode());
+    if (!currentStatus.canTransitionTo(newSwapStatus)) {
+      throw new InvalidStatusTransitionException(currentStatus.getCode(), newSwapStatus.getCode());
     }
 
     // Update status
@@ -185,25 +185,7 @@ public class InboxService {
 
   private List<SwapRequest> applySorting(List<SwapRequest> swapRequests, String sortBy) {
     if (sortBy == null || sortBy.trim().isEmpty() || "latest_message".equalsIgnoreCase(sortBy)) {
-      // Sort by latest message timestamp, fallback to request date if no messages
-      return swapRequests.stream()
-          .sorted((sr1, sr2) -> {
-            Optional<Instant> timestamp1 = chatService.getLatestMessageTimestamp(sr1.id());
-            Optional<Instant> timestamp2 = chatService.getLatestMessageTimestamp(sr2.id());
-
-            // If both have messages, compare by latest message timestamp (desc)
-            if (timestamp1.isPresent() && timestamp2.isPresent()) {
-              return timestamp2.get().compareTo(timestamp1.get());
-            }
-            // If only one has messages, prioritize the one with messages
-            if (timestamp1.isPresent())
-              return -1;
-            if (timestamp2.isPresent())
-              return 1;
-            // If neither has messages, sort by request date (desc)
-            return sr2.requestedAt().compareTo(sr1.requestedAt());
-          })
-          .toList();
+      return sortByLatestMessage(swapRequests);
     }
 
     return switch (sortBy.toLowerCase()) {
@@ -224,26 +206,19 @@ public class InboxService {
     };
   }
 
-  /**
-   * Sorts swap requests by latest message timestamp (descending), falling back to
-   * request date if no messages.
-   */
   private List<SwapRequest> sortByLatestMessage(List<SwapRequest> swapRequests) {
     return swapRequests.stream()
         .sorted((sr1, sr2) -> {
           Optional<Instant> timestamp1 = chatService.getLatestMessageTimestamp(sr1.id());
           Optional<Instant> timestamp2 = chatService.getLatestMessageTimestamp(sr2.id());
 
-          // If both have messages, compare by latest message timestamp (desc)
           if (timestamp1.isPresent() && timestamp2.isPresent()) {
             return timestamp2.get().compareTo(timestamp1.get());
           }
-          // If only one has messages, prioritize the one with messages
           if (timestamp1.isPresent())
             return -1;
           if (timestamp2.isPresent())
             return 1;
-          // If neither has messages, sort by request date (desc)
           return sr2.requestedAt().compareTo(sr1.requestedAt());
         })
         .toList();
@@ -263,17 +238,5 @@ public class InboxService {
     }
 
     return false;
-  }
-
-  private boolean isValidStatusTransition(SwapStatus currentStatus, SwapStatus newStatus) {
-    return switch (currentStatus) {
-    case PENDING -> newStatus == SwapStatus.ACCEPTED ||
-        newStatus == SwapStatus.REJECTED ||
-        newStatus == SwapStatus.EXPIRED;
-    case ACCEPTED -> newStatus == SwapStatus.RESERVED ||
-        newStatus == SwapStatus.EXPIRED;
-    case RESERVED -> newStatus == SwapStatus.EXPIRED;
-    case REJECTED, EXPIRED -> false; // Terminal states
-    };
   }
 }

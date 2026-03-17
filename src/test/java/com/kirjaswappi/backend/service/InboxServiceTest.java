@@ -30,6 +30,7 @@ import com.kirjaswappi.backend.service.entities.SwapRequest;
 import com.kirjaswappi.backend.service.entities.User;
 import com.kirjaswappi.backend.service.enums.SwapStatus;
 import com.kirjaswappi.backend.service.exceptions.BadRequestException;
+import com.kirjaswappi.backend.service.exceptions.InvalidStatusTransitionException;
 import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 
 class InboxServiceTest {
@@ -310,7 +311,7 @@ class InboxServiceTest {
     when(swapRequestRepository.findById("received1")).thenReturn(Optional.of(receivedSwapRequest));
 
     // When & Then
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(InvalidStatusTransitionException.class,
         () -> inboxService.updateSwapRequestStatus("received1", SwapStatus.ACCEPTED.getCode(), "receiver123"));
     verify(swapRequestRepository).findById("received1");
     verify(swapRequestRepository, never()).save(any());

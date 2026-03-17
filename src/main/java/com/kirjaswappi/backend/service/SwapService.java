@@ -150,7 +150,7 @@ public class SwapService {
     SwapStatus currentStatus = swapRequest.swapStatus();
 
     // Validate status transition
-    if (!isValidStatusTransition(currentStatus, newStatus)) {
+    if (!currentStatus.canTransitionTo(newStatus)) {
       throw new InvalidStatusTransitionException(currentStatus.getCode(), newStatus.getCode());
     }
 
@@ -175,13 +175,4 @@ public class SwapService {
     return SwapRequestMapper.toEntity(updatedDao);
   }
 
-  private boolean isValidStatusTransition(SwapStatus currentStatus, SwapStatus newStatus) {
-    // Only allow transitions from PENDING to ACCEPTED or REJECTED
-    if (currentStatus == SwapStatus.PENDING) {
-      return newStatus == SwapStatus.ACCEPTED || newStatus == SwapStatus.REJECTED;
-    }
-
-    // No other transitions are allowed
-    return false;
-  }
 }

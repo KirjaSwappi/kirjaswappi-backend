@@ -13,6 +13,7 @@ import java.util.Optional;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
@@ -42,6 +43,7 @@ import com.kirjaswappi.backend.service.exceptions.BookNotFoundException;
 import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 import com.kirjaswappi.backend.service.filters.FindAllBooksFilter;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -75,7 +77,6 @@ public class BookService {
     return getBookById(savedDao.id());
   }
 
-  // TODO: send notification to the swap requests senders for this book.
   @CacheEvict(value = "books", key = "#updatedBook.id")
   public Book updateBook(Book updatedBook) {
     var existingBookDao = bookRepository.findByIdAndIsDeletedFalse(updatedBook.id())
@@ -449,7 +450,7 @@ public class BookService {
         notificationClient.sendNotification(request.sender().id(), title, message);
       }
     } catch (Exception e) {
-      // Log error but don't fail the primary action
+      log.error("Failed to notify swap request senders about book change. BookId: {}", bookId, e);
     }
   }
 }
