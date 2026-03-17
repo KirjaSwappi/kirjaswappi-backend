@@ -6,6 +6,8 @@ package com.kirjaswappi.backend.common.http;
 
 import static com.kirjaswappi.backend.common.utils.PathProvider.getCurrentPath;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -20,6 +22,7 @@ import com.kirjaswappi.backend.common.exceptions.SystemException;
 import com.kirjaswappi.backend.common.service.exceptions.InvalidCredentials;
 import com.kirjaswappi.backend.service.exceptions.*;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
   private final ErrorUtils errorUtils;
@@ -114,7 +117,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(HttpMessageNotReadableException.class)
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   public ErrorResponse handleJsonParseError(HttpMessageNotReadableException ex) {
-    return new ErrorResponse(new ErrorResponse.Error("invalidJsonPayload", ex.getMostSpecificCause().getMessage()));
+    log.warn("Invalid JSON payload received: {}", ex.getMostSpecificCause().getMessage());
+    return new ErrorResponse(new ErrorResponse.Error("invalidJsonPayload", "Request body contains invalid JSON"));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
