@@ -6,11 +6,11 @@ package com.kirjaswappi.backend.common.http;
 
 import static com.kirjaswappi.backend.common.utils.PathProvider.getCurrentPath;
 
-import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -22,6 +22,7 @@ import com.kirjaswappi.backend.common.exceptions.SystemException;
 import com.kirjaswappi.backend.common.service.exceptions.InvalidCredentials;
 import com.kirjaswappi.backend.service.exceptions.*;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
   private final ErrorUtils errorUtils;
@@ -114,9 +115,18 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(HttpMessageNotReadableException.class)
-  public ResponseEntity<?> handleJsonParseError(HttpMessageNotReadableException ex) {
-    return ResponseEntity
-        .badRequest()
-        .body(Map.of("error", "Invalid JSON payload", "details", ex.getMessage()));
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorResponse handleJsonParseError(HttpMessageNotReadableException ex) {
+    log.warn("Invalid JSON payload received: {}", ex.getMostSpecificCause().getMessage());
+    return new ErrorResponse(new ErrorResponse.Error("invalidJsonPayload", "Request body contains invalid JSON"));
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorResponse handleValidationException(MethodArgumentNotValidException ex) {
+    var error = new ErrorResponse.Error("validationFailed", "Request validation failed");
+    ex.getBindingResult().getFieldErrors().forEach(fieldError -> error.addErrorDetail(
+        "invalidField", fieldError.getDefaultMessage(), fieldError.getField()));
+    return new ErrorResponse(error);
   }
 }

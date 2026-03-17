@@ -14,6 +14,7 @@ import static org.springframework.http.HttpMethod.POST;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -32,13 +33,17 @@ import com.kirjaswappi.backend.common.components.FilterApiRequest;
 @EnableWebSecurity
 @Profile("cloud")
 public class CloudSecurityConfig {
+
+  @Value("${cors.allowed-origins:https://kirjaswappi.fi,https://www.kirjaswappi.fi}")
+  private String[] allowedOrigins;
+
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOriginPatterns(List.of("*")); // Allow all origins or customize as per your need
+    configuration.setAllowedOrigins(List.of(allowedOrigins));
     configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
     configuration.setAllowCredentials(true);
-    configuration.setAllowedHeaders(List.of("*")); // Allow all headers or customize as per your need
+    configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-User-Id", "Accept"));
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
