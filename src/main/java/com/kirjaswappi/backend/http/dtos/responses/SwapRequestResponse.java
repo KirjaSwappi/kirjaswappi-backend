@@ -6,8 +6,6 @@ package com.kirjaswappi.backend.http.dtos.responses;
 
 import java.time.Instant;
 
-import javax.swing.*;
-
 import lombok.Getter;
 import lombok.Setter;
 

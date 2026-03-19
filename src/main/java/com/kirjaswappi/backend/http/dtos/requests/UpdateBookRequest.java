@@ -45,7 +45,7 @@ public class UpdateBookRequest {
   @Schema(description = "The genres of the book.", example = "[\"Fiction\"]", requiredMode = REQUIRED)
   private List<String> genres;
 
-  @Schema(description = "The cover photos of the book.", requiredMode = REQUIRED)
+  @Schema(description = "The cover photos of the book. Leave empty to keep existing photos.", requiredMode = REQUIRED)
   private List<MultipartFile> coverPhotos;
 
   @Schema(description = "Swap condition of the book in JSON format.", requiredMode = REQUIRED, example = """
@@ -112,11 +112,10 @@ public class UpdateBookRequest {
     if (!ValidationUtil.validateNotBlank(this.swapCondition)) {
       throw new BadRequestException("swapConditionIsRequired");
     }
-    if (this.coverPhotos == null) {
-      throw new BadRequestException("atLeastOneCoverPhotoIsRequired");
-    }
-    for (var coverPhoto : this.coverPhotos) {
-      ValidationUtil.validateMediaType(coverPhoto);
+    if (this.coverPhotos != null) {
+      for (var coverPhoto : this.coverPhotos) {
+        ValidationUtil.validateMediaType(coverPhoto);
+      }
     }
   }
 }
