@@ -51,6 +51,8 @@ class ChatServiceTest {
   private SimpMessagingTemplate messagingTemplate;
   @Mock
   private ProfanityFilterService profanityFilterService;
+  @Mock
+  private org.springframework.cache.CacheManager cacheManager;
   @InjectMocks
   private ChatService chatService;
 
@@ -104,6 +106,25 @@ class ChatServiceTest {
 
     // Default mock behavior for profanity filter
     when(profanityFilterService.filter(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
+  }
+
+  @Test
+  @DisplayName("Clears unread count cache")
+  void clearUnreadCountCache_ClearsCache() {
+    org.springframework.cache.Cache cache = mock(org.springframework.cache.Cache.class);
+    when(cacheManager.getCache("unreadCounts")).thenReturn(cache);
+
+    chatService.clearUnreadCountCache("user1", "swap2");
+
+    verify(cache).evict("user1_swap2");
+  }
+
+  @Test
+  @DisplayName("Clears unread count cache does not throw when cache manager returns null")
+  void clearUnreadCountCache_NullCache() {
+    when(cacheManager.getCache("unreadCounts")).thenReturn(null);
+
+    assertDoesNotThrow(() -> chatService.clearUnreadCountCache("user1", "swap2"));
   }
 
   @Test

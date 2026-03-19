@@ -191,6 +191,39 @@ class BookServiceTest {
   }
 
   @Test
+  @DisplayName("Keeps existing photos when updating without new photos")
+  void updateBookKeepsExistingPhotosWhenNewPhotosAreEmpty() {
+    Book book = Book.builder()
+        .id("id")
+        .swapCondition(new SwapCondition(SwapType.OPEN_FOR_OFFERS, false, true, null, null))
+        .language(Language.ENGLISH)
+        .condition(Condition.NEW)
+        .genres(List.of())
+        .coverPhotos(List.of())
+        .coverPhotoFiles(null)
+        .owner(new User())
+        .build();
+
+    var dao = BookDao.builder()
+        .id("id")
+        .swapCondition(new SwapConditionDao("OpenForOffers", false, true, null, null))
+        .owner(new UserDao())
+        .language("English")
+        .condition("New")
+        .genres(List.of())
+        .coverPhotos(List.of("photo-id"))
+        .isDeleted(false)
+        .build();
+
+    when(bookRepository.findByIdAndIsDeletedFalse("id")).thenReturn(Optional.of(dao));
+    when(bookRepository.save(any())).thenReturn(dao);
+
+    bookService.updateBook(book);
+
+    verify(photoService, never()).deleteBookCoverPhoto(anyString());
+  }
+
+  @Test
   @DisplayName("Throws when updating a non-existent book")
   void updateBookThrowsWhenNotFound() {
     Book book = Book.builder().id("id").build();

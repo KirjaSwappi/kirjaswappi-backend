@@ -261,6 +261,9 @@ public class BookService {
   }
 
   private BookDao updateBookCoverPhoto(Book book, BookDao dao) {
+    if (book.coverPhotoFiles() == null || book.coverPhotoFiles().isEmpty()) {
+      return dao; // Keep existing photos if no new ones are provided
+    }
     deleteExistingCoverPhoto(dao);
     return addCoverPhotoToBook(book, dao);
   }

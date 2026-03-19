@@ -13,10 +13,11 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
 import org.bson.types.ObjectId;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.kirjaswappi.backend.common.service.ImageService;
@@ -49,6 +50,8 @@ public class ChatService {
   private final SimpMessagingTemplate messagingTemplate;
 
   private final ProfanityFilterService profanityFilterService;
+
+  private final org.springframework.cache.CacheManager cacheManager;
 
   public List<ChatMessage> getChatMessages(String swapRequestId, String userId) {
 
@@ -259,13 +262,13 @@ public class ChatService {
         swapRequestId, new ObjectId(userId));
   }
 
-  @CacheEvict(value = "unreadCounts", key = "#userId + '_' + #swapRequestId", beforeInvocation = true)
   public void clearUnreadCountCache(String userId, String swapRequestId) {
-    // This method is used to clear the cache for unread message counts.
-    // The @CacheEvict annotation ensures that the cache is cleared before the
-    // method
-    // is invoked.
-    // No implementation needed here, as the annotation handles the cache eviction.
+    if (cacheManager != null) {
+      org.springframework.cache.Cache cache = cacheManager.getCache("unreadCounts");
+      if (cache != null) {
+        cache.evict(userId + "_" + swapRequestId);
+      }
+    }
   }
 
   public Optional<Instant> getLatestMessageTimestamp(String swapRequestId) {
@@ -315,8 +318,19 @@ public class ChatService {
 
   private void broadcastInboxUpdate(String userId) {
     try {
-      // Send inbox refresh signal to user's WebSocket connection
-      messagingTemplate.convertAndSendToUser(userId, "/queue/inbox.refresh", "refresh");
+      if (TransactionSynchronizationManager.isSynchronizationActive()) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            try {
+              messagingTemplate.convertAndSendToUser(userId, "/queue/inbox.refresh", "refresh");
+            } catch (Exception e) {
+            }
+          }
+        });
+      } else {
+        messagingTemplate.convertAndSendToUser(userId, "/queue/inbox.refresh", "refresh");
+      }
     } catch (Exception e) {
       // Log error but don't fail the message sending
       // Real-time updates are nice-to-have, not critical

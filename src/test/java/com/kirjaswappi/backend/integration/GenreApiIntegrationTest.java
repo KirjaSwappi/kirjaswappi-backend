@@ -35,6 +35,7 @@ import com.kirjaswappi.backend.jpa.repositories.GenreRepository;
 @Import(TestContainersConfig.class)
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
+@SuppressWarnings("unused")
 class GenreApiIntegrationTest {
 
   @Autowired

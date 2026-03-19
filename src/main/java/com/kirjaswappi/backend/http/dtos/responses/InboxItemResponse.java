@@ -84,12 +84,16 @@ public class InboxItemResponse {
     private String title;
     private String author;
     private String condition;
+    private String coverPhotoUrl;
 
     public BookSummaryResponse(com.kirjaswappi.backend.service.entities.Book entity) {
       this.id = entity.id();
       this.title = entity.title();
       this.author = entity.author();
       this.condition = entity.condition() != null ? entity.condition().code() : null;
+      this.coverPhotoUrl = (entity.coverPhotos() != null && !entity.coverPhotos().isEmpty())
+          ? entity.coverPhotos().get(0)
+          : null;
     }
   }
 

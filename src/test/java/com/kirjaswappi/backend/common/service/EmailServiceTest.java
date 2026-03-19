@@ -28,6 +28,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 
+@SuppressWarnings("unused")
 class EmailServiceTest {
   @Mock
   private JavaMailSender mailSender;

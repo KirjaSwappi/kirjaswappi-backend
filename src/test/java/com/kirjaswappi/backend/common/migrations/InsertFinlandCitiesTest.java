@@ -21,6 +21,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import com.kirjaswappi.backend.jpa.daos.CityDao;
 import com.mongodb.client.MongoCollection;
 
+@SuppressWarnings({ "rawtypes", "unchecked" })
 class InsertFinlandCitiesTest {
 
   @Mock
