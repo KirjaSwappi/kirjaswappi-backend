@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
@@ -207,17 +208,21 @@ public class InboxService {
   }
 
   private List<SwapRequest> sortByLatestMessage(List<SwapRequest> swapRequests) {
+    // Batch-fetch all latest message timestamps in a single query
+    List<String> swapRequestIds = swapRequests.stream().map(SwapRequest::id).toList();
+    Map<String, Instant> timestampMap = chatService.getLatestMessageTimestamps(swapRequestIds);
+
     return swapRequests.stream()
         .sorted((sr1, sr2) -> {
-          Optional<Instant> timestamp1 = chatService.getLatestMessageTimestamp(sr1.id());
-          Optional<Instant> timestamp2 = chatService.getLatestMessageTimestamp(sr2.id());
+          Instant timestamp1 = timestampMap.get(sr1.id());
+          Instant timestamp2 = timestampMap.get(sr2.id());
 
-          if (timestamp1.isPresent() && timestamp2.isPresent()) {
-            return timestamp2.get().compareTo(timestamp1.get());
+          if (timestamp1 != null && timestamp2 != null) {
+            return timestamp2.compareTo(timestamp1);
           }
-          if (timestamp1.isPresent())
+          if (timestamp1 != null)
             return -1;
-          if (timestamp2.isPresent())
+          if (timestamp2 != null)
             return 1;
           return sr2.requestedAt().compareTo(sr1.requestedAt());
         })

@@ -6,6 +6,7 @@ package com.kirjaswappi.backend.http.controllers;
 
 import static com.kirjaswappi.backend.common.utils.Constants.*;
 
+import java.security.Principal;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,10 +38,11 @@ public class InboxController {
       @ApiResponse(responseCode = "404", description = "User not found")
   })
   public ResponseEntity<List<InboxItemResponse>> getUnifiedInbox(
-      @Parameter(description = "User ID", required = true) @RequestParam String userId,
+      Principal principal,
       @Parameter(description = "Filter by status") @RequestParam(required = false) String status,
       @Parameter(description = "Sort by field (latest_message, date, book_title, sender_name, status)") @RequestParam(required = false) String sortBy) {
 
+    String userId = principal.getName();
     List<SwapRequest> swapRequests = inboxService.getUnifiedInbox(userId, status, sortBy);
     List<InboxItemResponse> response = swapRequests.stream()
         .map(swapRequest -> {

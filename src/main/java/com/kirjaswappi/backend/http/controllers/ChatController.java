@@ -6,6 +6,7 @@ package com.kirjaswappi.backend.http.controllers;
 
 import static com.kirjaswappi.backend.common.utils.Constants.*;
 
+import java.security.Principal;
 import java.util.List;
 
 import jakarta.validation.Valid;
@@ -45,8 +46,9 @@ public class ChatController {
   })
   public ResponseEntity<@NonNull List<ChatMessageResponse>> getChatMessages(
       @Parameter(description = "Swap request ID", required = true) @PathVariable String id,
-      @Parameter(description = "User ID", required = true) @RequestParam String userId) {
+      Principal principal) {
 
+    String userId = principal.getName();
     List<ChatMessage> messages = chatService.getChatMessages(id, userId);
 
     // Get swap request details for context
@@ -78,8 +80,10 @@ public class ChatController {
   })
   public ResponseEntity<@NonNull ChatMessageResponse> sendMessage(
       @Parameter(description = "Swap request ID", required = true) @PathVariable String id,
-      @Parameter(description = "User ID", required = true) @RequestParam String userId,
+      Principal principal,
       @Valid @ModelAttribute SendMessageRequest request) {
+
+    String userId = principal.getName();
 
     // Validate that either message or images are provided
     if (!request.isValid()) {

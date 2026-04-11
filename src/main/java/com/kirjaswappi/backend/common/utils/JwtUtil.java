@@ -32,6 +32,8 @@ public class JwtUtil {
   private String SECRET_STRING;
   @Value("${jwt.expiration}")
   private long TOKEN_EXPIRATION_MS;
+  @Value("${jwt.refresh-expiration:604800000}")
+  private long REFRESH_TOKEN_EXPIRATION_MS; // default 7 days
 
   private SecretKey SECRET_KEY;
 
@@ -42,6 +44,8 @@ public class JwtUtil {
   }
 
   private static final String TOKEN_TYPE = "jwtToken";
+  private static final String USER_TOKEN_TYPE = "userToken";
+  private static final String EMAIL_CLAIM = "email";
 
   public String extractUsername(String token) {
     return extractClaim(token, Claims::getSubject);
@@ -121,7 +125,7 @@ public class JwtUtil {
         .claims(claims)
         .subject(subject)
         .issuedAt(new Date(System.currentTimeMillis()))
-        .expiration(new Date(Long.MAX_VALUE))
+        .expiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION_MS))
         .signWith(SECRET_KEY)
         .compact();
   }
@@ -132,5 +136,49 @@ public class JwtUtil {
       return authorizationHeader.substring(7);
     }
     return null;
+  }
+
+  // =========== User Token Methods ===========
+
+  public String generateUserToken(String userId, String email) {
+    Map<String, Object> claims = new HashMap<>();
+    claims.put(ROLE, "USER");
+    claims.put(TOKEN_TYPE, USER_TOKEN_TYPE);
+    claims.put(EMAIL_CLAIM, email);
+    return Jwts.builder()
+        .claims(claims)
+        .subject(userId)
+        .issuedAt(new Date(System.currentTimeMillis()))
+        .expiration(new Date(System.currentTimeMillis() + TOKEN_EXPIRATION_MS))
+        .signWith(SECRET_KEY)
+        .compact();
+  }
+
+  public String generateUserRefreshToken(String userId, String email) {
+    Map<String, Object> claims = new HashMap<>();
+    claims.put(ROLE, "USER");
+    claims.put(TOKEN_TYPE, USER_TOKEN_TYPE);
+    claims.put(EMAIL_CLAIM, email);
+    return Jwts.builder()
+        .claims(claims)
+        .subject(userId)
+        .issuedAt(new Date(System.currentTimeMillis()))
+        .expiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION_MS))
+        .signWith(SECRET_KEY)
+        .compact();
+  }
+
+  public boolean isUserToken(String token) {
+    Claims claims = extractAllClaims(token);
+    String type = claims.get(TOKEN_TYPE, String.class);
+    return USER_TOKEN_TYPE.equals(type);
+  }
+
+  public boolean validateUserToken(String token) {
+    return isUserToken(token) && isTokenValid(token);
+  }
+
+  public String extractUserId(String token) {
+    return extractClaim(token, Claims::getSubject);
   }
 }

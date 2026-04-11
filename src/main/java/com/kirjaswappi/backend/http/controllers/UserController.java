@@ -8,6 +8,7 @@ import static com.kirjaswappi.backend.common.utils.Constants.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.validation.Valid;
 
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.kirjaswappi.backend.common.service.OTPService;
+import com.kirjaswappi.backend.common.utils.JwtUtil;
 import com.kirjaswappi.backend.common.utils.LinkBuilder;
 import com.kirjaswappi.backend.http.dtos.requests.*;
 import com.kirjaswappi.backend.http.dtos.responses.*;
@@ -63,6 +65,9 @@ public class UserController {
 
   @Autowired
   private GoogleIdTokenVerifier googleIdTokenVerifier;
+
+  @Autowired
+  private JwtUtil jwtUtil;
 
   @PostMapping(SIGNUP)
   @Operation(summary = "Create user.", responses = {
@@ -135,9 +140,11 @@ public class UserController {
   @PostMapping(LOGIN)
   @Operation(summary = "Login user.", responses = {
       @ApiResponse(responseCode = "200", description = "User logged in.") })
-  public ResponseEntity<UserResponse> login(@Valid @RequestBody AuthenticateUserRequest authenticateUserRequest) {
+  public ResponseEntity<UserLoginResponse> login(@Valid @RequestBody AuthenticateUserRequest authenticateUserRequest) {
     User user = userService.verifyLogin(authenticateUserRequest.toEntity());
-    return ResponseEntity.status(HttpStatus.OK).body(new UserResponse(user));
+    String userToken = jwtUtil.generateUserToken(user.id(), user.email());
+    String userRefreshToken = jwtUtil.generateUserRefreshToken(user.id(), user.email());
+    return ResponseEntity.status(HttpStatus.OK).body(new UserLoginResponse(user, userToken, userRefreshToken));
   }
 
   @PostMapping(LOGIN_WITH_GOOGLE)
@@ -160,7 +167,9 @@ public class UserController {
 
       // Find or create user
       User user = userService.findOrCreateGoogleUser(email, firstName, lastName, googleSub);
-      return ResponseEntity.status(HttpStatus.OK).body(new UserResponse(user));
+      String userToken = jwtUtil.generateUserToken(user.id(), user.email());
+      String userRefreshToken = jwtUtil.generateUserRefreshToken(user.id(), user.email());
+      return ResponseEntity.status(HttpStatus.OK).body(new UserLoginResponse(user, userToken, userRefreshToken));
     }
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid ID token");
   }
@@ -184,6 +193,24 @@ public class UserController {
       @Valid @RequestBody ResetPasswordRequest request) {
     String userEmail = userService.changePassword(request.toUserEntity(email));
     return ResponseEntity.status(HttpStatus.OK).body(new ResetPasswordResponse(userEmail));
+  }
+
+  @PostMapping("/refresh-token")
+  @Operation(summary = "Refresh user token.", responses = {
+      @ApiResponse(responseCode = "200", description = "Token refreshed."),
+      @ApiResponse(responseCode = "401", description = "Invalid or expired refresh token.") })
+  public ResponseEntity<?> refreshUserToken(@RequestBody Map<String, String> request) {
+    String refreshToken = request.get("userRefreshToken");
+    if (refreshToken == null || refreshToken.isBlank()) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("userRefreshToken is required");
+    }
+    if (!jwtUtil.validateUserToken(refreshToken)) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
+    }
+    String userId = jwtUtil.extractUserId(refreshToken);
+    User user = userService.getUser(userId);
+    String newToken = jwtUtil.generateUserToken(user.id(), user.email());
+    return ResponseEntity.ok(Map.of("userToken", newToken));
   }
 
   @GetMapping(ID + BOOKS)

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.*;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -130,9 +131,9 @@ class InboxServiceTest {
         .thenReturn(List.of(receivedSwapRequest));
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
         .thenReturn(List.of(sentSwapRequest));
-    when(chatService.getLatestMessageTimestamp("received1"))
-        .thenReturn(Optional.of(Instant.parse("2025-01-03T10:00:00Z")));
-    when(chatService.getLatestMessageTimestamp("sent1")).thenReturn(Optional.of(Instant.parse("2025-01-04T10:00:00Z")));
+    when(chatService.getLatestMessageTimestamps(anyList()))
+        .thenReturn(Map.of("received1", Instant.parse("2025-01-03T10:00:00Z"), "sent1",
+            Instant.parse("2025-01-04T10:00:00Z")));
 
     // When
     List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, null);
@@ -145,8 +146,7 @@ class InboxServiceTest {
     verify(userService).getUser("receiver123");
     verify(swapRequestRepository).findByReceiverIdOrderByRequestedAtDesc("receiver123");
     verify(swapRequestRepository).findBySenderIdOrderByRequestedAtDesc("receiver123");
-    verify(chatService).getLatestMessageTimestamp("received1");
-    verify(chatService).getLatestMessageTimestamp("sent1");
+    verify(chatService).getLatestMessageTimestamps(anyList());
   }
 
   @Test
@@ -217,9 +217,9 @@ class InboxServiceTest {
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
         .thenReturn(List.of(sentSwapRequest));
     // received1 has older message, sent1 has newer message
-    when(chatService.getLatestMessageTimestamp("received1"))
-        .thenReturn(Optional.of(Instant.parse("2025-01-03T10:00:00Z")));
-    when(chatService.getLatestMessageTimestamp("sent1")).thenReturn(Optional.of(Instant.parse("2025-01-04T10:00:00Z")));
+    when(chatService.getLatestMessageTimestamps(anyList()))
+        .thenReturn(Map.of("received1", Instant.parse("2025-01-03T10:00:00Z"), "sent1",
+            Instant.parse("2025-01-04T10:00:00Z")));
 
     // When
     List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "latest_message");
@@ -228,8 +228,7 @@ class InboxServiceTest {
     assertEquals(2, result.size());
     assertEquals("sent1", result.getFirst().id()); // Should be first (newer message)
     assertEquals("received1", result.get(1).id());
-    verify(chatService).getLatestMessageTimestamp("received1");
-    verify(chatService).getLatestMessageTimestamp("sent1");
+    verify(chatService).getLatestMessageTimestamps(anyList());
   }
 
   @Test
@@ -242,9 +241,8 @@ class InboxServiceTest {
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
         .thenReturn(Arrays.asList(sentSwapRequest));
     // Only received1 has messages, sent1 has no messages
-    when(chatService.getLatestMessageTimestamp("received1"))
-        .thenReturn(Optional.of(Instant.parse("2025-01-03T10:00:00Z")));
-    when(chatService.getLatestMessageTimestamp("sent1")).thenReturn(Optional.empty());
+    when(chatService.getLatestMessageTimestamps(anyList()))
+        .thenReturn(Map.of("received1", Instant.parse("2025-01-03T10:00:00Z")));
 
     // When
     List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, null);
@@ -253,8 +251,7 @@ class InboxServiceTest {
     assertEquals(2, result.size());
     assertEquals("received1", result.getFirst().id()); // Should be first (has messages)
     assertEquals("sent1", result.get(1).id());
-    verify(chatService).getLatestMessageTimestamp("received1");
-    verify(chatService).getLatestMessageTimestamp("sent1");
+    verify(chatService).getLatestMessageTimestamps(anyList());
   }
 
   @Test
@@ -420,9 +417,9 @@ class InboxServiceTest {
         .thenReturn(List.of(receivedSwapRequest));
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
         .thenReturn(List.of(sentSwapRequest));
-    when(chatService.getLatestMessageTimestamp("received1"))
-        .thenReturn(Optional.of(Instant.parse("2025-01-03T10:00:00Z")));
-    when(chatService.getLatestMessageTimestamp("sent1")).thenReturn(Optional.of(Instant.parse("2025-01-04T10:00:00Z")));
+    when(chatService.getLatestMessageTimestamps(anyList()))
+        .thenReturn(Map.of("received1", Instant.parse("2025-01-03T10:00:00Z"), "sent1",
+            Instant.parse("2025-01-04T10:00:00Z")));
 
     // When
     List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "unknown_sort");
@@ -431,8 +428,7 @@ class InboxServiceTest {
     assertEquals(2, result.size());
     // Should default to latest message sorting
     assertEquals("sent1", result.getFirst().id());
-    verify(chatService).getLatestMessageTimestamp("received1");
-    verify(chatService).getLatestMessageTimestamp("sent1");
+    verify(chatService).getLatestMessageTimestamps(anyList());
   }
 
   @Test
@@ -715,9 +711,9 @@ class InboxServiceTest {
         .thenReturn(Arrays.asList(receivedSwapRequest));
     when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("receiver123"))
         .thenReturn(Arrays.asList(sentSwapRequest));
-    when(chatService.getLatestMessageTimestamp("received1"))
-        .thenReturn(Optional.of(Instant.parse("2025-01-03T10:00:00Z")));
-    when(chatService.getLatestMessageTimestamp("sent1")).thenReturn(Optional.of(Instant.parse("2025-01-04T10:00:00Z")));
+    when(chatService.getLatestMessageTimestamps(anyList()))
+        .thenReturn(Map.of("received1", Instant.parse("2025-01-03T10:00:00Z"), "sent1",
+            Instant.parse("2025-01-04T10:00:00Z")));
 
     // When
     List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", null, "   ");
@@ -725,8 +721,7 @@ class InboxServiceTest {
     // Then
     assertEquals(2, result.size());
     // Should default to latest message sorting
-    verify(chatService).getLatestMessageTimestamp("received1");
-    verify(chatService).getLatestMessageTimestamp("sent1");
+    verify(chatService).getLatestMessageTimestamps(anyList());
   }
 
   @Test

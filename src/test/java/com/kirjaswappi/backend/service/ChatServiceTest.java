@@ -240,7 +240,7 @@ class ChatServiceTest {
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
     when(chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc("swap123"))
         .thenReturn(Arrays.asList(unreadMessage));
-    when(chatMessageRepository.save(any(ChatMessageDao.class))).thenReturn(unreadMessage);
+    when(chatMessageRepository.saveAll(anyList())).thenReturn(List.of(unreadMessage));
 
     // When - receiver marks messages as read
     chatService.markMessagesAsRead("swap123", "64e8f5d1a2b3c4d5e6f78901");
@@ -248,7 +248,7 @@ class ChatServiceTest {
     // Then
     verify(swapRequestRepository).findById("swap123");
     verify(chatMessageRepository).findBySwapRequestIdOrderBySentAtAsc("swap123");
-    verify(chatMessageRepository).save(unreadMessage);
+    verify(chatMessageRepository).saveAll(List.of(unreadMessage));
     assertTrue(unreadMessage.readByReceiver());
   }
 

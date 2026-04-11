@@ -6,6 +6,8 @@ package com.kirjaswappi.backend.http.controllers;
 
 import static com.kirjaswappi.backend.common.utils.Constants.*;
 
+import java.security.Principal;
+
 import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,7 +41,7 @@ public class SwapController {
       @ApiResponse(responseCode = "200", description = "Swap request sent.") })
   public ResponseEntity<SwapRequestResponse> createSwapRequest(@Valid @RequestBody CreateSwapRequest request) {
     SwapRequest createdSwapRequest = swapService.createSwapRequest(request.toEntity());
-    return ResponseEntity.status(HttpStatus.OK).body(new SwapRequestResponse(createdSwapRequest));
+    return ResponseEntity.status(HttpStatus.CREATED).body(new SwapRequestResponse(createdSwapRequest));
   }
 
   @DeleteMapping
@@ -58,7 +60,9 @@ public class SwapController {
   public ResponseEntity<SwapRequestResponse> updateSwapRequestStatus(
       @Parameter(description = "SwapRequest ID.") @PathVariable String id,
       @Valid @RequestBody UpdateSwapStatusRequest request,
-      @RequestHeader("X-User-Id") String userId) {
+      Principal principal) {
+
+    String userId = principal.getName();
 
     // Validate the request
     request.validate();

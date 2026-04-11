@@ -44,7 +44,7 @@ public class WebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-          // Extract JWT token from Authorization header (validates platform/client)
+          // Extract JWT token from Authorization header
           String authHeader = accessor.getFirstNativeHeader("Authorization");
           if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new IllegalArgumentException("Authorization header with Bearer token is required");
@@ -52,29 +52,33 @@ public class WebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer
 
           String jwt = authHeader.substring(7);
 
-          // Extract userId from connection headers (identifies end user)
-          String userId = accessor.getFirstNativeHeader("userId");
-          if (userId == null || userId.trim().isEmpty()) {
-            throw new IllegalArgumentException("userId header is required for WebSocket connection");
-          }
-
           try {
-            // Validate JWT token (platform authentication)
-            String username = jwtUtil.extractUsername(jwt);
-            AdminUser adminUser = adminUserService.getAdminUserInfo(username);
-
-            if (!jwtUtil.validateJwtToken(jwt, adminUser)) {
-              throw new IllegalArgumentException("Invalid JWT token");
+            if (jwtUtil.isUserToken(jwt)) {
+              // User token: extract userId from token claims
+              if (!jwtUtil.validateUserToken(jwt)) {
+                throw new IllegalArgumentException("Invalid user JWT token");
+              }
+              String userId = jwtUtil.extractUserId(jwt);
+              String role = jwtUtil.extractRole(jwt);
+              List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+              Authentication auth = new UsernamePasswordAuthenticationToken(userId, null, authorities);
+              accessor.setUser(auth);
+            } else {
+              // Admin token: validate against AdminUser, use userId header for routing
+              String userId = accessor.getFirstNativeHeader("userId");
+              if (userId == null || userId.trim().isEmpty()) {
+                throw new IllegalArgumentException("userId header is required for admin token WebSocket connection");
+              }
+              String username = jwtUtil.extractUsername(jwt);
+              AdminUser adminUser = adminUserService.getAdminUserInfo(username);
+              if (!jwtUtil.validateJwtToken(jwt, adminUser)) {
+                throw new IllegalArgumentException("Invalid admin JWT token");
+              }
+              String role = jwtUtil.extractRole(jwt);
+              List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+              Authentication auth = new UsernamePasswordAuthenticationToken(userId, null, authorities);
+              accessor.setUser(auth);
             }
-
-            // Extract role from JWT
-            String role = jwtUtil.extractRole(jwt);
-            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
-
-            // Create authentication with userId as principal (for chat routing)
-            // The userId identifies which end user is connecting
-            Authentication auth = new UsernamePasswordAuthenticationToken(userId, null, authorities);
-            accessor.setUser(auth);
 
           } catch (Exception e) {
             throw new IllegalArgumentException("WebSocket authentication failed: " + e.getMessage(), e);
