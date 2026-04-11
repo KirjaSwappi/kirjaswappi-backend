@@ -101,7 +101,7 @@ public class FilterApiRequest extends OncePerRequestFilter {
         if (jwtUtil.validateJwtToken(jwt, userDetails))
           setAuthentication(request, jwt, userDetails);
       }
-    } catch (MalformedJwtException | ExpiredJwtException | AuthenticationException e) {
+    } catch (MalformedJwtException | ExpiredJwtException | AuthenticationException | ClassCastException e) {
       logger.warn(e.getMessage());
       SecurityContextHolder.clearContext();
       throw new InvalidJwtTokenException(e.getMessage());

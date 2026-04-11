@@ -235,10 +235,10 @@ public class ChatService {
     // Also mark the swap request inbox item as read so the inbox endpoint returns
     // unread=false
     Instant now = Instant.now();
-    if (swapRequest.receiver().id().equals(userId)) {
+    if (swapRequest.receiver().id().equals(userId) && swapRequest.readByReceiverAt() == null) {
       swapRequest.readByReceiverAt(now);
       swapRequestRepository.save(swapRequest);
-    } else if (swapRequest.sender().id().equals(userId)) {
+    } else if (swapRequest.sender().id().equals(userId) && swapRequest.readBySenderAt() == null) {
       swapRequest.readBySenderAt(now);
       swapRequestRepository.save(swapRequest);
     }
@@ -284,11 +284,14 @@ public class ChatService {
     if (swapRequestIds == null || swapRequestIds.isEmpty()) {
       return Map.of();
     }
-    List<ChatMessageDao> messages = chatMessageRepository.findBySwapRequestIdInOrderBySentAtDesc(swapRequestIds);
     Map<String, Instant> result = new HashMap<>();
-    for (ChatMessageDao msg : messages) {
-      // Only keep the first (latest) message per swapRequestId
-      result.putIfAbsent(msg.swapRequestId(), msg.sentAt());
+    for (String swapRequestId : swapRequestIds) {
+      if (swapRequestId == null || result.containsKey(swapRequestId)) {
+        continue;
+      }
+      chatMessageRepository.findFirstBySwapRequestIdOrderBySentAtDesc(swapRequestId)
+          .map(ChatMessageDao::sentAt)
+          .ifPresent(sentAt -> result.put(swapRequestId, sentAt));
     }
     return result;
   }

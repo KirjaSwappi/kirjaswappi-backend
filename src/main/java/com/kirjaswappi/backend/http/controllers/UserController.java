@@ -204,7 +204,7 @@ public class UserController {
     if (refreshToken == null || refreshToken.isBlank()) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("userRefreshToken is required");
     }
-    if (!jwtUtil.validateUserToken(refreshToken)) {
+    if (!jwtUtil.validateUserRefreshToken(refreshToken)) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
     }
     String userId = jwtUtil.extractUserId(refreshToken);

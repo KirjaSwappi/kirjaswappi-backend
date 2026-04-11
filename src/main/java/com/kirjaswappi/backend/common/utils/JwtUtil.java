@@ -45,6 +45,9 @@ public class JwtUtil {
 
   private static final String TOKEN_TYPE = "jwtToken";
   private static final String USER_TOKEN_TYPE = "userToken";
+  private static final String TOKEN_PURPOSE = "tokenPurpose";
+  private static final String ACCESS_PURPOSE = "access";
+  private static final String REFRESH_PURPOSE = "refresh";
   private static final String EMAIL_CLAIM = "email";
 
   public String extractUsername(String token) {
@@ -144,6 +147,7 @@ public class JwtUtil {
     Map<String, Object> claims = new HashMap<>();
     claims.put(ROLE, "USER");
     claims.put(TOKEN_TYPE, USER_TOKEN_TYPE);
+    claims.put(TOKEN_PURPOSE, ACCESS_PURPOSE);
     claims.put(EMAIL_CLAIM, email);
     return Jwts.builder()
         .claims(claims)
@@ -158,6 +162,7 @@ public class JwtUtil {
     Map<String, Object> claims = new HashMap<>();
     claims.put(ROLE, "USER");
     claims.put(TOKEN_TYPE, USER_TOKEN_TYPE);
+    claims.put(TOKEN_PURPOSE, REFRESH_PURPOSE);
     claims.put(EMAIL_CLAIM, email);
     return Jwts.builder()
         .claims(claims)
@@ -170,12 +175,22 @@ public class JwtUtil {
 
   public boolean isUserToken(String token) {
     Claims claims = extractAllClaims(token);
-    String type = claims.get(TOKEN_TYPE, String.class);
-    return USER_TOKEN_TYPE.equals(type);
+    Object type = claims.get(TOKEN_TYPE);
+    return type instanceof String && USER_TOKEN_TYPE.equals(type);
   }
 
   public boolean validateUserToken(String token) {
-    return isUserToken(token) && isTokenValid(token);
+    if (!isUserToken(token) || !isTokenValid(token))
+      return false;
+    Claims claims = extractAllClaims(token);
+    return ACCESS_PURPOSE.equals(claims.get(TOKEN_PURPOSE));
+  }
+
+  public boolean validateUserRefreshToken(String token) {
+    if (!isUserToken(token) || !isTokenValid(token))
+      return false;
+    Claims claims = extractAllClaims(token);
+    return REFRESH_PURPOSE.equals(claims.get(TOKEN_PURPOSE));
   }
 
   public String extractUserId(String token) {
