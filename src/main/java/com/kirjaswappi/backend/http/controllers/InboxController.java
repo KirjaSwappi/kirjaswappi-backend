@@ -42,6 +42,9 @@ public class InboxController {
       @Parameter(description = "Filter by status") @RequestParam(required = false) String status,
       @Parameter(description = "Sort by field (latest_message, date, book_title, sender_name, status)") @RequestParam(required = false) String sortBy) {
 
+    if (principal == null) {
+      return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+    }
     String userId = principal.getName();
     List<SwapRequest> swapRequests = inboxService.getUnifiedInbox(userId, status, sortBy);
     List<InboxItemResponse> response = swapRequests.stream()

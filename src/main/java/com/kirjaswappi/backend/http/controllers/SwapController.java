@@ -62,6 +62,9 @@ public class SwapController {
       @Valid @RequestBody UpdateSwapStatusRequest request,
       Principal principal) {
 
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
     String userId = principal.getName();
 
     // Validate the request

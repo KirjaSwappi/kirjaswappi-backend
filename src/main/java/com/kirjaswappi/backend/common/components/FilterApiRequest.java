@@ -110,15 +110,15 @@ public class FilterApiRequest extends OncePerRequestFilter {
 
   private void setAuthentication(HttpServletRequest request, String jwt, AdminUser userDetails) {
     SecurityContextHolder.getContext().setAuthentication(
-        createAuthenticationToken(jwt, userDetails, request));
+        createAuthenticationToken(jwt, userDetails.username(), request));
   }
 
-  private UsernamePasswordAuthenticationToken createAuthenticationToken(String jwt, AdminUser userDetails,
+  private UsernamePasswordAuthenticationToken createAuthenticationToken(String jwt, String principal,
       HttpServletRequest request) {
     String role = jwtUtil.extractRole(jwt);
     List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-        userDetails, null, authorities);
+        principal, null, authorities);
     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
     return authToken;
   }

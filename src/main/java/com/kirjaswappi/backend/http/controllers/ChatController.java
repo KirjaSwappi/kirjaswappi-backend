@@ -48,6 +48,9 @@ public class ChatController {
       @Parameter(description = "Swap request ID", required = true) @PathVariable String id,
       Principal principal) {
 
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
     String userId = principal.getName();
     List<ChatMessage> messages = chatService.getChatMessages(id, userId);
 
@@ -83,6 +86,9 @@ public class ChatController {
       Principal principal,
       @Valid @ModelAttribute SendMessageRequest request) {
 
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
     String userId = principal.getName();
 
     // Validate that either message or images are provided

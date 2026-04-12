@@ -198,16 +198,21 @@ public class UserController {
   @PostMapping("/refresh-token")
   @Operation(summary = "Refresh user token.", responses = {
       @ApiResponse(responseCode = "200", description = "Token refreshed."),
-      @ApiResponse(responseCode = "401", description = "Invalid or expired refresh token.") })
+      @ApiResponse(responseCode = "401", description = "Invalid or expired refresh token."),
+      @ApiResponse(responseCode = "404", description = "User not found.") })
   public ResponseEntity<?> refreshUserToken(@Valid @RequestBody RefreshTokenRequest request) {
     String refreshToken = request.getUserRefreshToken();
-    if (!jwtUtil.validateUserRefreshToken(refreshToken)) {
+    try {
+      if (!jwtUtil.validateUserRefreshToken(refreshToken)) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
+      }
+      String userId = jwtUtil.extractUserId(refreshToken);
+      User user = userService.getUser(userId);
+      String newToken = jwtUtil.generateUserToken(user.id(), user.email());
+      return ResponseEntity.ok(Map.of("userToken", newToken));
+    } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
     }
-    String userId = jwtUtil.extractUserId(refreshToken);
-    User user = userService.getUser(userId);
-    String newToken = jwtUtil.generateUserToken(user.id(), user.email());
-    return ResponseEntity.ok(Map.of("userToken", newToken));
   }
 
   @GetMapping(ID + BOOKS)
