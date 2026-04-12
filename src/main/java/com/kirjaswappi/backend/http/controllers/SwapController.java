@@ -6,6 +6,8 @@ package com.kirjaswappi.backend.http.controllers;
 
 import static com.kirjaswappi.backend.common.utils.Constants.*;
 
+import java.security.Principal;
+
 import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,10 +38,10 @@ public class SwapController {
 
   @PostMapping
   @Operation(summary = "Create swap request for a book.", description = "Create swap request for a book.", responses = {
-      @ApiResponse(responseCode = "200", description = "Swap request sent.") })
+      @ApiResponse(responseCode = "201", description = "Swap request created.") })
   public ResponseEntity<SwapRequestResponse> createSwapRequest(@Valid @RequestBody CreateSwapRequest request) {
     SwapRequest createdSwapRequest = swapService.createSwapRequest(request.toEntity());
-    return ResponseEntity.status(HttpStatus.OK).body(new SwapRequestResponse(createdSwapRequest));
+    return ResponseEntity.status(HttpStatus.CREATED).body(new SwapRequestResponse(createdSwapRequest));
   }
 
   @DeleteMapping
@@ -54,11 +56,17 @@ public class SwapController {
   @Operation(summary = "Update swap request status.", description = "Update the status of a swap request. Only the receiver can change the status.", responses = {
       @ApiResponse(responseCode = "200", description = "Swap request status updated successfully."),
       @ApiResponse(responseCode = "400", description = "Invalid status transition or user not authorized."),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - missing or invalid authentication."),
       @ApiResponse(responseCode = "404", description = "Swap request not found.") })
   public ResponseEntity<SwapRequestResponse> updateSwapRequestStatus(
       @Parameter(description = "SwapRequest ID.") @PathVariable String id,
       @Valid @RequestBody UpdateSwapStatusRequest request,
-      @RequestHeader("X-User-Id") String userId) {
+      Principal principal) {
+
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+    String userId = principal.getName();
 
     // Validate the request
     request.validate();

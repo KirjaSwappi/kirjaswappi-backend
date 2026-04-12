@@ -20,4 +20,6 @@ public interface ChatMessageRepository extends MongoRepository<ChatMessageDao, S
   long countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot(String swapRequestId, ObjectId userId);
 
   Optional<ChatMessageDao> findFirstBySwapRequestIdOrderBySentAtDesc(String swapRequestId);
+
+  List<ChatMessageDao> findBySwapRequestIdInOrderBySentAtDesc(List<String> swapRequestIds);
 }

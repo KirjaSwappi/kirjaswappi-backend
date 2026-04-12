@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
 import com.kirjaswappi.backend.http.controllers.InboxController;
@@ -114,7 +115,7 @@ class InboxControllerTest {
 
     // When & Then
     mockMvc.perform(get(API_PATH)
-        .param("userId", "receiver123"))
+        .with(withUser("receiver123")))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$").isArray())
@@ -182,7 +183,7 @@ class InboxControllerTest {
 
     // When & Then
     mockMvc.perform(get(API_PATH)
-        .param("userId", "receiver123")
+        .with(withUser("receiver123"))
         .param("status", "Pending")
         .param("sortBy", "latest_message"))
         .andExpect(status().isOk())
@@ -208,7 +209,7 @@ class InboxControllerTest {
 
     // When & Then
     mockMvc.perform(get(API_PATH)
-        .param("userId", "receiver123")
+        .with(withUser("receiver123"))
         .param("status", "InvalidStatus"))
         .andExpect(status().isBadRequest());
 
@@ -225,7 +226,7 @@ class InboxControllerTest {
 
     // When & Then
     mockMvc.perform(get(API_PATH)
-        .param("userId", "nonexistent"))
+        .with(withUser("nonexistent")))
         .andExpect(status().isNotFound());
 
     verify(inboxService).getUnifiedInbox("nonexistent", null, null);
@@ -293,7 +294,7 @@ class InboxControllerTest {
 
     // When & Then
     mockMvc.perform(get(API_PATH)
-        .param("userId", "receiver123")
+        .with(withUser("receiver123"))
         .param("sortBy", "book_title"))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -362,7 +363,7 @@ class InboxControllerTest {
 
     // When & Then
     mockMvc.perform(get(API_PATH)
-        .param("userId", "receiver123"))
+        .with(withUser("receiver123")))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$[0].lastMessageContent").value("John sent an attachment"))
@@ -370,5 +371,21 @@ class InboxControllerTest {
 
     verify(inboxService).getUnifiedInbox("receiver123", null, null);
     verify(inboxService).getLatestMessage("swap1");
+  }
+
+  @Test
+  @DisplayName("Should return 401 when principal is missing")
+  void shouldReturn401WhenPrincipalIsMissing() throws Exception {
+    mockMvc.perform(get(API_PATH))
+        .andExpect(status().isUnauthorized());
+
+    verifyNoInteractions(inboxService);
+  }
+
+  private static RequestPostProcessor withUser(String userId) {
+    return request -> {
+      request.setUserPrincipal(() -> userId);
+      return request;
+    };
   }
 }

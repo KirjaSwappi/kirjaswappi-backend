@@ -33,6 +33,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
 import com.kirjaswappi.backend.common.service.OTPService;
 import com.kirjaswappi.backend.common.service.exceptions.InvalidCredentials;
+import com.kirjaswappi.backend.common.utils.JwtUtil;
 import com.kirjaswappi.backend.http.controllers.UserController;
 import com.kirjaswappi.backend.http.dtos.requests.*;
 import com.kirjaswappi.backend.service.BookService;
@@ -70,6 +71,9 @@ public class UserControllerTest {
   @MockitoBean
   private GoogleIdTokenVerifier googleIdTokenVerifier;
 
+  @MockitoBean
+  private JwtUtil jwtUtil;
+
   private User user;
 
   private CreateUserRequest createUserRequest;
@@ -87,6 +91,9 @@ public class UserControllerTest {
     createUserRequest.setEmail("test@example.com");
     createUserRequest.setPassword("password");
     createUserRequest.setConfirmPassword("password");
+
+    when(jwtUtil.generateUserToken(any(), any())).thenReturn("mock-user-token");
+    when(jwtUtil.generateUserRefreshToken(any(), any())).thenReturn("mock-user-refresh-token");
   }
 
   @Test
@@ -181,7 +188,9 @@ public class UserControllerTest {
         .content(objectMapper.writeValueAsString(request))
         .header("Authorization ", "Bearer a.b.c"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.email").value(user.email()));
+        .andExpect(jsonPath("$.email").value(user.email()))
+        .andExpect(jsonPath("$.userToken").value("mock-user-token"))
+        .andExpect(jsonPath("$.userRefreshToken").value("mock-user-refresh-token"));
   }
 
   @Test
@@ -530,6 +539,85 @@ public class UserControllerTest {
   }
 
   @Test
+  @DisplayName("Should refresh user token successfully")
+  void shouldRefreshUserToken() throws Exception {
+    RefreshTokenRequest request = new RefreshTokenRequest();
+    request.setUserRefreshToken("valid-refresh-token");
+
+    when(jwtUtil.validateUserRefreshToken("valid-refresh-token")).thenReturn(true);
+    when(jwtUtil.extractUserId("valid-refresh-token")).thenReturn("1");
+    when(userService.getUser("1")).thenReturn(user);
+    when(jwtUtil.generateUserToken("1", "test@example.com")).thenReturn("new-user-token");
+
+    mockMvc.perform(post(API_BASE + "/refresh-token")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request))
+        .header("Authorization", "Bearer a.b.c"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.userToken").value("new-user-token"));
+  }
+
+  @Test
+  @DisplayName("Should return 401 when refresh token is invalid")
+  void shouldReturnUnauthorizedWhenRefreshTokenIsInvalid() throws Exception {
+    RefreshTokenRequest request = new RefreshTokenRequest();
+    request.setUserRefreshToken("invalid-refresh-token");
+
+    when(jwtUtil.validateUserRefreshToken("invalid-refresh-token")).thenReturn(false);
+
+    mockMvc.perform(post(API_BASE + "/refresh-token")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request))
+        .header("Authorization", "Bearer a.b.c"))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName("Should return 401 when refresh token causes exception")
+  void shouldReturnUnauthorizedWhenRefreshTokenThrowsException() throws Exception {
+    RefreshTokenRequest request = new RefreshTokenRequest();
+    request.setUserRefreshToken("malformed-token");
+
+    when(jwtUtil.validateUserRefreshToken("malformed-token")).thenThrow(new RuntimeException("Malformed JWT"));
+
+    mockMvc.perform(post(API_BASE + "/refresh-token")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request))
+        .header("Authorization", "Bearer a.b.c"))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName("Should return 400 when refresh token is blank")
+  void shouldReturnBadRequestWhenRefreshTokenIsBlank() throws Exception {
+    RefreshTokenRequest request = new RefreshTokenRequest();
+    request.setUserRefreshToken("");
+
+    mockMvc.perform(post(API_BASE + "/refresh-token")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request))
+        .header("Authorization", "Bearer a.b.c"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("Should return 404 when user not found during refresh token")
+  void shouldReturnNotFoundWhenUserNotFoundDuringRefreshToken() throws Exception {
+    RefreshTokenRequest request = new RefreshTokenRequest();
+    request.setUserRefreshToken("valid-refresh-token");
+
+    when(jwtUtil.validateUserRefreshToken("valid-refresh-token")).thenReturn(true);
+    when(jwtUtil.extractUserId("valid-refresh-token")).thenReturn("nonexistent");
+    when(userService.getUser("nonexistent")).thenThrow(new UserNotFoundException());
+
+    mockMvc.perform(post(API_BASE + "/refresh-token")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request))
+        .header("Authorization", "Bearer a.b.c"))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
   @DisplayName("Should login with Google successfully")
   void shouldLoginWithGoogle() throws Exception {
     String idTokenString = "valid.token";
@@ -554,7 +642,9 @@ public class UserControllerTest {
         .content("{\"idToken\":\"" + idTokenString + "\"}")
         .header("Authorization", "Bearer a.b.c"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.email").value(user.email()));
+        .andExpect(jsonPath("$.email").value(user.email()))
+        .andExpect(jsonPath("$.userToken").value("mock-user-token"))
+        .andExpect(jsonPath("$.userRefreshToken").value("mock-user-refresh-token"));
   }
 
   @Test
@@ -568,5 +658,18 @@ public class UserControllerTest {
         .content("{\"idToken\":\"" + idTokenString + "\"}"))
         .andExpect(status().isUnauthorized())
         .andExpect(content().string("Invalid token"));
+  }
+
+  @Test
+  @DisplayName("Should fail Google login when verify returns null")
+  void shouldFailLoginWithGoogleNullToken() throws Exception {
+    String idTokenString = "null-token";
+    Mockito.when(googleIdTokenVerifier.verify(idTokenString)).thenReturn(null);
+
+    mockMvc.perform(post(API_BASE + "/login-with-google")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"idToken\":\"" + idTokenString + "\"}"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(content().string("Invalid ID token"));
   }
 }

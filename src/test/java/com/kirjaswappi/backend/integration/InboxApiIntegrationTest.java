@@ -20,6 +20,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
 import com.kirjaswappi.backend.http.controllers.InboxController;
@@ -100,7 +101,7 @@ class InboxApiIntegrationTest {
       when(inboxService.isInboxItemUnread(any(), eq(userId))).thenReturn(false);
 
       mockMvc.perform(get(API_BASE)
-          .param("userId", userId))
+          .with(withUser(userId)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(jsonPath("$[0].id").value("request-1"))
@@ -114,7 +115,7 @@ class InboxApiIntegrationTest {
       when(inboxService.getUnifiedInbox(userId, null, null)).thenReturn(List.of());
 
       mockMvc.perform(get(API_BASE)
-          .param("userId", userId))
+          .with(withUser(userId)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -131,7 +132,7 @@ class InboxApiIntegrationTest {
       when(inboxService.isInboxItemUnread(any(), eq(userId))).thenReturn(false);
 
       mockMvc.perform(get(API_BASE)
-          .param("userId", userId)
+          .with(withUser(userId))
           .param("status", "Pending"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1))
@@ -150,19 +151,12 @@ class InboxApiIntegrationTest {
       when(inboxService.isInboxItemUnread(any(), eq(userId))).thenReturn(false);
 
       mockMvc.perform(get(API_BASE)
-          .param("userId", userId)
+          .with(withUser(userId))
           .param("sortBy", "date"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1));
 
       verify(inboxService).getUnifiedInbox(userId, null, "date");
-    }
-
-    @Test
-    @DisplayName("Should return 400 when userId is missing")
-    void shouldReturn400WhenUserIdMissing() throws Exception {
-      mockMvc.perform(get(API_BASE))
-          .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -173,7 +167,7 @@ class InboxApiIntegrationTest {
           .thenThrow(new BadRequestException("invalidStatus", "InvalidStatus"));
 
       mockMvc.perform(get(API_BASE)
-          .param("userId", userId)
+          .with(withUser(userId))
           .param("status", "InvalidStatus"))
           .andExpect(status().isBadRequest());
     }
@@ -190,7 +184,7 @@ class InboxApiIntegrationTest {
       when(inboxService.isInboxItemUnread(any(), eq(userId))).thenReturn(true);
 
       mockMvc.perform(get(API_BASE)
-          .param("userId", userId))
+          .with(withUser(userId)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$[0].unreadMessageCount").value(5))
           .andExpect(jsonPath("$[0].unread").value(true))
@@ -209,7 +203,7 @@ class InboxApiIntegrationTest {
       when(inboxService.isInboxItemUnread(any(), eq(userId))).thenReturn(false);
 
       mockMvc.perform(get(API_BASE)
-          .param("userId", userId))
+          .with(withUser(userId)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$[0].conversationType").value("sent"));
     }
@@ -226,9 +220,16 @@ class InboxApiIntegrationTest {
       when(inboxService.isInboxItemUnread(any(), eq(userId))).thenReturn(false);
 
       mockMvc.perform(get(API_BASE)
-          .param("userId", userId))
+          .with(withUser(userId)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$[0].conversationType").value("received"));
     }
+  }
+
+  private static RequestPostProcessor withUser(String userId) {
+    return request -> {
+      request.setUserPrincipal(() -> userId);
+      return request;
+    };
   }
 }

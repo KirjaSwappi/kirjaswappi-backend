@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
@@ -123,7 +124,7 @@ class SwapRequestApiIntegrationTest {
       mockMvc.perform(post(API_BASE)
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isOk());
+          .andExpect(status().isCreated());
     }
 
     @Test
@@ -150,7 +151,7 @@ class SwapRequestApiIntegrationTest {
       mockMvc.perform(post(API_BASE)
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isOk());
+          .andExpect(status().isCreated());
     }
 
     @Test
@@ -177,7 +178,7 @@ class SwapRequestApiIntegrationTest {
       mockMvc.perform(post(API_BASE)
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isOk());
+          .andExpect(status().isCreated());
     }
 
     @Test
@@ -248,7 +249,7 @@ class SwapRequestApiIntegrationTest {
       request.setStatus("Accepted");
 
       mockMvc.perform(put(API_BASE + "/swap-1/status")
-          .header("X-User-Id", "receiver-1")
+          .with(withUser("receiver-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isOk());
@@ -269,7 +270,7 @@ class SwapRequestApiIntegrationTest {
       request.setStatus("Rejected");
 
       mockMvc.perform(put(API_BASE + "/swap-1/status")
-          .header("X-User-Id", "receiver-1")
+          .with(withUser("receiver-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isOk());
@@ -290,7 +291,7 @@ class SwapRequestApiIntegrationTest {
       request.setStatus("Reserved");
 
       mockMvc.perform(put(API_BASE + "/swap-1/status")
-          .header("X-User-Id", "receiver-1")
+          .with(withUser("receiver-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isOk());
@@ -304,7 +305,7 @@ class SwapRequestApiIntegrationTest {
       request.setStatus("InvalidStatus");
 
       mockMvc.perform(put(API_BASE + "/swap-1/status")
-          .header("X-User-Id", "receiver-1")
+          .with(withUser("receiver-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -317,19 +318,7 @@ class SwapRequestApiIntegrationTest {
       request.setStatus("");
 
       mockMvc.perform(put(API_BASE + "/swap-1/status")
-          .header("X-User-Id", "receiver-1")
-          .contentType(MediaType.APPLICATION_JSON)
-          .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Should return 400 when X-User-Id header is missing")
-    void shouldReturn400WhenUserHeaderMissing() throws Exception {
-      UpdateSwapStatusRequest request = new UpdateSwapStatusRequest();
-      request.setStatus("Accepted");
-
-      mockMvc.perform(put(API_BASE + "/swap-1/status")
+          .with(withUser("receiver-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -345,7 +334,7 @@ class SwapRequestApiIntegrationTest {
       request.setStatus("Accepted");
 
       mockMvc.perform(put(API_BASE + "/nonexistent-id/status")
-          .header("X-User-Id", "receiver-1")
+          .with(withUser("receiver-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isNotFound());
@@ -361,7 +350,7 @@ class SwapRequestApiIntegrationTest {
       request.setStatus("Accepted");
 
       mockMvc.perform(put(API_BASE + "/swap-1/status")
-          .header("X-User-Id", "sender-1")
+          .with(withUser("sender-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -377,7 +366,7 @@ class SwapRequestApiIntegrationTest {
       request.setStatus("Pending");
 
       mockMvc.perform(put(API_BASE + "/swap-1/status")
-          .header("X-User-Id", "receiver-1")
+          .with(withUser("receiver-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -396,5 +385,12 @@ class SwapRequestApiIntegrationTest {
       mockMvc.perform(delete(API_BASE))
           .andExpect(status().isNoContent());
     }
+  }
+
+  private static RequestPostProcessor withUser(String userId) {
+    return request -> {
+      request.setUserPrincipal(() -> userId);
+      return request;
+    };
   }
 }

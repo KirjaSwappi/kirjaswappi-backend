@@ -12,8 +12,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.JwtException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,11 +82,25 @@ public class FilterApiRequest extends OncePerRequestFilter {
 
   private void validateTokenAndUser(HttpServletRequest request, String jwt) {
     try {
-      String username = jwtUtil.extractUsername(jwt);
-      AdminUser userDetails = adminUserService.getAdminUserInfo(username);
-      if (jwtUtil.validateJwtToken(jwt, userDetails))
-        setAuthentication(request, jwt, userDetails);
-    } catch (MalformedJwtException | ExpiredJwtException | AuthenticationException e) {
+      if (jwtUtil.isUserToken(jwt)) {
+        // User token: validate and set userId as principal
+        if (jwtUtil.validateUserToken(jwt)) {
+          String userId = jwtUtil.extractUserId(jwt);
+          String role = jwtUtil.extractRole(jwt);
+          List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+          UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+              userId, null, authorities);
+          authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+          SecurityContextHolder.getContext().setAuthentication(authToken);
+        }
+      } else {
+        // Admin token: validate against AdminUser
+        String username = jwtUtil.extractUsername(jwt);
+        AdminUser userDetails = adminUserService.getAdminUserInfo(username);
+        if (jwtUtil.validateJwtToken(jwt, userDetails))
+          setAuthentication(request, jwt, userDetails);
+      }
+    } catch (JwtException | AuthenticationException | ClassCastException e) {
       logger.warn(e.getMessage());
       SecurityContextHolder.clearContext();
       throw new InvalidJwtTokenException(e.getMessage());
@@ -96,15 +109,15 @@ public class FilterApiRequest extends OncePerRequestFilter {
 
   private void setAuthentication(HttpServletRequest request, String jwt, AdminUser userDetails) {
     SecurityContextHolder.getContext().setAuthentication(
-        createAuthenticationToken(jwt, userDetails, request));
+        createAuthenticationToken(jwt, userDetails.username(), request));
   }
 
-  private UsernamePasswordAuthenticationToken createAuthenticationToken(String jwt, AdminUser userDetails,
+  private UsernamePasswordAuthenticationToken createAuthenticationToken(String jwt, String principal,
       HttpServletRequest request) {
     String role = jwtUtil.extractRole(jwt);
     List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-        userDetails, null, authorities);
+        principal, null, authorities);
     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
     return authToken;
   }

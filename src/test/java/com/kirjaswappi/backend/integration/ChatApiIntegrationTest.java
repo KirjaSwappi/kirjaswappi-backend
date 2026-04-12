@@ -22,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
 import com.kirjaswappi.backend.http.controllers.ChatController;
@@ -115,7 +116,7 @@ class ChatApiIntegrationTest {
       when(chatService.getSwapRequestForChat(swapRequestId, userId)).thenReturn(swapRequest);
 
       mockMvc.perform(get(API_BASE + "/" + swapRequestId + "/chat")
-          .param("userId", userId))
+          .with(withUser(userId)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(jsonPath("$[0].message").value("Hello!"))
@@ -137,7 +138,7 @@ class ChatApiIntegrationTest {
       when(chatService.getSwapRequestForChat(swapRequestId, userId)).thenReturn(swapRequest);
 
       mockMvc.perform(get(API_BASE + "/" + swapRequestId + "/chat")
-          .param("userId", userId))
+          .with(withUser(userId)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -152,15 +153,8 @@ class ChatApiIntegrationTest {
           .thenThrow(new ResourceNotFoundException("swapRequestNotFound", swapRequestId));
 
       mockMvc.perform(get(API_BASE + "/" + swapRequestId + "/chat")
-          .param("userId", userId))
+          .with(withUser(userId)))
           .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("Should return 400 when userId is missing")
-    void shouldReturn400WhenUserIdMissing() throws Exception {
-      mockMvc.perform(get(API_BASE + "/swap-1/chat"))
-          .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -180,7 +174,7 @@ class ChatApiIntegrationTest {
       when(chatService.getSwapRequestForChat(swapRequestId, userId)).thenReturn(swapRequest);
 
       mockMvc.perform(get(API_BASE + "/" + swapRequestId + "/chat")
-          .param("userId", userId))
+          .with(withUser(userId)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$[0].swapContext").exists())
           .andExpect(jsonPath("$[0].swapContext.swapType").value("GiveAway"))
@@ -206,7 +200,7 @@ class ChatApiIntegrationTest {
       when(chatService.getSwapRequestForChat(swapRequestId, userId)).thenReturn(swapRequest);
 
       mockMvc.perform(get(API_BASE + "/" + swapRequestId + "/chat")
-          .param("userId", userId))
+          .with(withUser(userId)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$[0].ownMessage").value(true))
           .andExpect(jsonPath("$[1].ownMessage").value(false));
@@ -234,7 +228,7 @@ class ChatApiIntegrationTest {
       when(chatService.getSwapRequestForChat(swapRequestId, userId)).thenReturn(swapRequest);
 
       mockMvc.perform(multipart(API_BASE + "/" + swapRequestId + "/chat")
-          .param("userId", userId)
+          .with(withUser(userId))
           .param("message", messageText))
           .andExpect(status().isCreated())
           .andExpect(jsonPath("$.message").value(messageText));
@@ -260,7 +254,7 @@ class ChatApiIntegrationTest {
 
       mockMvc.perform(multipart(API_BASE + "/" + swapRequestId + "/chat")
           .file(image)
-          .param("userId", userId))
+          .with(withUser(userId)))
           .andExpect(status().isCreated());
     }
 
@@ -268,7 +262,7 @@ class ChatApiIntegrationTest {
     @DisplayName("Should return 400 when neither message nor images provided")
     void shouldReturn400WhenNoContent() throws Exception {
       mockMvc.perform(multipart(API_BASE + "/swap-1/chat")
-          .param("userId", "user-1"))
+          .with(withUser("user-1")))
           .andExpect(status().isBadRequest());
     }
 
@@ -283,17 +277,9 @@ class ChatApiIntegrationTest {
           .thenThrow(new ResourceNotFoundException("swapRequestNotFound", swapRequestId));
 
       mockMvc.perform(multipart(API_BASE + "/" + swapRequestId + "/chat")
-          .param("userId", userId)
+          .with(withUser(userId))
           .param("message", messageText))
           .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("Should return 400 when userId is missing")
-    void shouldReturn400WhenUserIdMissingOnSend() throws Exception {
-      mockMvc.perform(multipart(API_BASE + "/swap-1/chat")
-          .param("message", "Hello!"))
-          .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -313,11 +299,18 @@ class ChatApiIntegrationTest {
       when(chatService.getSwapRequestForChat(swapRequestId, userId)).thenReturn(swapRequest);
 
       mockMvc.perform(multipart(API_BASE + "/" + swapRequestId + "/chat")
-          .param("userId", userId)
+          .with(withUser(userId))
           .param("message", messageText))
           .andExpect(status().isCreated())
           .andExpect(jsonPath("$.swapContext").exists())
           .andExpect(jsonPath("$.swapContext.requestedBook").exists());
     }
+  }
+
+  private static RequestPostProcessor withUser(String userId) {
+    return request -> {
+      request.setUserPrincipal(() -> userId);
+      return request;
+    };
   }
 }

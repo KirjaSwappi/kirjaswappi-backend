@@ -6,7 +6,9 @@ package com.kirjaswappi.backend.service;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -225,7 +227,9 @@ public class ChatService {
     // Mark messages as read
     for (ChatMessageDao message : unreadMessages) {
       message.readByReceiver(true);
-      chatMessageRepository.save(message);
+    }
+    if (!unreadMessages.isEmpty()) {
+      chatMessageRepository.saveAll(unreadMessages);
     }
 
     // Also mark the swap request inbox item as read so the inbox endpoint returns
@@ -274,6 +278,18 @@ public class ChatService {
   public Optional<Instant> getLatestMessageTimestamp(String swapRequestId) {
     return chatMessageRepository.findFirstBySwapRequestIdOrderBySentAtDesc(swapRequestId)
         .map(ChatMessageDao::sentAt);
+  }
+
+  public Map<String, Instant> getLatestMessageTimestamps(List<String> swapRequestIds) {
+    if (swapRequestIds == null || swapRequestIds.isEmpty()) {
+      return Map.of();
+    }
+    List<ChatMessageDao> messages = chatMessageRepository.findBySwapRequestIdInOrderBySentAtDesc(swapRequestIds);
+    Map<String, Instant> result = new HashMap<>();
+    for (ChatMessageDao msg : messages) {
+      result.putIfAbsent(msg.swapRequestId(), msg.sentAt());
+    }
+    return result;
   }
 
   public Optional<ChatMessage> getLatestMessage(String swapRequestId) {

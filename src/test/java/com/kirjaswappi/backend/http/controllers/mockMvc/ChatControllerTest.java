@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
@@ -97,7 +98,7 @@ class ChatControllerTest {
 
     // When & Then
     mockMvc.perform(get(API_PATH + "/swap123/chat")
-        .param("userId", "user123"))
+        .with(withUser("user123")))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$").isArray())
@@ -131,7 +132,7 @@ class ChatControllerTest {
 
     // When & Then
     mockMvc.perform(get(API_PATH + "/swap123/chat")
-        .param("userId", "unauthorized123"))
+        .with(withUser("unauthorized123")))
         .andExpect(status().isForbidden());
 
     verify(chatService).getChatMessages("swap123", "unauthorized123");
@@ -146,7 +147,7 @@ class ChatControllerTest {
 
     // When & Then
     mockMvc.perform(get(API_PATH + "/nonexistent/chat")
-        .param("userId", "user123"))
+        .with(withUser("user123")))
         .andExpect(status().isNotFound());
 
     verify(chatService).getChatMessages("nonexistent", "user123");
@@ -191,7 +192,7 @@ class ChatControllerTest {
 
     // When & Then
     mockMvc.perform(multipart(API_PATH + "/swap123/chat")
-        .param("userId", "user123")
+        .with(withUser("user123"))
         .param("message", "Hello, is this book still available?"))
         .andExpect(status().isCreated())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -214,7 +215,7 @@ class ChatControllerTest {
 
     // When & Then
     mockMvc.perform(post(API_PATH + "/swap123/chat")
-        .param("userId", "user123")
+        .with(withUser("user123"))
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
@@ -231,7 +232,7 @@ class ChatControllerTest {
 
     // When & Then
     mockMvc.perform(post(API_PATH + "/swap123/chat")
-        .param("userId", "user123")
+        .with(withUser("user123"))
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
@@ -248,7 +249,7 @@ class ChatControllerTest {
 
     // When & Then
     mockMvc.perform(multipart(API_PATH + "/swap123/chat")
-        .param("userId", "unauthorized123")
+        .with(withUser("unauthorized123"))
         .param("message", "Hello there!"))
         .andExpect(status().isForbidden());
 
@@ -300,7 +301,7 @@ class ChatControllerTest {
 
     // When & Then
     mockMvc.perform(get(API_PATH + "/swap123/chat")
-        .param("userId", "user123"))
+        .with(withUser("user123")))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(2))
@@ -311,5 +312,31 @@ class ChatControllerTest {
 
     verify(chatService).getChatMessages("swap123", "user123");
     verify(chatService).getSwapRequestForChat("swap123", "user123");
+  }
+
+  @Test
+  @DisplayName("Should return 401 when principal is missing for get messages")
+  void shouldReturn401WhenPrincipalIsMissingForGetMessages() throws Exception {
+    mockMvc.perform(get(API_PATH + "/swap123/chat"))
+        .andExpect(status().isUnauthorized());
+
+    verifyNoInteractions(chatService);
+  }
+
+  @Test
+  @DisplayName("Should return 401 when principal is missing for send message")
+  void shouldReturn401WhenPrincipalIsMissingForSendMessage() throws Exception {
+    mockMvc.perform(multipart(API_PATH + "/swap123/chat")
+        .param("message", "Hello"))
+        .andExpect(status().isUnauthorized());
+
+    verifyNoInteractions(chatService);
+  }
+
+  private static RequestPostProcessor withUser(String userId) {
+    return request -> {
+      request.setUserPrincipal(() -> userId);
+      return request;
+    };
   }
 }

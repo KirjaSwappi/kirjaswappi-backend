@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
@@ -110,7 +111,7 @@ class SwapControllerTest {
     mockMvc.perform(post(API_PATH)
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isOk())
+        .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value("swap-001"))
         .andExpect(jsonPath("$.senderId").value("user1"))
         .andExpect(jsonPath("$.receiverId").value("user2"))
@@ -224,7 +225,7 @@ class SwapControllerTest {
 
     mockMvc.perform(put(API_PATH + "/" + swapRequestId + "/status")
         .contentType(MediaType.APPLICATION_JSON)
-        .header("X-User-Id", userId)
+        .with(withUser(userId))
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(swapRequestId))
@@ -245,7 +246,7 @@ class SwapControllerTest {
 
     mockMvc.perform(put(API_PATH + "/" + swapRequestId + "/status")
         .contentType(MediaType.APPLICATION_JSON)
-        .header("X-User-Id", userId)
+        .with(withUser(userId))
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
 
@@ -262,7 +263,7 @@ class SwapControllerTest {
 
     mockMvc.perform(put(API_PATH + "/" + swapRequestId + "/status")
         .contentType(MediaType.APPLICATION_JSON)
-        .header("X-User-Id", userId)
+        .with(withUser(userId))
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
 
@@ -282,7 +283,7 @@ class SwapControllerTest {
 
     mockMvc.perform(put(API_PATH + "/" + swapRequestId + "/status")
         .contentType(MediaType.APPLICATION_JSON)
-        .header("X-User-Id", userId)
+        .with(withUser(userId))
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isNotFound());
 
@@ -302,7 +303,7 @@ class SwapControllerTest {
 
     mockMvc.perform(put(API_PATH + "/" + swapRequestId + "/status")
         .contentType(MediaType.APPLICATION_JSON)
-        .header("X-User-Id", userId)
+        .with(withUser(userId))
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
 
@@ -310,8 +311,8 @@ class SwapControllerTest {
   }
 
   @Test
-  @DisplayName("Should return BadRequest when missing user header")
-  void shouldReturnBadRequest_whenMissingUserHeader() throws Exception {
+  @DisplayName("Should return 401 when principal is missing for status update")
+  void shouldReturn401_whenPrincipalIsMissing() throws Exception {
     String swapRequestId = "swap-001";
     UpdateSwapStatusRequest request = new UpdateSwapStatusRequest();
     request.setStatus("Accepted");
@@ -319,8 +320,15 @@ class SwapControllerTest {
     mockMvc.perform(put(API_PATH + "/" + swapRequestId + "/status")
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isUnauthorized());
 
     verify(swapService, never()).updateSwapRequestStatus(any(), any(), any());
+  }
+
+  private static RequestPostProcessor withUser(String userId) {
+    return request -> {
+      request.setUserPrincipal(() -> userId);
+      return request;
+    };
   }
 }
