@@ -208,7 +208,7 @@ public class InboxService {
   }
 
   private List<SwapRequest> sortByLatestMessage(List<SwapRequest> swapRequests) {
-    // Batch-fetch all latest message timestamps in a single query
+    // Fetch latest message timestamps for all swap requests before sorting.
     List<String> swapRequestIds = swapRequests.stream().map(SwapRequest::id).toList();
     Map<String, Instant> timestampMap = chatService.getLatestMessageTimestamps(swapRequestIds);
 

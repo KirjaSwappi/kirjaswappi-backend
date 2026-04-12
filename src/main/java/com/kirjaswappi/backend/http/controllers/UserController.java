@@ -199,11 +199,8 @@ public class UserController {
   @Operation(summary = "Refresh user token.", responses = {
       @ApiResponse(responseCode = "200", description = "Token refreshed."),
       @ApiResponse(responseCode = "401", description = "Invalid or expired refresh token.") })
-  public ResponseEntity<?> refreshUserToken(@RequestBody Map<String, String> request) {
-    String refreshToken = request.get("userRefreshToken");
-    if (refreshToken == null || refreshToken.isBlank()) {
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("userRefreshToken is required");
-    }
+  public ResponseEntity<?> refreshUserToken(@Valid @RequestBody RefreshTokenRequest request) {
+    String refreshToken = request.getUserRefreshToken();
     if (!jwtUtil.validateUserRefreshToken(refreshToken)) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
     }

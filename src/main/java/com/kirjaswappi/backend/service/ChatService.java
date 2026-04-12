@@ -284,14 +284,10 @@ public class ChatService {
     if (swapRequestIds == null || swapRequestIds.isEmpty()) {
       return Map.of();
     }
+    List<ChatMessageDao> messages = chatMessageRepository.findBySwapRequestIdInOrderBySentAtDesc(swapRequestIds);
     Map<String, Instant> result = new HashMap<>();
-    for (String swapRequestId : swapRequestIds) {
-      if (swapRequestId == null || result.containsKey(swapRequestId)) {
-        continue;
-      }
-      chatMessageRepository.findFirstBySwapRequestIdOrderBySentAtDesc(swapRequestId)
-          .map(ChatMessageDao::sentAt)
-          .ifPresent(sentAt -> result.put(swapRequestId, sentAt));
+    for (ChatMessageDao msg : messages) {
+      result.putIfAbsent(msg.swapRequestId(), msg.sentAt());
     }
     return result;
   }

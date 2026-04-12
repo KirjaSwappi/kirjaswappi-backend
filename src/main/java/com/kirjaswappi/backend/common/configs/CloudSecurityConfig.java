@@ -72,7 +72,7 @@ public class CloudSecurityConfig {
             .requestMatchers(DELETE, API_BASE + ADMIN_USERS + USERNAME).hasAuthority(ADMIN)
             .requestMatchers(DELETE, API_BASE + SWAP_REQUESTS).hasAuthority(ADMIN)
             .requestMatchers(DELETE, API_BASE + BOOKS).hasAuthority(ADMIN)
-            .anyRequest().authenticated())
+            .anyRequest().hasAnyAuthority(ADMIN, USER))
         .addFilterBefore(filterApiRequest, UsernamePasswordAuthenticationFilter.class)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .build();
