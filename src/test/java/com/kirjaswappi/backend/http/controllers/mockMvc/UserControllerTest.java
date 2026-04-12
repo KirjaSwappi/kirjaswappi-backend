@@ -601,6 +601,23 @@ public class UserControllerTest {
   }
 
   @Test
+  @DisplayName("Should return 404 when user not found during refresh token")
+  void shouldReturnNotFoundWhenUserNotFoundDuringRefreshToken() throws Exception {
+    RefreshTokenRequest request = new RefreshTokenRequest();
+    request.setUserRefreshToken("valid-refresh-token");
+
+    when(jwtUtil.validateUserRefreshToken("valid-refresh-token")).thenReturn(true);
+    when(jwtUtil.extractUserId("valid-refresh-token")).thenReturn("nonexistent");
+    when(userService.getUser("nonexistent")).thenThrow(new UserNotFoundException());
+
+    mockMvc.perform(post(API_BASE + "/refresh-token")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request))
+        .header("Authorization", "Bearer a.b.c"))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
   @DisplayName("Should login with Google successfully")
   void shouldLoginWithGoogle() throws Exception {
     String idTokenString = "valid.token";
@@ -641,5 +658,18 @@ public class UserControllerTest {
         .content("{\"idToken\":\"" + idTokenString + "\"}"))
         .andExpect(status().isUnauthorized())
         .andExpect(content().string("Invalid token"));
+  }
+
+  @Test
+  @DisplayName("Should fail Google login when verify returns null")
+  void shouldFailLoginWithGoogleNullToken() throws Exception {
+    String idTokenString = "null-token";
+    Mockito.when(googleIdTokenVerifier.verify(idTokenString)).thenReturn(null);
+
+    mockMvc.perform(post(API_BASE + "/login-with-google")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"idToken\":\"" + idTokenString + "\"}"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(content().string("Invalid ID token"));
   }
 }

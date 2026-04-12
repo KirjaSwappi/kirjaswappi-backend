@@ -12,8 +12,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.JwtException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,7 +100,7 @@ public class FilterApiRequest extends OncePerRequestFilter {
         if (jwtUtil.validateJwtToken(jwt, userDetails))
           setAuthentication(request, jwt, userDetails);
       }
-    } catch (MalformedJwtException | ExpiredJwtException | AuthenticationException | ClassCastException e) {
+    } catch (JwtException | AuthenticationException | ClassCastException e) {
       logger.warn(e.getMessage());
       SecurityContextHolder.clearContext();
       throw new InvalidJwtTokenException(e.getMessage());

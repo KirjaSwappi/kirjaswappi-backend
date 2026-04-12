@@ -206,13 +206,13 @@ public class UserController {
       if (!jwtUtil.validateUserRefreshToken(refreshToken)) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
       }
-      String userId = jwtUtil.extractUserId(refreshToken);
-      User user = userService.getUser(userId);
-      String newToken = jwtUtil.generateUserToken(user.id(), user.email());
-      return ResponseEntity.ok(Map.of("userToken", newToken));
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
     }
+    String userId = jwtUtil.extractUserId(refreshToken);
+    User user = userService.getUser(userId);
+    String newToken = jwtUtil.generateUserToken(user.id(), user.email());
+    return ResponseEntity.ok(Map.of("userToken", newToken));
   }
 
   @GetMapping(ID + BOOKS)

@@ -6,8 +6,6 @@ package com.kirjaswappi.backend.http.dtos.requests;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
-import java.io.Serializable;
-
 import jakarta.validation.constraints.NotBlank;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,7 +14,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class RefreshTokenRequest implements Serializable {
+public class RefreshTokenRequest {
   @Schema(description = "The user refresh token.", requiredMode = REQUIRED)
   @NotBlank(message = "userRefreshToken is required")
   private String userRefreshToken;

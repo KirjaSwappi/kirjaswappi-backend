@@ -310,6 +310,21 @@ class SwapControllerTest {
     verify(swapService, times(1)).updateSwapRequestStatus(swapRequestId, SwapStatus.PENDING, userId);
   }
 
+  @Test
+  @DisplayName("Should return 401 when principal is missing for status update")
+  void shouldReturn401_whenPrincipalIsMissing() throws Exception {
+    String swapRequestId = "swap-001";
+    UpdateSwapStatusRequest request = new UpdateSwapStatusRequest();
+    request.setStatus("Accepted");
+
+    mockMvc.perform(put(API_PATH + "/" + swapRequestId + "/status")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isUnauthorized());
+
+    verify(swapService, never()).updateSwapRequestStatus(any(), any(), any());
+  }
+
   private static RequestPostProcessor withUser(String userId) {
     return request -> {
       request.setUserPrincipal(() -> userId);

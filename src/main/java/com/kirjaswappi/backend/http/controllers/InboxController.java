@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,7 @@ public class InboxController {
   @Operation(summary = "Get unified inbox", description = "Retrieve all swap requests for the user (both sent and received) in a unified inbox sorted by latest messages with optional filtering and sorting", responses = {
       @ApiResponse(responseCode = "200", description = "Unified inbox retrieved successfully"),
       @ApiResponse(responseCode = "400", description = "Invalid status or sort parameter"),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - missing or invalid authentication"),
       @ApiResponse(responseCode = "404", description = "User not found")
   })
   public ResponseEntity<List<InboxItemResponse>> getUnifiedInbox(
@@ -43,7 +45,7 @@ public class InboxController {
       @Parameter(description = "Sort by field (latest_message, date, book_title, sender_name, status)") @RequestParam(required = false) String sortBy) {
 
     if (principal == null) {
-      return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
     String userId = principal.getName();
     List<SwapRequest> swapRequests = inboxService.getUnifiedInbox(userId, status, sortBy);

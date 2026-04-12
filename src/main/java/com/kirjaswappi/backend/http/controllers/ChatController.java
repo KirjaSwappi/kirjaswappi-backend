@@ -41,6 +41,7 @@ public class ChatController {
   @GetMapping(ID + CHAT)
   @Operation(summary = "Get chat messages for a swap request", description = "Retrieve all chat messages for a specific swap request with book swap context. User must be sender or receiver. Automatically marks messages as read.", responses = {
       @ApiResponse(responseCode = "200", description = "Chat messages retrieved successfully"),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - missing or invalid authentication"),
       @ApiResponse(responseCode = "403", description = "Access denied - user not authorized to view this chat"),
       @ApiResponse(responseCode = "404", description = "Swap request not found")
   })
@@ -78,6 +79,7 @@ public class ChatController {
   @Operation(summary = "Send a chat message", description = "Send a new message in the chat for a specific swap request with book swap context. User must be sender or receiver. Supports text message, images, or both.", responses = {
       @ApiResponse(responseCode = "201", description = "Message sent successfully"),
       @ApiResponse(responseCode = "400", description = "Invalid message content or images"),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - missing or invalid authentication"),
       @ApiResponse(responseCode = "403", description = "Access denied - user not authorized to send messages in this chat"),
       @ApiResponse(responseCode = "404", description = "Swap request not found")
   })

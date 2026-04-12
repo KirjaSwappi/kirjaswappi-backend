@@ -373,6 +373,15 @@ class InboxControllerTest {
     verify(inboxService).getLatestMessage("swap1");
   }
 
+  @Test
+  @DisplayName("Should return 401 when principal is missing")
+  void shouldReturn401WhenPrincipalIsMissing() throws Exception {
+    mockMvc.perform(get(API_PATH))
+        .andExpect(status().isUnauthorized());
+
+    verifyNoInteractions(inboxService);
+  }
+
   private static RequestPostProcessor withUser(String userId) {
     return request -> {
       request.setUserPrincipal(() -> userId);

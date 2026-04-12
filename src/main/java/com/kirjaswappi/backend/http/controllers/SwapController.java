@@ -56,6 +56,7 @@ public class SwapController {
   @Operation(summary = "Update swap request status.", description = "Update the status of a swap request. Only the receiver can change the status.", responses = {
       @ApiResponse(responseCode = "200", description = "Swap request status updated successfully."),
       @ApiResponse(responseCode = "400", description = "Invalid status transition or user not authorized."),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - missing or invalid authentication."),
       @ApiResponse(responseCode = "404", description = "Swap request not found.") })
   public ResponseEntity<SwapRequestResponse> updateSwapRequestStatus(
       @Parameter(description = "SwapRequest ID.") @PathVariable String id,

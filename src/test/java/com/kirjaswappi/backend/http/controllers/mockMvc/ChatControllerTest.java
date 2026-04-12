@@ -314,6 +314,25 @@ class ChatControllerTest {
     verify(chatService).getSwapRequestForChat("swap123", "user123");
   }
 
+  @Test
+  @DisplayName("Should return 401 when principal is missing for get messages")
+  void shouldReturn401WhenPrincipalIsMissingForGetMessages() throws Exception {
+    mockMvc.perform(get(API_PATH + "/swap123/chat"))
+        .andExpect(status().isUnauthorized());
+
+    verifyNoInteractions(chatService);
+  }
+
+  @Test
+  @DisplayName("Should return 401 when principal is missing for send message")
+  void shouldReturn401WhenPrincipalIsMissingForSendMessage() throws Exception {
+    mockMvc.perform(multipart(API_PATH + "/swap123/chat")
+        .param("message", "Hello"))
+        .andExpect(status().isUnauthorized());
+
+    verifyNoInteractions(chatService);
+  }
+
   private static RequestPostProcessor withUser(String userId) {
     return request -> {
       request.setUserPrincipal(() -> userId);
