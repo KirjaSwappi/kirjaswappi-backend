@@ -64,13 +64,13 @@ public class InboxController {
           InboxItemResponse item = new InboxItemResponse(swapRequest);
 
           // Resolve book cover photo ID to presigned URL
-          String rawCoverPhotoId = item.getBookCoverPhotoUrl();
-          if (rawCoverPhotoId != null) {
+          String coverPhotoId = item.getBookCoverPhotoReference();
+          if (coverPhotoId != null) {
             try {
-              item.setBookCoverPhotoUrl(photoService.getBookCoverPhoto(rawCoverPhotoId));
+              item.setBookCoverPhotoReference(photoService.getBookCoverPhoto(coverPhotoId));
             } catch (PhotoNotFoundException | ImageUrlFetchFailureException e) {
               logger.warn("Failed to resolve cover photo for inbox item {}", swapRequest.id(), e);
-              item.setBookCoverPhotoUrl(null);
+              item.setBookCoverPhotoReference(null);
             }
           }
 

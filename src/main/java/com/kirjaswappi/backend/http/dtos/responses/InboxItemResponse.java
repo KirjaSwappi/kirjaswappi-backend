@@ -67,14 +67,14 @@ public class InboxItemResponse {
   }
 
   @JsonIgnore
-  public String getBookCoverPhotoUrl() {
+  public String getBookCoverPhotoReference() {
     return bookToSwapWith != null ? bookToSwapWith.coverPhotoUrl : null;
   }
 
   @JsonIgnore
-  public void setBookCoverPhotoUrl(String url) {
+  public void setBookCoverPhotoReference(String value) {
     if (bookToSwapWith != null) {
-      bookToSwapWith.coverPhotoUrl = url;
+      bookToSwapWith.coverPhotoUrl = value;
     }
   }
 
