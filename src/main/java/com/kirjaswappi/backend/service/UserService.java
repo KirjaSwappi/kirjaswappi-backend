@@ -266,6 +266,62 @@ public class UserService {
     return getUser(user.id());
   }
 
+  @CacheEvict(value = "users", key = "#userId")
+  public void blockUser(String userId, String targetUserId) {
+    var dao = userRepository.findByIdAndIsEmailVerifiedTrue(userId)
+        .orElseThrow(() -> new UserNotFoundException(userId));
+    // validate target user exists
+    userRepository.findByIdAndIsEmailVerifiedTrue(targetUserId)
+        .orElseThrow(() -> new UserNotFoundException(targetUserId));
+
+    var blockedIds = dao.blockedUserIds() != null ? new ArrayList<>(dao.blockedUserIds()) : new ArrayList<String>();
+    if (!blockedIds.contains(targetUserId)) {
+      blockedIds.add(targetUserId);
+      dao.blockedUserIds(blockedIds);
+      userRepository.save(dao);
+    }
+  }
+
+  public void unblockUser(String userId, String targetUserId) {
+    var dao = userRepository.findByIdAndIsEmailVerifiedTrue(userId)
+        .orElseThrow(() -> new UserNotFoundException(userId));
+
+    if (dao.blockedUserIds() != null) {
+      var blockedIds = new ArrayList<>(dao.blockedUserIds());
+      blockedIds.remove(targetUserId);
+      dao.blockedUserIds(blockedIds);
+      userRepository.save(dao);
+    }
+  }
+
+  @CacheEvict(value = "users", key = "#userId")
+  public void muteUser(String userId, String targetUserId) {
+    var dao = userRepository.findByIdAndIsEmailVerifiedTrue(userId)
+        .orElseThrow(() -> new UserNotFoundException(userId));
+    // validate target user exists
+    userRepository.findByIdAndIsEmailVerifiedTrue(targetUserId)
+        .orElseThrow(() -> new UserNotFoundException(targetUserId));
+
+    var mutedIds = dao.mutedUserIds() != null ? new ArrayList<>(dao.mutedUserIds()) : new ArrayList<String>();
+    if (!mutedIds.contains(targetUserId)) {
+      mutedIds.add(targetUserId);
+      dao.mutedUserIds(mutedIds);
+      userRepository.save(dao);
+    }
+  }
+
+  public void unmuteUser(String userId, String targetUserId) {
+    var dao = userRepository.findByIdAndIsEmailVerifiedTrue(userId)
+        .orElseThrow(() -> new UserNotFoundException(userId));
+
+    if (dao.mutedUserIds() != null) {
+      var mutedIds = new ArrayList<>(dao.mutedUserIds());
+      mutedIds.remove(targetUserId);
+      dao.mutedUserIds(mutedIds);
+      userRepository.save(dao);
+    }
+  }
+
   public User findOrCreateGoogleUser(String email, String firstName, String lastName, String googleSub) {
     // check if user already exists:
     var userDao = userRepository.findByEmail(email)

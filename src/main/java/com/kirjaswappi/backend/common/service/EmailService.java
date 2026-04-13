@@ -24,6 +24,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
+import org.springframework.web.util.HtmlUtils;
 
 /**
  * Service responsible for sending emails, including OTP verification emails.
@@ -61,6 +62,60 @@ public class EmailService {
     } catch (Exception e) {
       logger.error("Unexpected error while sending OTP email to {}: {}", email, e.getMessage(), e);
     }
+  }
+
+  /**
+   * Sends a form submission email to the admin address.
+   *
+   * @param formType    The type of the form (contact, collaboration, donation,
+   *                    feedback, volunteer)
+   * @param senderName  The name of the person submitting the form
+   * @param senderEmail The email address of the person submitting the form
+   * @param subject     The optional subject of the submission
+   * @param message     The message content of the submission
+   * @param amount      The optional amount for donation or collaboration forms
+   */
+  public void sendFormSubmission(String formType, String senderName, String senderEmail, String subject,
+      String message, String amount) {
+    String adminEmail = env.getProperty("spring.mail.from-email");
+    if (adminEmail == null || adminEmail.trim().isEmpty()) {
+      logger.error("Admin email is not configured. Cannot send form submission.");
+      return;
+    }
+    // Escape user-provided fields to prevent HTML injection
+    String safeName = HtmlUtils.htmlEscape(senderName);
+    String safeEmail = HtmlUtils.htmlEscape(senderEmail);
+    String safeSubject = subject != null ? HtmlUtils.htmlEscape(subject) : null;
+    String safeAmount = amount != null ? HtmlUtils.htmlEscape(amount) : null;
+    String safeMessage = HtmlUtils.htmlEscape(message);
+
+    String emailSubject = "[" + formType.toUpperCase() + "] "
+        + (safeSubject != null && !safeSubject.trim().isEmpty() ? safeSubject : "New form submission from " + safeName);
+    try {
+      String template = loadGenericEmailTemplate();
+      String content = "<h2>New " + capitalize(formType) + " Submission</h2>"
+          + "<p><strong>From:</strong> " + safeName + " (" + safeEmail + ")</p>"
+          + "<p><strong>Type:</strong> " + capitalize(formType) + "</p>"
+          + (safeSubject != null && !safeSubject.trim().isEmpty()
+              ? "<p><strong>Subject:</strong> " + safeSubject + "</p>"
+              : "")
+          + (safeAmount != null && !safeAmount.trim().isEmpty()
+              ? "<p><strong>Amount:</strong> " + safeAmount + "</p>"
+              : "")
+          + "<p><strong>Message:</strong></p>"
+          + "<p>" + safeMessage.replace("\n", "<br/>") + "</p>";
+      String emailText = template.replace("{{title}}", emailSubject).replace("{{content}}", content);
+      sendEmail(adminEmail, emailSubject, emailText);
+    } catch (IOException e) {
+      logger.error("Failed to load generic email template: {}", e.getMessage(), e);
+    }
+  }
+
+  private String capitalize(String input) {
+    if (input == null || input.isEmpty()) {
+      return input;
+    }
+    return Character.toUpperCase(input.charAt(0)) + input.substring(1).toLowerCase();
   }
 
   /**

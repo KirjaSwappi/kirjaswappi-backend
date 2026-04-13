@@ -84,4 +84,10 @@ public class UserDao {
   @Nullable
   @DBRef(lazy = true)
   private List<BookDao> favBooks;
+
+  @Nullable
+  private List<String> blockedUserIds;
+
+  @Nullable
+  private List<String> mutedUserIds;
 }
