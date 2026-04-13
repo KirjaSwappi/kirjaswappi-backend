@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
 import com.kirjaswappi.backend.http.controllers.InboxController;
 import com.kirjaswappi.backend.service.InboxService;
+import com.kirjaswappi.backend.service.PhotoService;
 import com.kirjaswappi.backend.service.entities.Book;
 import com.kirjaswappi.backend.service.entities.ChatMessage;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
@@ -34,6 +35,7 @@ import com.kirjaswappi.backend.service.enums.Condition;
 import com.kirjaswappi.backend.service.enums.SwapStatus;
 import com.kirjaswappi.backend.service.enums.SwapType;
 import com.kirjaswappi.backend.service.exceptions.BadRequestException;
+import com.kirjaswappi.backend.service.exceptions.PhotoNotFoundException;
 import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 
 @WebMvcTest(InboxController.class)
@@ -46,6 +48,9 @@ class InboxControllerTest {
 
   @MockitoBean
   private InboxService inboxService;
+
+  @MockitoBean
+  private PhotoService photoService;
 
   @Test
   @DisplayName("Should return unified inbox successfully")
@@ -380,6 +385,105 @@ class InboxControllerTest {
         .andExpect(status().isUnauthorized());
 
     verifyNoInteractions(inboxService);
+  }
+
+  @Test
+  @DisplayName("Should resolve book cover photo ID to presigned URL")
+  void shouldResolveBookCoverPhotoToPresignedUrl() throws Exception {
+    User sender = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
+
+    User receiver = User.builder()
+        .id("receiver123")
+        .firstName("Jane")
+        .lastName("Smith")
+        .build();
+
+    Book book = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .condition(Condition.GOOD)
+        .coverPhotos(List.of("cover-photo-id-123"))
+        .build();
+
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap1")
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book)
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.PENDING)
+        .requestedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .askForGiveaway(false)
+        .build();
+
+    when(inboxService.getUnifiedInbox("receiver123", null, null)).thenReturn(List.of(swapRequest));
+    when(inboxService.getUnreadMessageCount("receiver123", "swap1")).thenReturn(0L);
+    when(inboxService.isInboxItemUnread(swapRequest, "receiver123")).thenReturn(false);
+    when(photoService.getBookCoverPhoto("cover-photo-id-123"))
+        .thenReturn("https://minio.example.com/presigned-url");
+
+    mockMvc.perform(get(API_PATH)
+        .with(withUser("receiver123")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].bookToSwapWith.coverPhotoUrl")
+            .value("https://minio.example.com/presigned-url"));
+
+    verify(photoService).getBookCoverPhoto("cover-photo-id-123");
+  }
+
+  @Test
+  @DisplayName("Should fallback to null when cover photo resolution fails")
+  void shouldFallbackToNullWhenCoverPhotoResolutionFails() throws Exception {
+    User sender = User.builder()
+        .id("sender123")
+        .firstName("John")
+        .lastName("Doe")
+        .build();
+
+    User receiver = User.builder()
+        .id("receiver123")
+        .firstName("Jane")
+        .lastName("Smith")
+        .build();
+
+    Book book = Book.builder()
+        .id("book123")
+        .title("Test Book")
+        .author("Test Author")
+        .condition(Condition.GOOD)
+        .coverPhotos(List.of("missing-photo-id"))
+        .build();
+
+    SwapRequest swapRequest = SwapRequest.builder()
+        .id("swap1")
+        .sender(sender)
+        .receiver(receiver)
+        .bookToSwapWith(book)
+        .swapType(SwapType.BY_BOOKS)
+        .swapStatus(SwapStatus.PENDING)
+        .requestedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .updatedAt(Instant.parse("2025-01-01T10:00:00Z"))
+        .askForGiveaway(false)
+        .build();
+
+    when(inboxService.getUnifiedInbox("receiver123", null, null)).thenReturn(List.of(swapRequest));
+    when(inboxService.getUnreadMessageCount("receiver123", "swap1")).thenReturn(0L);
+    when(inboxService.isInboxItemUnread(swapRequest, "receiver123")).thenReturn(false);
+    when(photoService.getBookCoverPhoto("missing-photo-id"))
+        .thenThrow(new PhotoNotFoundException());
+
+    mockMvc.perform(get(API_PATH)
+        .with(withUser("receiver123")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].bookToSwapWith.coverPhotoUrl").value((Object) null));
+
+    verify(photoService).getBookCoverPhoto("missing-photo-id");
   }
 
   private static RequestPostProcessor withUser(String userId) {

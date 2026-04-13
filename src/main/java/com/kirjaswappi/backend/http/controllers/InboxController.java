@@ -14,6 +14,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,15 +24,23 @@ import org.springframework.web.bind.annotation.*;
 
 import com.kirjaswappi.backend.http.dtos.responses.InboxItemResponse;
 import com.kirjaswappi.backend.service.InboxService;
+import com.kirjaswappi.backend.service.PhotoService;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
+import com.kirjaswappi.backend.service.exceptions.ImageUrlFetchFailureException;
+import com.kirjaswappi.backend.service.exceptions.PhotoNotFoundException;
 
 @RestController
 @RequestMapping(API_BASE + INBOX)
 @Validated
 @Tag(name = "Inbox", description = "API for managing user inbox and swap request notifications")
 public class InboxController {
+  private static final Logger logger = LoggerFactory.getLogger(InboxController.class);
+
   @Autowired
   private InboxService inboxService;
+
+  @Autowired
+  private PhotoService photoService;
 
   @GetMapping
   @Operation(summary = "Get unified inbox", description = "Retrieve all swap requests for the user (both sent and received) in a unified inbox sorted by latest messages with optional filtering and sorting", responses = {
@@ -52,6 +62,18 @@ public class InboxController {
     List<InboxItemResponse> response = swapRequests.stream()
         .map(swapRequest -> {
           InboxItemResponse item = new InboxItemResponse(swapRequest);
+
+          // Resolve book cover photo ID to presigned URL
+          String coverPhotoId = item.getBookCoverPhotoReference();
+          if (coverPhotoId != null) {
+            try {
+              item.setBookCoverPhotoReference(photoService.getBookCoverPhoto(coverPhotoId));
+            } catch (PhotoNotFoundException | ImageUrlFetchFailureException e) {
+              logger.warn("Failed to resolve cover photo for inbox item {}", swapRequest.id(), e);
+              item.setBookCoverPhotoReference(null);
+            }
+          }
+
           // Add unread message count using cached version
           long unreadCount = inboxService.getUnreadMessageCount(userId, swapRequest.id());
           item.setUnreadMessageCount(unreadCount);
