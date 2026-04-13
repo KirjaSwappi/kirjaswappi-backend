@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
 import com.kirjaswappi.backend.http.controllers.InboxController;
 import com.kirjaswappi.backend.service.InboxService;
+import com.kirjaswappi.backend.service.PhotoService;
 import com.kirjaswappi.backend.service.entities.*;
 import com.kirjaswappi.backend.service.enums.*;
 import com.kirjaswappi.backend.service.exceptions.BadRequestException;
@@ -44,6 +45,9 @@ class InboxApiIntegrationTest {
 
   @MockitoBean
   private InboxService inboxService;
+
+  @MockitoBean
+  private PhotoService photoService;
 
   private SwapRequest createTestSwapRequest(String id, String senderId, String receiverId, SwapStatus status) {
     User sender = User.builder()
