@@ -67,6 +67,7 @@ public class CloudSecurityConfig {
             .requestMatchers(POST, API_BASE + USERS + "/refresh-token").permitAll()
             .requestMatchers(POST, API_BASE + SEND_OTP).permitAll()
             .requestMatchers(POST, API_BASE + VERIFY_OTP).permitAll()
+            .requestMatchers(POST, API_BASE + FORMS + "/**").permitAll()
             .requestMatchers(POST, API_BASE + ADMIN_USERS).hasAuthority(ADMIN)
             .requestMatchers(GET, API_BASE + ADMIN_USERS).hasAnyAuthority(ADMIN, USER)
             .requestMatchers(DELETE, API_BASE + ADMIN_USERS + USERNAME).hasAuthority(ADMIN)

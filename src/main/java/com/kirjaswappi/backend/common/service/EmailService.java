@@ -64,6 +64,49 @@ public class EmailService {
   }
 
   /**
+   * Sends a form submission email to the admin address.
+   *
+   * @param formType    The type of the form (contact, collaboration, donation,
+   *                    feedback, volunteer)
+   * @param senderName  The name of the person submitting the form
+   * @param senderEmail The email address of the person submitting the form
+   * @param subject     The optional subject of the submission
+   * @param message     The message content of the submission
+   * @param amount      The optional amount for donation or collaboration forms
+   */
+  public void sendFormSubmission(String formType, String senderName, String senderEmail, String subject,
+      String message, String amount) {
+    String adminEmail = env.getProperty("spring.mail.from-email");
+    if (adminEmail == null || adminEmail.trim().isEmpty()) {
+      logger.error("Admin email is not configured. Cannot send form submission.");
+      return;
+    }
+    String emailSubject = "[" + formType.toUpperCase() + "] "
+        + (subject != null && !subject.trim().isEmpty() ? subject : "New form submission from " + senderName);
+    try {
+      String template = loadGenericEmailTemplate();
+      String content = "<h2>New " + capitalize(formType) + " Submission</h2>"
+          + "<p><strong>From:</strong> " + senderName + " (" + senderEmail + ")</p>"
+          + "<p><strong>Type:</strong> " + capitalize(formType) + "</p>"
+          + (subject != null && !subject.trim().isEmpty() ? "<p><strong>Subject:</strong> " + subject + "</p>" : "")
+          + (amount != null && !amount.trim().isEmpty() ? "<p><strong>Amount:</strong> " + amount + "</p>" : "")
+          + "<p><strong>Message:</strong></p>"
+          + "<p>" + message.replace("\n", "<br/>") + "</p>";
+      String emailText = template.replace("{{title}}", emailSubject).replace("{{content}}", content);
+      sendEmail(adminEmail, emailSubject, emailText);
+    } catch (IOException e) {
+      logger.error("Failed to load generic email template: {}", e.getMessage(), e);
+    }
+  }
+
+  private String capitalize(String input) {
+    if (input == null || input.isEmpty()) {
+      return input;
+    }
+    return Character.toUpperCase(input.charAt(0)) + input.substring(1).toLowerCase();
+  }
+
+  /**
    * Sends a confirmation email after a password change.
    *
    * @param email The user's email address

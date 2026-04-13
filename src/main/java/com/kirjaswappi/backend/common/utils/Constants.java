@@ -47,4 +47,8 @@ public class Constants {
   public static final String CHAT = "/chat";
   public static final String STATUS = "/status";
   public static final String CITIES = "/cities";
+  public static final String FORMS = "/forms";
+  public static final String REPORTS = "/reports";
+  public static final String BLOCK = "/block";
+  public static final String MUTE = "/mute";
 }
