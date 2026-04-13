@@ -266,6 +266,7 @@ public class UserService {
     return getUser(user.id());
   }
 
+  @CacheEvict(value = "users", key = "#userId")
   public void blockUser(String userId, String targetUserId) {
     var dao = userRepository.findByIdAndIsEmailVerifiedTrue(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
@@ -293,6 +294,7 @@ public class UserService {
     }
   }
 
+  @CacheEvict(value = "users", key = "#userId")
   public void muteUser(String userId, String targetUserId) {
     var dao = userRepository.findByIdAndIsEmailVerifiedTrue(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
