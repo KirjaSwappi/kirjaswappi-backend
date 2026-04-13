@@ -65,6 +65,16 @@ public class InboxItemResponse {
     return conversationType;
   }
 
+  public String getBookCoverPhotoUrl() {
+    return bookToSwapWith != null ? bookToSwapWith.coverPhotoUrl : null;
+  }
+
+  public void setBookCoverPhotoUrl(String url) {
+    if (bookToSwapWith != null) {
+      bookToSwapWith.coverPhotoUrl = url;
+    }
+  }
+
   @Getter
   @Setter
   static class UserSummaryResponse {

@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.kirjaswappi.backend.http.dtos.responses.InboxItemResponse;
 import com.kirjaswappi.backend.service.InboxService;
+import com.kirjaswappi.backend.service.PhotoService;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
 
 @RestController
@@ -31,6 +32,9 @@ import com.kirjaswappi.backend.service.entities.SwapRequest;
 public class InboxController {
   @Autowired
   private InboxService inboxService;
+
+  @Autowired
+  private PhotoService photoService;
 
   @GetMapping
   @Operation(summary = "Get unified inbox", description = "Retrieve all swap requests for the user (both sent and received) in a unified inbox sorted by latest messages with optional filtering and sorting", responses = {
@@ -52,6 +56,17 @@ public class InboxController {
     List<InboxItemResponse> response = swapRequests.stream()
         .map(swapRequest -> {
           InboxItemResponse item = new InboxItemResponse(swapRequest);
+
+          // Resolve book cover photo ID to presigned URL
+          String rawCoverPhotoId = item.getBookCoverPhotoUrl();
+          if (rawCoverPhotoId != null) {
+            try {
+              item.setBookCoverPhotoUrl(photoService.getBookCoverPhoto(rawCoverPhotoId));
+            } catch (Exception e) {
+              item.setBookCoverPhotoUrl(null);
+            }
+          }
+
           // Add unread message count using cached version
           long unreadCount = inboxService.getUnreadMessageCount(userId, swapRequest.id());
           item.setUnreadMessageCount(unreadCount);

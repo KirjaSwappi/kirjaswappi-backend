@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMockMvcConfiguration;
 import com.kirjaswappi.backend.http.controllers.InboxController;
 import com.kirjaswappi.backend.service.InboxService;
+import com.kirjaswappi.backend.service.PhotoService;
 import com.kirjaswappi.backend.service.entities.Book;
 import com.kirjaswappi.backend.service.entities.ChatMessage;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
@@ -46,6 +47,9 @@ class InboxControllerTest {
 
   @MockitoBean
   private InboxService inboxService;
+
+  @MockitoBean
+  private PhotoService photoService;
 
   @Test
   @DisplayName("Should return unified inbox successfully")
