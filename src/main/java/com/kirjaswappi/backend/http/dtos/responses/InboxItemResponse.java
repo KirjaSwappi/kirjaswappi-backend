@@ -9,6 +9,7 @@ import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
 import com.kirjaswappi.backend.service.entities.User;
 
@@ -65,10 +66,12 @@ public class InboxItemResponse {
     return conversationType;
   }
 
+  @JsonIgnore
   public String getBookCoverPhotoUrl() {
     return bookToSwapWith != null ? bookToSwapWith.coverPhotoUrl : null;
   }
 
+  @JsonIgnore
   public void setBookCoverPhotoUrl(String url) {
     if (bookToSwapWith != null) {
       bookToSwapWith.coverPhotoUrl = url;

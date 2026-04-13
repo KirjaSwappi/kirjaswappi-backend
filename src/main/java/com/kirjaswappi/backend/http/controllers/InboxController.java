@@ -14,6 +14,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,12 +26,16 @@ import com.kirjaswappi.backend.http.dtos.responses.InboxItemResponse;
 import com.kirjaswappi.backend.service.InboxService;
 import com.kirjaswappi.backend.service.PhotoService;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
+import com.kirjaswappi.backend.service.exceptions.ImageUrlFetchFailureException;
+import com.kirjaswappi.backend.service.exceptions.PhotoNotFoundException;
 
 @RestController
 @RequestMapping(API_BASE + INBOX)
 @Validated
 @Tag(name = "Inbox", description = "API for managing user inbox and swap request notifications")
 public class InboxController {
+  private static final Logger logger = LoggerFactory.getLogger(InboxController.class);
+
   @Autowired
   private InboxService inboxService;
 
@@ -62,7 +68,8 @@ public class InboxController {
           if (rawCoverPhotoId != null) {
             try {
               item.setBookCoverPhotoUrl(photoService.getBookCoverPhoto(rawCoverPhotoId));
-            } catch (Exception e) {
+            } catch (PhotoNotFoundException | ImageUrlFetchFailureException e) {
+              logger.warn("Failed to resolve cover photo for inbox item {}: {}", swapRequest.id(), e.getMessage());
               item.setBookCoverPhotoUrl(null);
             }
           }
