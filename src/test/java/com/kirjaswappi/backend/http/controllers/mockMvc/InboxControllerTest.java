@@ -481,7 +481,7 @@ class InboxControllerTest {
     mockMvc.perform(get(API_PATH)
         .with(withUser("receiver123")))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].bookToSwapWith.coverPhotoUrl").doesNotExist());
+        .andExpect(jsonPath("$[0].bookToSwapWith.coverPhotoUrl").value((Object) null));
 
     verify(photoService).getBookCoverPhoto("missing-photo-id");
   }

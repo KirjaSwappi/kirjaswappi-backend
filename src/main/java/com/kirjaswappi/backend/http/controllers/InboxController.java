@@ -69,7 +69,7 @@ public class InboxController {
             try {
               item.setBookCoverPhotoUrl(photoService.getBookCoverPhoto(rawCoverPhotoId));
             } catch (PhotoNotFoundException | ImageUrlFetchFailureException e) {
-              logger.warn("Failed to resolve cover photo for inbox item {}: {}", swapRequest.id(), e.getMessage());
+              logger.warn("Failed to resolve cover photo for inbox item {}", swapRequest.id(), e);
               item.setBookCoverPhotoUrl(null);
             }
           }
