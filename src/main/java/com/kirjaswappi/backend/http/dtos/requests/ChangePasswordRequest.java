@@ -52,9 +52,7 @@ public class ChangePasswordRequest {
       throw new BadRequestException("currentPasswordCannotBeBlank", this.currentPassword);
     }
     // validate new password:
-    if (!ValidationUtil.validateNotBlank(this.newPassword)) {
-      throw new BadRequestException("newPasswordCannotBeBlank", this.newPassword);
-    }
+    ValidationUtil.validatePassword(this.newPassword, "newPassword");
     // validate confirm password:
     if (!ValidationUtil.validateNotBlank(this.confirmPassword)) {
       throw new BadRequestException("confirmPasswordCannotBeBlank", this.confirmPassword);

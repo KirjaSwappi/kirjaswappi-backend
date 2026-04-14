@@ -7,6 +7,7 @@ package com.kirjaswappi.backend.http.controllers;
 import static com.kirjaswappi.backend.common.utils.Constants.*;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +26,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,7 +39,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.kirjaswappi.backend.common.http.ErrorResponse;
 import com.kirjaswappi.backend.common.service.OTPService;
+import com.kirjaswappi.backend.common.service.RateLimiterService;
 import com.kirjaswappi.backend.common.utils.JwtUtil;
 import com.kirjaswappi.backend.common.utils.LinkBuilder;
 import com.kirjaswappi.backend.http.dtos.requests.*;
@@ -46,6 +50,7 @@ import com.kirjaswappi.backend.service.BookService;
 import com.kirjaswappi.backend.service.UserService;
 import com.kirjaswappi.backend.service.entities.Book;
 import com.kirjaswappi.backend.service.entities.User;
+import com.kirjaswappi.backend.service.exceptions.AccessDeniedException;
 import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 import com.kirjaswappi.backend.service.filters.FindAllBooksFilter;
 
@@ -69,6 +74,13 @@ public class UserController {
   @Autowired
   private JwtUtil jwtUtil;
 
+  @Autowired
+  private RateLimiterService rateLimiterService;
+
+  private static final int MAX_LOGIN_ATTEMPTS = 10;
+  private static final Duration LOGIN_RATE_LIMIT_WINDOW = Duration.ofMinutes(15);
+  private static final String LOGIN_RATE_LIMIT_PREFIX = "ratelimit:login:";
+
   @PostMapping(SIGNUP)
   @Operation(summary = "Create user.", responses = {
       @ApiResponse(responseCode = "201", description = "User created.") })
@@ -91,6 +103,7 @@ public class UserController {
   @Operation(summary = "Add a favourite book to a user.", responses = {
       @ApiResponse(responseCode = "200", description = "Book added to favourite list.") })
   public ResponseEntity<UserResponse> addFavouriteBook(@Valid @RequestBody AddFavouriteBookRequest request) {
+    verifyUserIdentity(request.toEntity().id());
     User entity = request.toEntity();
     User updatedUser = userService.addFavouriteBook(entity);
     return ResponseEntity.status(HttpStatus.OK).body(new UserResponse(updatedUser));
@@ -100,6 +113,7 @@ public class UserController {
   @Operation(summary = "Update user.", responses = {
       @ApiResponse(responseCode = "200", description = "User updated."),
       @ApiResponse(responseCode = "400", description = "Invalid request or ID mismatch."),
+      @ApiResponse(responseCode = "403", description = "Not the account owner."),
       @ApiResponse(responseCode = "404", description = "User not found.") })
   public ResponseEntity<UpdateUserResponse> updateUser(@Parameter(description = "User ID.") @PathVariable String id,
       @Valid @RequestBody UpdateUserRequest user) {
@@ -107,6 +121,7 @@ public class UserController {
     if (!id.equals(user.getId())) {
       throw new BadRequestException("idMismatch", id, user.getId());
     }
+    verifyUserIdentity(id);
     User updatedUser = userService.updateUser(user.toEntity());
     return ResponseEntity.status(HttpStatus.OK).body(new UpdateUserResponse(updatedUser));
   }
@@ -131,8 +146,10 @@ public class UserController {
   @DeleteMapping(ID)
   @Operation(summary = "Delete user.", responses = {
       @ApiResponse(responseCode = "204", description = "User deleted."),
+      @ApiResponse(responseCode = "403", description = "Not the account owner."),
       @ApiResponse(responseCode = "404", description = "User not found.") })
   public ResponseEntity<Void> deleteUser(@Parameter(description = "User ID.") @PathVariable String id) {
+    verifyUserIdentity(id);
     userService.deleteUser(id);
     return ResponseEntity.noContent().build();
   }
@@ -141,10 +158,25 @@ public class UserController {
   @Operation(summary = "Login user.", responses = {
       @ApiResponse(responseCode = "200", description = "User logged in.") })
   public ResponseEntity<UserLoginResponse> login(@Valid @RequestBody AuthenticateUserRequest authenticateUserRequest) {
-    User user = userService.verifyLogin(authenticateUserRequest.toEntity());
-    String userToken = jwtUtil.generateUserToken(user.id(), user.email());
-    String userRefreshToken = jwtUtil.generateUserRefreshToken(user.id(), user.email());
-    return ResponseEntity.status(HttpStatus.OK).body(new UserLoginResponse(user, userToken, userRefreshToken));
+    String email = authenticateUserRequest.getEmail();
+    String rateLimitKey = email != null ? LOGIN_RATE_LIMIT_PREFIX + email.toLowerCase() : null;
+    if (rateLimitKey != null && rateLimiterService.isRateLimited(rateLimitKey, MAX_LOGIN_ATTEMPTS)) {
+      throw new BadRequestException("tooManyLoginAttempts", email);
+    }
+    try {
+      User user = userService.verifyLogin(authenticateUserRequest.toEntity());
+      if (rateLimitKey != null) {
+        rateLimiterService.clearAttempts(rateLimitKey);
+      }
+      String userToken = jwtUtil.generateUserToken(user.id(), user.email());
+      String userRefreshToken = jwtUtil.generateUserRefreshToken(user.id(), user.email());
+      return ResponseEntity.status(HttpStatus.OK).body(new UserLoginResponse(user, userToken, userRefreshToken));
+    } catch (Exception e) {
+      if (rateLimitKey != null) {
+        rateLimiterService.recordAttempt(rateLimitKey, LOGIN_RATE_LIMIT_WINDOW);
+      }
+      throw e;
+    }
   }
 
   @PostMapping(LOGIN_WITH_GOOGLE)
@@ -156,7 +188,8 @@ public class UserController {
     try {
       idToken = googleIdTokenVerifier.verify(request.idToken());
     } catch (Exception e) {
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(new ErrorResponse(new ErrorResponse.Error("invalidGoogleToken", "Invalid Google token")));
     }
     if (idToken != null) {
       GoogleIdToken.Payload payload = idToken.getPayload();
@@ -171,7 +204,8 @@ public class UserController {
       String userRefreshToken = jwtUtil.generateUserRefreshToken(user.id(), user.email());
       return ResponseEntity.status(HttpStatus.OK).body(new UserLoginResponse(user, userToken, userRefreshToken));
     }
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid ID token");
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .body(new ErrorResponse(new ErrorResponse.Error("invalidIdToken", "Invalid ID token")));
   }
 
   @PostMapping(CHANGE_PASSWORD + EMAIL)
@@ -187,10 +221,19 @@ public class UserController {
 
   @PostMapping(RESET_PASSWORD + EMAIL)
   @Operation(summary = "Reset password.", responses = {
-      @ApiResponse(responseCode = "200", description = "Password reset successful.") })
+      @ApiResponse(responseCode = "200", description = "Password reset successful."),
+      @ApiResponse(responseCode = "400", description = "Invalid or expired reset token.") })
   public ResponseEntity<ResetPasswordResponse> resetPassword(
       @Parameter(description = "User email.") @PathVariable String email,
       @Valid @RequestBody ResetPasswordRequest request) {
+    // Validate reset token from OTP verification
+    if (!jwtUtil.validatePasswordResetToken(request.getResetToken())) {
+      throw new BadRequestException("invalidOrExpiredResetToken", email);
+    }
+    String tokenEmail = jwtUtil.extractEmailFromResetToken(request.getResetToken());
+    if (!email.equalsIgnoreCase(tokenEmail)) {
+      throw new BadRequestException("resetTokenEmailMismatch", email);
+    }
     String userEmail = userService.changePassword(request.toUserEntity(email));
     return ResponseEntity.status(HttpStatus.OK).body(new ResetPasswordResponse(userEmail));
   }
@@ -225,5 +268,16 @@ public class UserController {
     Page<Book> books = bookService.getUserBooksByFilter(id, filter, pageable);
     Page<BookListResponse> response = books.map(BookListResponse::new);
     return ResponseEntity.status(HttpStatus.OK).body(LinkBuilder.forPage(response, API_BASE + USERS + ID + BOOKS));
+  }
+
+  private void verifyUserIdentity(String targetUserId) {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null) {
+      throw new AccessDeniedException("notAccountOwner", targetUserId);
+    }
+    String authenticatedUserId = authentication.getName();
+    if (!authenticatedUserId.equals(targetUserId)) {
+      throw new AccessDeniedException("notAccountOwner", targetUserId);
+    }
   }
 }

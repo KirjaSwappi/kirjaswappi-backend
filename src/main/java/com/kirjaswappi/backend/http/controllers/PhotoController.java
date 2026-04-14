@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +32,7 @@ import com.kirjaswappi.backend.http.dtos.requests.CreateSupportedCoverPhotoReque
 import com.kirjaswappi.backend.http.dtos.responses.PhotoResponse;
 import com.kirjaswappi.backend.http.dtos.responses.SupportedCoverPhotoListResponse;
 import com.kirjaswappi.backend.service.PhotoService;
+import com.kirjaswappi.backend.service.exceptions.AccessDeniedException;
 
 @RestController
 @RequestMapping(API_BASE + PHOTOS)
@@ -44,6 +46,7 @@ public class PhotoController {
   @Operation(summary = "Add profile photo.", description = "Add profile photo to a user.", responses = {
       @ApiResponse(responseCode = "200", description = "Profile photo added.") })
   public ResponseEntity<PhotoResponse> addProfilePhoto(@Valid @ModelAttribute CreatePhotoRequest request) {
+    verifyPhotoOwnership(request.getUserId());
     var imageUrl = photoService.addProfilePhoto(request.getUserId(), request.getImage());
     return ResponseEntity.ok(new PhotoResponse(imageUrl));
   }
@@ -52,6 +55,7 @@ public class PhotoController {
   @Operation(summary = "Add cover photo.", description = "Add cover photo to a user.", responses = {
       @ApiResponse(responseCode = "200", description = "Cover photo added.") })
   public ResponseEntity<PhotoResponse> addCoverPhoto(@Valid @ModelAttribute CreatePhotoRequest request) {
+    verifyPhotoOwnership(request.getUserId());
     var imageUrl = photoService.addCoverPhoto(request.getUserId(), request.getImage());
     return ResponseEntity.ok(new PhotoResponse(imageUrl));
   }
@@ -61,6 +65,7 @@ public class PhotoController {
       @ApiResponse(responseCode = "204", description = "Profile photo deleted."),
       @ApiResponse(responseCode = "404", description = "User or photo not found.") })
   public ResponseEntity<Void> deleteProfilePhoto(@Parameter(description = "User ID.") @PathVariable String id) {
+    verifyPhotoOwnership(id);
     photoService.deleteProfilePhoto(id);
     return ResponseEntity.noContent().build();
   }
@@ -70,6 +75,7 @@ public class PhotoController {
       @ApiResponse(responseCode = "204", description = "Cover photo deleted."),
       @ApiResponse(responseCode = "404", description = "User or photo not found.") })
   public ResponseEntity<Void> deleteCoverPhoto(@Parameter(description = "User ID.") @PathVariable String id) {
+    verifyPhotoOwnership(id);
     photoService.deleteCoverPhoto(id);
     return ResponseEntity.noContent().build();
   }
@@ -137,5 +143,16 @@ public class PhotoController {
       @Parameter(description = "Supported cover photo ID.") @PathVariable String id) {
     photoService.deleteSupportedCoverPhoto(id);
     return ResponseEntity.noContent().build();
+  }
+
+  private void verifyPhotoOwnership(String targetUserId) {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null) {
+      throw new AccessDeniedException("notPhotoOwner", targetUserId);
+    }
+    String authenticatedUserId = authentication.getName();
+    if (!authenticatedUserId.equals(targetUserId)) {
+      throw new AccessDeniedException("notPhotoOwner", targetUserId);
+    }
   }
 }

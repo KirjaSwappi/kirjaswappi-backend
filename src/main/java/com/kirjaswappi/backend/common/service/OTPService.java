@@ -35,7 +35,14 @@ public class OTPService {
 
   private final EmailService emailService;
 
+  private final RateLimiterService rateLimiterService;
+
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+  private static final int MAX_VERIFY_ATTEMPTS = 5;
+  private static final int MAX_SEND_ATTEMPTS = 5;
+  private static final Duration RATE_LIMIT_WINDOW = Duration.ofMinutes(15);
+  private static final String VERIFY_RATE_LIMIT_PREFIX = "ratelimit:otp-verify:";
+  private static final String SEND_RATE_LIMIT_PREFIX = "ratelimit:otp-send:";
 
   private static String generateOTP() {
     return SECURE_RANDOM.ints(6, 0, NUMERIC.length())
@@ -50,20 +57,34 @@ public class OTPService {
   }
 
   public String verifyOTPByEmail(OTP otp) {
+    if (otp.email() == null) {
+      throw new BadRequestException("emailCannotBeNull");
+    }
+
+    String rateLimitKey = VERIFY_RATE_LIMIT_PREFIX + otp.email();
+
+    // Rate limit OTP verification attempts
+    if (rateLimiterService.isRateLimited(rateLimitKey, MAX_VERIFY_ATTEMPTS)) {
+      throw new BadRequestException("tooManyVerifyAttempts", otp.email());
+    }
+
     var otpEntity = this.getOTP(otp.email());
 
     // check provided OTP with the stored OTP:
     if (!otpEntity.otp().equals(otp.otp())) {
+      rateLimiterService.recordAttempt(rateLimitKey, RATE_LIMIT_WINDOW);
       throw new BadRequestException("otpDoesNotMatch", otp);
     }
 
     // Check if the OTP is older than 15 minutes
     if (otpEntity.createdAt().plus(Duration.ofMinutes(15)).isBefore(Instant.now())) {
+      rateLimiterService.recordAttempt(rateLimitKey, RATE_LIMIT_WINDOW);
       throw new BadRequestException("otpExpired", otp);
     }
 
     // Delete the OTP after verification:
     otpRepository.deleteAllByEmail(otp.email());
+    rateLimiterService.clearAttempts(rateLimitKey);
     return otpEntity.email();
   }
 
@@ -72,6 +93,20 @@ public class OTPService {
   }
 
   public String saveAndSendOTP(String email) throws IOException {
+    if (email == null) {
+      throw new BadRequestException("emailCannotBeNull");
+    }
+
+    String rateLimitKey = SEND_RATE_LIMIT_PREFIX + email;
+
+    // Rate limit OTP send attempts (applied regardless of user existence)
+    if (rateLimiterService.isRateLimited(rateLimitKey, MAX_SEND_ATTEMPTS)) {
+      throw new BadRequestException("tooManySendOtpAttempts", email);
+    }
+
+    // Record the attempt before checking user existence to prevent enumeration
+    rateLimiterService.recordAttempt(rateLimitKey, RATE_LIMIT_WINDOW);
+
     // Check if the user exists:
     if (!checkUserExists(email)) {
       throw new UserNotFoundException(email);

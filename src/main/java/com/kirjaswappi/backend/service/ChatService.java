@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.bson.types.ObjectId;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -33,9 +34,11 @@ import com.kirjaswappi.backend.mapper.SwapRequestMapper;
 import com.kirjaswappi.backend.service.entities.ChatMessage;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
 import com.kirjaswappi.backend.service.entities.User;
+import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 import com.kirjaswappi.backend.service.exceptions.ChatAccessDeniedException;
 import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -101,7 +104,7 @@ public class ChatService {
 
     // Validate message content
     if (message == null || message.trim().isEmpty()) {
-      throw new IllegalArgumentException("Message cannot be empty");
+      throw new BadRequestException("messageCannotBeBlank");
     }
 
     // Get sender user
@@ -141,7 +144,7 @@ public class ChatService {
     boolean hasImages = images != null && !images.isEmpty();
 
     if (!hasMessage && !hasImages) {
-      throw new IllegalArgumentException("Either message text or images must be provided");
+      throw new BadRequestException("messageOrImageRequired");
     }
 
     // Validate swap request exists
@@ -163,7 +166,11 @@ public class ChatService {
     // Upload images and get unique IDs
     List<String> imageIds = new ArrayList<>();
     if (images != null && !images.isEmpty()) {
+      long maxImageSize = 5 * 1024 * 1024; // 5MB per image
       for (MultipartFile image : images) {
+        if (image.getSize() > maxImageSize) {
+          throw new BadRequestException("imageSizeExceedsLimit");
+        }
         String uniqueId = UUID.randomUUID().toString();
         imageService.uploadImage(image, uniqueId);
         imageIds.add(uniqueId);
@@ -216,21 +223,8 @@ public class ChatService {
       throw new ChatAccessDeniedException();
     }
 
-    // Get all messages in this chat that are not from the current user and are
-    // unread
-    List<ChatMessageDao> allMessages = chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc(swapRequestId);
-    List<ChatMessageDao> unreadMessages = allMessages
-        .stream()
-        .filter(msg -> !msg.sender().id().equals(userId) && !msg.readByReceiver())
-        .toList();
-
-    // Mark messages as read
-    for (ChatMessageDao message : unreadMessages) {
-      message.readByReceiver(true);
-    }
-    if (!unreadMessages.isEmpty()) {
-      chatMessageRepository.saveAll(unreadMessages);
-    }
+    // Bulk-update unread messages in a single DB operation
+    chatMessageRepository.markAsRead(swapRequestId, userId);
 
     // Also mark the swap request inbox item as read so the inbox endpoint returns
     // unread=false
@@ -292,6 +286,19 @@ public class ChatService {
     return result;
   }
 
+  public Map<String, Long> getBatchUnreadMessageCounts(List<String> swapRequestIds, String userId) {
+    if (swapRequestIds == null || swapRequestIds.isEmpty()) {
+      return Map.of();
+    }
+    List<ChatMessageDao> unreadMessages = chatMessageRepository
+        .findUnreadBySwapRequestIdInAndSenderIdNot(swapRequestIds, new ObjectId(userId));
+    Map<String, Long> result = new HashMap<>();
+    for (ChatMessageDao msg : unreadMessages) {
+      result.merge(msg.swapRequestId(), 1L, Long::sum);
+    }
+    return result;
+  }
+
   public Optional<ChatMessage> getLatestMessage(String swapRequestId) {
     return chatMessageRepository.findFirstBySwapRequestIdOrderBySentAtDesc(swapRequestId)
         .map(dao -> {
@@ -341,6 +348,7 @@ public class ChatService {
             try {
               messagingTemplate.convertAndSendToUser(userId, "/queue/inbox.refresh", "refresh");
             } catch (Exception e) {
+              log.debug("Failed to broadcast inbox update to user {}: {}", userId, e.getMessage());
             }
           }
         });
@@ -348,8 +356,7 @@ public class ChatService {
         messagingTemplate.convertAndSendToUser(userId, "/queue/inbox.refresh", "refresh");
       }
     } catch (Exception e) {
-      // Log error but don't fail the message sending
-      // Real-time updates are nice-to-have, not critical
+      log.debug("Failed to register inbox broadcast for user {}: {}", userId, e.getMessage());
     }
   }
 }

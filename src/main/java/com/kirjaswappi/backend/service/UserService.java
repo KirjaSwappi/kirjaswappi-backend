@@ -20,7 +20,9 @@ import com.kirjaswappi.backend.common.utils.Util;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.BookRepository;
+import com.kirjaswappi.backend.jpa.repositories.ChatMessageRepository;
 import com.kirjaswappi.backend.jpa.repositories.GenreRepository;
+import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.mapper.UserMapper;
 import com.kirjaswappi.backend.service.entities.User;
@@ -41,6 +43,10 @@ public class UserService {
   private final PhotoService photoService;
 
   private final BookRepository bookRepository;
+
+  private final ChatMessageRepository chatMessageRepository;
+
+  private final SwapRequestRepository swapRequestRepository;
 
   private final EmailService emailService;
 
@@ -118,6 +124,42 @@ public class UserService {
     // validate user exists:
     var dao = userRepository.findById(id)
         .orElseThrow(() -> new UserNotFoundException(id));
+
+    // Collect swap request IDs for chat message cleanup
+    List<String> swapRequestIds = new ArrayList<>();
+    swapRequestRepository.findBySenderIdOrderByRequestedAtDesc(id)
+        .forEach(sr -> swapRequestIds.add(sr.id()));
+    swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc(id)
+        .forEach(sr -> swapRequestIds.add(sr.id()));
+
+    // Delete chat messages for these swap requests
+    if (!swapRequestIds.isEmpty()) {
+      chatMessageRepository.deleteAllBySwapRequestIdIn(swapRequestIds);
+    }
+
+    // Delete all swap requests involving this user
+    swapRequestRepository.deleteAllBySenderId(id);
+    swapRequestRepository.deleteAllByReceiverId(id);
+
+    // Soft-delete all books owned by this user
+    if (dao.books() != null) {
+      for (var book : dao.books()) {
+        bookRepository.deleteLogically(book.id());
+      }
+    }
+
+    // Delete photos
+    try {
+      if (dao.profilePhoto() != null) {
+        photoService.deleteProfilePhoto(dao.id());
+      }
+      if (dao.coverPhoto() != null) {
+        photoService.deleteCoverPhoto(dao.id());
+      }
+    } catch (Exception ignored) {
+      // Best-effort photo cleanup
+    }
+
     userRepository.delete(dao);
   }
 
@@ -187,7 +229,7 @@ public class UserService {
 
     // validate email and password:
     if (userRepository.findByEmailAndPassword(dao.email(), password).isEmpty()) {
-      throw new BadRequestException("currentPasswordMismatch", user.password());
+      throw new BadRequestException("currentPasswordMismatch", user.email());
     }
   }
 
@@ -205,7 +247,7 @@ public class UserService {
     String currentPassword = dao.password();
     String newPassword = Util.hashPassword(user.password(), dao.salt());
     if (currentPassword.equals(newPassword)) {
-      throw new BadRequestException("newPasswordCannotBeSameAsCurrentPassword", user.password());
+      throw new BadRequestException("newPasswordCannotBeSameAsCurrentPassword", user.email());
     }
 
     // add new salt to new password:
@@ -282,6 +324,7 @@ public class UserService {
     }
   }
 
+  @CacheEvict(value = "users", key = "#userId")
   public void unblockUser(String userId, String targetUserId) {
     var dao = userRepository.findByIdAndIsEmailVerifiedTrue(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
@@ -310,6 +353,7 @@ public class UserService {
     }
   }
 
+  @CacheEvict(value = "users", key = "#userId")
   public void unmuteUser(String userId, String targetUserId) {
     var dao = userRepository.findByIdAndIsEmailVerifiedTrue(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));

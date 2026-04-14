@@ -15,10 +15,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -42,7 +43,6 @@ import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 @SpringBootTest
 @Import(TestContainersConfig.class)
 @ActiveProfiles("test")
-@AutoConfigureMockMvc
 class UserApiIntegrationTest {
 
   private static final String API_BASE = "/api/v1/users";
@@ -69,7 +69,8 @@ class UserApiIntegrationTest {
 
   @BeforeEach
   void setUp() {
-    mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+        .build();
 
     // Clean up existing data
     bookRepository.deleteAll();
@@ -419,13 +420,19 @@ class UserApiIntegrationTest {
       request.setAboutMe("I love books!");
       request.setFavGenres(List.of());
 
-      mockMvc.perform(put(API_BASE + "/" + user.id())
-          .contentType(MediaType.APPLICATION_JSON)
-          .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isOk())
-          .andExpect(jsonPath("$.firstName").value("Updated"))
-          .andExpect(jsonPath("$.city").value("Helsinki"))
-          .andExpect(jsonPath("$.aboutMe").value("I love books!"));
+      var auth = new UsernamePasswordAuthenticationToken(user.id(), null, List.of());
+      SecurityContextHolder.getContext().setAuthentication(auth);
+      try {
+        mockMvc.perform(put(API_BASE + "/" + user.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.firstName").value("Updated"))
+            .andExpect(jsonPath("$.city").value("Helsinki"))
+            .andExpect(jsonPath("$.aboutMe").value("I love books!"));
+      } finally {
+        SecurityContextHolder.clearContext();
+      }
     }
 
     @Test
@@ -456,10 +463,16 @@ class UserApiIntegrationTest {
       request.setLastName("User");
       request.setFavGenres(List.of());
 
-      mockMvc.perform(put(API_BASE + "/" + nonExistentId)
-          .contentType(MediaType.APPLICATION_JSON)
-          .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isNotFound());
+      var auth = new UsernamePasswordAuthenticationToken(nonExistentId, null, List.of());
+      SecurityContextHolder.getContext().setAuthentication(auth);
+      try {
+        mockMvc.perform(put(API_BASE + "/" + nonExistentId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isNotFound());
+      } finally {
+        SecurityContextHolder.clearContext();
+      }
     }
   }
 
@@ -472,12 +485,18 @@ class UserApiIntegrationTest {
     void shouldDeleteUserSuccessfully() throws Exception {
       UserDao user = createTestUser("Delete", "Me", "delete@example.com");
 
-      mockMvc.perform(delete(API_BASE + "/" + user.id()))
-          .andExpect(status().isNoContent());
+      var auth = new UsernamePasswordAuthenticationToken(user.id(), null, List.of());
+      SecurityContextHolder.getContext().setAuthentication(auth);
+      try {
+        mockMvc.perform(delete(API_BASE + "/" + user.id()))
+            .andExpect(status().isNoContent());
 
-      // Verify user is deleted
-      mockMvc.perform(get(API_BASE + "/" + user.id()))
-          .andExpect(status().isNotFound());
+        // Verify user is deleted
+        mockMvc.perform(get(API_BASE + "/" + user.id()))
+            .andExpect(status().isNotFound());
+      } finally {
+        SecurityContextHolder.clearContext();
+      }
     }
   }
 

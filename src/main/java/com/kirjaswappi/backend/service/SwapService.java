@@ -142,9 +142,21 @@ public class SwapService {
     SwapRequestDao swapRequestDao = swapRequestDaoOpt.get();
     SwapRequest swapRequest = SwapRequestMapper.toEntity(swapRequestDao);
 
-    // Validate that the user is the receiver (only receivers can change status)
-    if (!swapRequest.receiver().id().equals(userId)) {
+    // Validate that the user is a participant
+    boolean isSender = swapRequest.sender().id().equals(userId);
+    boolean isReceiver = swapRequest.receiver().id().equals(userId);
+
+    if (!isSender && !isReceiver) {
+      throw new IllegalSwapRequestException("onlyParticipantsCanChangeStatus");
+    }
+
+    // Only receivers can accept/reject/reserve; only senders can expire
+    if ((newStatus == SwapStatus.ACCEPTED || newStatus == SwapStatus.REJECTED || newStatus == SwapStatus.RESERVED)
+        && !isReceiver) {
       throw new IllegalSwapRequestException("onlyReceiverCanChangeStatus");
+    }
+    if (newStatus == SwapStatus.EXPIRED && !isSender) {
+      throw new IllegalSwapRequestException("onlySenderCanExpire");
     }
 
     SwapStatus currentStatus = swapRequest.swapStatus();

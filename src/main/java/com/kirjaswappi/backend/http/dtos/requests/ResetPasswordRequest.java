@@ -23,6 +23,9 @@ public class ResetPasswordRequest {
   @Schema(description = "The confirm password of the user.", example = "newPassword", requiredMode = REQUIRED)
   private String confirmPassword;
 
+  @Schema(description = "The reset token obtained from OTP verification.", example = "eyJhbGciOiJIUzI1NiJ9...", requiredMode = REQUIRED)
+  private String resetToken;
+
   public User toUserEntity(String email) {
 
     this.validateProperties(email);
@@ -38,10 +41,12 @@ public class ResetPasswordRequest {
     if (!ValidationUtil.validateEmail(email)) {
       throw new BadRequestException("invalidEmailAddress", email);
     }
-    // validate new password:
-    if (!ValidationUtil.validateNotBlank(this.newPassword)) {
-      throw new BadRequestException("newPasswordCannotBeBlank", this.newPassword);
+    // validate reset token:
+    if (!ValidationUtil.validateNotBlank(this.resetToken)) {
+      throw new BadRequestException("resetTokenRequired", email);
     }
+    // validate new password:
+    ValidationUtil.validatePassword(this.newPassword, "newPassword");
     // validate confirm password:
     if (!ValidationUtil.validateNotBlank(this.confirmPassword)) {
       throw new BadRequestException("confirmPasswordCannotBeBlank", this.confirmPassword);

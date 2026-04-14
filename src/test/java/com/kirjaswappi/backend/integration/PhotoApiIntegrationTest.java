@@ -21,6 +21,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -65,6 +66,7 @@ class PhotoApiIntegrationTest {
   class ProfilePhotoTests {
 
     @Test
+    @WithMockUser(username = "user-123")
     @DisplayName("Should upload profile photo successfully")
     void shouldUploadProfilePhoto() throws Exception {
       when(photoService.addProfilePhoto(anyString(), any())).thenReturn(photoUrl);
@@ -93,6 +95,7 @@ class PhotoApiIntegrationTest {
     }
 
     @Test
+    @WithMockUser(username = "user-123")
     @DisplayName("Should delete profile photo successfully")
     void shouldDeleteProfilePhoto() throws Exception {
       doNothing().when(photoService).deleteProfilePhoto(userId);
@@ -137,6 +140,7 @@ class PhotoApiIntegrationTest {
   class CoverPhotoTests {
 
     @Test
+    @WithMockUser(username = "user-123")
     @DisplayName("Should upload cover photo successfully")
     void shouldUploadCoverPhoto() throws Exception {
       when(photoService.addCoverPhoto(anyString(), any())).thenReturn(photoUrl);
@@ -157,6 +161,7 @@ class PhotoApiIntegrationTest {
     }
 
     @Test
+    @WithMockUser(username = "user-123")
     @DisplayName("Should delete cover photo successfully")
     void shouldDeleteCoverPhoto() throws Exception {
       doNothing().when(photoService).deleteCoverPhoto(userId);
@@ -260,6 +265,7 @@ class PhotoApiIntegrationTest {
   class ErrorHandlingTests {
 
     @Test
+    @WithMockUser(username = "nonexistent")
     @DisplayName("Should handle service exception for profile photo upload")
     void shouldHandleServiceExceptionForProfilePhotoUpload() throws Exception {
       when(photoService.addProfilePhoto(anyString(), any()))
@@ -272,6 +278,7 @@ class PhotoApiIntegrationTest {
     }
 
     @Test
+    @WithMockUser(username = "nonexistent")
     @DisplayName("Should handle service exception for cover photo upload")
     void shouldHandleServiceExceptionForCoverPhotoUpload() throws Exception {
       when(photoService.addCoverPhoto(anyString(), any()))

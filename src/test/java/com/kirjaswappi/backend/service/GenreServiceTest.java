@@ -21,10 +21,8 @@ import org.mockito.MockitoAnnotations;
 
 import com.kirjaswappi.backend.http.dtos.responses.NestedGenresResponse;
 import com.kirjaswappi.backend.http.dtos.responses.ParentGenreResponse;
-import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.GenreDao;
-import com.kirjaswappi.backend.jpa.daos.SwapConditionDao;
-import com.kirjaswappi.backend.jpa.daos.UserDao;
+import com.kirjaswappi.backend.jpa.repositories.BookRepository;
 import com.kirjaswappi.backend.jpa.repositories.GenreRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.service.entities.Genre;
@@ -36,6 +34,8 @@ class GenreServiceTest {
   private GenreRepository genreRepository;
   @Mock
   private UserRepository userRepository;
+  @Mock
+  private BookRepository bookRepository;
   @InjectMocks
   private GenreService genreService;
 
@@ -102,11 +102,10 @@ class GenreServiceTest {
   @Test
   @DisplayName("Deletes a genre by ID")
   void deleteGenreDeletesGenre() {
-    var dao = new GenreDao().id("1");
-    when(genreRepository.findById("1")).thenReturn(Optional.of(dao));
     when(genreRepository.existsById("1")).thenReturn(true);
+    when(userRepository.existsByFavGenresId("1")).thenReturn(false);
+    when(bookRepository.existsByGenresId("1")).thenReturn(false);
     doNothing().when(genreRepository).deleteById("1");
-    when(userRepository.findAll()).thenReturn(List.of());
     genreService.deleteGenre("1");
     verify(genreRepository, times(1)).deleteById("1");
   }
@@ -114,7 +113,7 @@ class GenreServiceTest {
   @Test
   @DisplayName("Throws when deleting a non-existent genre")
   void deleteGenreThrowsWhenNotFound() {
-    when(genreRepository.findById("1")).thenReturn(Optional.empty());
+    when(genreRepository.existsById("1")).thenReturn(false);
     assertThrows(GenreNotFoundException.class, () -> {
       genreService.deleteGenre("1");
     });
@@ -512,20 +511,15 @@ class GenreServiceTest {
   @DisplayName("deleteGenre throws GenreCannotBeDeletedException when genre is in user's favorite genres")
   void deleteGenreThrowsWhenInFavoriteGenres() {
     // Arrange
-    GenreDao genreDao = createGenreDao("1", "Fantasy", null);
-    UserDao userDao = new UserDao().id("user1")
-        .favGenres(List.of(genreDao))
-        .books(List.of());
-
     when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.findAll()).thenReturn(List.of(userDao));
+    when(userRepository.existsByFavGenresId("1")).thenReturn(true);
 
     // Act & Assert
     assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
       genreService.deleteGenre("1");
     });
     verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).findAll();
+    verify(userRepository, times(1)).existsByFavGenresId("1");
     verify(genreRepository, never()).deleteById("1");
   }
 
@@ -533,62 +527,17 @@ class GenreServiceTest {
   @DisplayName("deleteGenre throws GenreCannotBeDeletedException when genre is in book genres")
   void deleteGenreThrowsWhenInBookGenres() {
     // Arrange
-    GenreDao genreDao = createGenreDao("1", "Fantasy", null);
-
-    SwapConditionDao swapCondition = new SwapConditionDao()
-        .swappableGenres(List.of(genreDao));
-
-    BookDao bookDao = new BookDao()
-        .id("book1")
-        .swapCondition(swapCondition)
-        .genres(List.of(genreDao));
-
-    UserDao userDao = new UserDao()
-        .id("user1")
-        .favGenres(List.of())
-        .books(List.of(bookDao));
-
     when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.findAll()).thenReturn(List.of(userDao));
+    when(userRepository.existsByFavGenresId("1")).thenReturn(false);
+    when(bookRepository.existsByGenresId("1")).thenReturn(true);
 
     // Act & Assert
     assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
       genreService.deleteGenre("1");
     });
     verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).findAll();
-    verify(genreRepository, never()).deleteById("1");
-  }
-
-  @Test
-  @DisplayName("deleteGenre throws GenreCannotBeDeletedException when genre is only in swappable genres")
-  void deleteGenreThrowsWhenOnlyInSwappableGenres() {
-    // Arrange
-    GenreDao genreDao = createGenreDao("1", "Fantasy", null);
-    GenreDao otherGenreDao = createGenreDao("2", "SciFi", null);
-
-    SwapConditionDao swapCondition = new SwapConditionDao()
-        .swappableGenres(List.of(genreDao)); // Genre is in swappable genres
-
-    BookDao bookDao = new BookDao()
-        .id("book1")
-        .genres(List.of(otherGenreDao)) // Genre is NOT in book's genres
-        .swapCondition(swapCondition);
-
-    UserDao userDao = new UserDao()
-        .id("user1")
-        .favGenres(List.of())
-        .books(List.of(bookDao));
-
-    when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.findAll()).thenReturn(List.of(userDao));
-
-    // Act & Assert
-    assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
-      genreService.deleteGenre("1");
-    });
-    verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).findAll();
+    verify(userRepository, times(1)).existsByFavGenresId("1");
+    verify(bookRepository, times(1)).existsByGenresId("1");
     verify(genreRepository, never()).deleteById("1");
   }
 
@@ -596,13 +545,9 @@ class GenreServiceTest {
   @DisplayName("deleteGenre succeeds when genre is not being used")
   void deleteGenreSucceedsWhenNotUsed() {
     // Arrange
-    UserDao userDao = new UserDao()
-        .id("user1")
-        .favGenres(List.of())
-        .books(List.of());
-
     when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.findAll()).thenReturn(List.of(userDao));
+    when(userRepository.existsByFavGenresId("1")).thenReturn(false);
+    when(bookRepository.existsByGenresId("1")).thenReturn(false);
     doNothing().when(genreRepository).deleteById("1");
 
     // Act
@@ -610,52 +555,45 @@ class GenreServiceTest {
 
     // Assert
     verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).findAll();
+    verify(userRepository, times(1)).existsByFavGenresId("1");
+    verify(bookRepository, times(1)).existsByGenresId("1");
     verify(genreRepository, times(1)).deleteById("1");
   }
 
   @Test
-  @DisplayName("deleteGenre handles null favGenres gracefully")
-  void deleteGenreHandlesNullFavGenres() {
+  @DisplayName("deleteGenre short-circuits when favGenres check returns true")
+  void deleteGenreShortCircuitsOnFavGenresCheck() {
     // Arrange
-    UserDao userDao = new UserDao()
-        .id("user1")
-        .favGenres(null)
-        .books(List.of());
-
     when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.findAll()).thenReturn(List.of(userDao));
-    doNothing().when(genreRepository).deleteById("1");
+    when(userRepository.existsByFavGenresId("1")).thenReturn(true);
 
-    // Act
-    genreService.deleteGenre("1");
-
-    // Assert
+    // Act & Assert
+    assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
+      genreService.deleteGenre("1");
+    });
     verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).findAll();
-    verify(genreRepository, times(1)).deleteById("1");
+    verify(userRepository, times(1)).existsByFavGenresId("1");
+    // bookRepository should not be called due to short-circuit || evaluation
+    verify(bookRepository, never()).existsByGenresId("1");
+    verify(genreRepository, never()).deleteById("1");
   }
 
   @Test
-  @DisplayName("deleteGenre handles null books gracefully")
-  void deleteGenreHandlesNullBooks() {
+  @DisplayName("deleteGenre checks bookRepository when favGenres check returns false")
+  void deleteGenreChecksBookRepoWhenFavGenresNotUsed() {
     // Arrange
-    UserDao userDao = new UserDao()
-        .id("user1")
-        .favGenres(List.of())
-        .books(null);
-
     when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.findAll()).thenReturn(List.of(userDao));
-    doNothing().when(genreRepository).deleteById("1");
+    when(userRepository.existsByFavGenresId("1")).thenReturn(false);
+    when(bookRepository.existsByGenresId("1")).thenReturn(true);
 
-    // Act
-    genreService.deleteGenre("1");
-
-    // Assert
+    // Act & Assert
+    assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
+      genreService.deleteGenre("1");
+    });
     verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).findAll();
-    verify(genreRepository, times(1)).deleteById("1");
+    verify(userRepository, times(1)).existsByFavGenresId("1");
+    verify(bookRepository, times(1)).existsByGenresId("1");
+    verify(genreRepository, never()).deleteById("1");
   }
 
   /**

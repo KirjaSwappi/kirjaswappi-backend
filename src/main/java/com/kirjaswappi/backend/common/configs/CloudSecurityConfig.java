@@ -56,7 +56,7 @@ public class CloudSecurityConfig {
     return http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .csrf(csrf -> csrf.disable()) // Disable CSRF protection
         .authorizeHttpRequests(authorize -> authorize
-            .requestMatchers(HEALTH, API_DOCS, SWAGGER_UI, API_BASE + AUTHENTICATE,
+            .requestMatchers(HEALTH, API_BASE + AUTHENTICATE,
                 API_BASE + AUTHENTICATE + REFRESH, "/ws/**")
             .permitAll()
             // User auth endpoints (no JWT required)
@@ -74,6 +74,7 @@ public class CloudSecurityConfig {
             .requestMatchers(DELETE, API_BASE + ADMIN_USERS + USERNAME).hasAuthority(ADMIN)
             .requestMatchers(DELETE, API_BASE + SWAP_REQUESTS).hasAuthority(ADMIN)
             .requestMatchers(DELETE, API_BASE + BOOKS).hasAuthority(ADMIN)
+            .requestMatchers(API_DOCS, SWAGGER_UI).hasAuthority(ADMIN)
             .anyRequest().hasAnyAuthority(ADMIN, USER))
         .addFilterBefore(filterApiRequest, UsernamePasswordAuthenticationFilter.class)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))

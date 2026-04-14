@@ -53,6 +53,18 @@ public class FindAllBooksFilter {
   @Schema(description = "Filter books by country", example = "Finland")
   String country;
 
+  @Schema(description = "Bounding box north latitude for map view", example = "61.0")
+  Double north;
+
+  @Schema(description = "Bounding box south latitude for map view", example = "59.0")
+  Double south;
+
+  @Schema(description = "Bounding box east longitude for map view", example = "26.0")
+  Double east;
+
+  @Schema(description = "Bounding box west longitude for map view", example = "23.0")
+  Double west;
+
   @Schema(description = "Sort field for ordering results. Use with Pageable's 'sort' parameter.", example = "createdAt", allowableValues = {
       "title", "author", "createdAt", "condition", "language" })
   String sortBy;
@@ -161,6 +173,12 @@ public class FindAllBooksFilter {
     // Filter by country if provided:
     if (country != null && !country.isEmpty()) {
       combinedCriteria.add(Criteria.where("location.country").regex(country, "i"));
+    }
+
+    // Filter by map bounding box if provided:
+    if (north != null && south != null && east != null && west != null) {
+      combinedCriteria.add(Criteria.where("location.latitude").gte(south).lte(north));
+      combinedCriteria.add(Criteria.where("location.longitude").gte(west).lte(east));
     }
 
     var finalCriteria = new Criteria();

@@ -122,6 +122,7 @@ class SwapRequestApiIntegrationTest {
       request.setSwapOffer(offer);
 
       mockMvc.perform(post(API_BASE)
+          .with(withUser("sender-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isCreated());
@@ -149,6 +150,7 @@ class SwapRequestApiIntegrationTest {
       request.setSwapOffer(offer);
 
       mockMvc.perform(post(API_BASE)
+          .with(withUser("sender-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isCreated());
@@ -176,6 +178,7 @@ class SwapRequestApiIntegrationTest {
       request.setSwapOffer(offer);
 
       mockMvc.perform(post(API_BASE)
+          .with(withUser("sender-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isCreated());
@@ -188,6 +191,7 @@ class SwapRequestApiIntegrationTest {
       // Missing all required fields
 
       mockMvc.perform(post(API_BASE)
+          .with(withUser("sender-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -208,6 +212,7 @@ class SwapRequestApiIntegrationTest {
       request.setSwapOffer(offer);
 
       mockMvc.perform(post(API_BASE)
+          .with(withUser("sender-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -224,6 +229,7 @@ class SwapRequestApiIntegrationTest {
       request.setSwapOffer(new CreateSwapRequest.SwapOfferRequest()); // Empty offer
 
       mockMvc.perform(post(API_BASE)
+          .with(withUser("sender-1"))
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());

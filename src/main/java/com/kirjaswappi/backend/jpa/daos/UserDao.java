@@ -12,6 +12,7 @@ import lombok.*;
 import lombok.experimental.Accessors;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -35,6 +36,7 @@ public class UserDao {
   private String lastName;
 
   @NotNull
+  @Indexed(unique = true)
   private String email;
 
   @NotNull

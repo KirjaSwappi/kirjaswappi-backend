@@ -56,9 +56,7 @@ public class CreateUserRequest {
       throw new BadRequestException("invalidEmailAddress", this.email);
     }
     // validate password:
-    if (!ValidationUtil.validateNotBlank(this.password)) {
-      throw new BadRequestException("passwordCannotBeBlank", this.password);
-    }
+    ValidationUtil.validatePassword(this.password, "password");
     // validate confirm password:
     if (!ValidationUtil.validateNotBlank(this.confirmPassword)) {
       throw new BadRequestException("confirmPasswordCannotBeBlank", this.confirmPassword);

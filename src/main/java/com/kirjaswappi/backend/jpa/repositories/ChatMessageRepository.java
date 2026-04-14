@@ -13,7 +13,8 @@ import org.springframework.data.mongodb.repository.Query;
 
 import com.kirjaswappi.backend.jpa.daos.ChatMessageDao;
 
-public interface ChatMessageRepository extends MongoRepository<ChatMessageDao, String> {
+public interface ChatMessageRepository
+    extends MongoRepository<ChatMessageDao, String>, CustomChatMessageRepository {
   List<ChatMessageDao> findBySwapRequestIdOrderBySentAtAsc(String swapRequestId);
 
   @Query(value = "{ 'swapRequestId': ?0, 'readByReceiver': false, 'sender.$id': { $ne: ?1 } }", count = true)
@@ -22,4 +23,9 @@ public interface ChatMessageRepository extends MongoRepository<ChatMessageDao, S
   Optional<ChatMessageDao> findFirstBySwapRequestIdOrderBySentAtDesc(String swapRequestId);
 
   List<ChatMessageDao> findBySwapRequestIdInOrderBySentAtDesc(List<String> swapRequestIds);
+
+  @Query(value = "{ 'swapRequestId': { $in: ?0 }, 'readByReceiver': false, 'sender.$id': { $ne: ?1 } }")
+  List<ChatMessageDao> findUnreadBySwapRequestIdInAndSenderIdNot(List<String> swapRequestIds, ObjectId userId);
+
+  void deleteAllBySwapRequestIdIn(List<String> swapRequestIds);
 }

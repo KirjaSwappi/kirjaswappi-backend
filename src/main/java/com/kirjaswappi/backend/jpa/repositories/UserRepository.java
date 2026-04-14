@@ -21,4 +21,6 @@ public interface UserRepository extends MongoRepository<UserDao, String> {
   Optional<UserDao> findByIdAndIsEmailVerifiedTrue(String id);
 
   List<UserDao> findAllByIsEmailVerifiedTrue();
+
+  boolean existsByFavGenresId(String genreId);
 }

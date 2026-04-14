@@ -24,6 +24,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -74,6 +75,9 @@ public class UserControllerTest {
   @MockitoBean
   private JwtUtil jwtUtil;
 
+  @MockitoBean
+  private com.kirjaswappi.backend.common.service.RateLimiterService rateLimiterService;
+
   private User user;
 
   private CreateUserRequest createUserRequest;
@@ -89,8 +93,8 @@ public class UserControllerTest {
     createUserRequest.setFirstName("Test");
     createUserRequest.setLastName("User");
     createUserRequest.setEmail("test@example.com");
-    createUserRequest.setPassword("password");
-    createUserRequest.setConfirmPassword("password");
+    createUserRequest.setPassword("Password1!");
+    createUserRequest.setConfirmPassword("Password1!");
 
     when(jwtUtil.generateUserToken(any(), any())).thenReturn("mock-user-token");
     when(jwtUtil.generateUserRefreshToken(any(), any())).thenReturn("mock-user-refresh-token");
@@ -129,6 +133,7 @@ public class UserControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "1")
   @DisplayName("Should update user")
   void shouldUpdateUser() throws Exception {
     UpdateUserRequest request = getUserUpdateRequest();
@@ -167,6 +172,7 @@ public class UserControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "1")
   @DisplayName("Should delete user by ID")
   void shouldDeleteUser() throws Exception {
     mockMvc.perform(delete(API_BASE + "/1")
@@ -179,7 +185,7 @@ public class UserControllerTest {
   void shouldLogin() throws Exception {
     AuthenticateUserRequest request = new AuthenticateUserRequest();
     request.setEmail("test@example.com");
-    request.setPassword("password");
+    request.setPassword("Password1!");
 
     when(userService.verifyLogin(any(User.class))).thenReturn(user);
 
@@ -198,9 +204,10 @@ public class UserControllerTest {
   void shouldChangePassword() throws Exception {
     ChangePasswordRequest request = new ChangePasswordRequest();
     request.setCurrentPassword("currentPassword");
-    request.setNewPassword("newPassword");
-    request.setConfirmPassword("newPassword");
+    request.setNewPassword("newPassword1!");
+    request.setConfirmPassword("newPassword1!");
 
+    Mockito.doNothing().when(userService).verifyCurrentPassword(any());
     when(userService.changePassword(any())).thenReturn("test@example.com");
 
     mockMvc.perform(post(API_BASE + "/change-password/test@example.com")
@@ -215,9 +222,12 @@ public class UserControllerTest {
   @DisplayName("Should reset user password")
   void shouldResetPassword() throws Exception {
     ResetPasswordRequest request = new ResetPasswordRequest();
-    request.setNewPassword("newPassword");
-    request.setConfirmPassword("newPassword");
+    request.setNewPassword("newPassword1!");
+    request.setConfirmPassword("newPassword1!");
+    request.setResetToken("valid-reset-token");
 
+    when(jwtUtil.validatePasswordResetToken("valid-reset-token")).thenReturn(true);
+    when(jwtUtil.extractEmailFromResetToken("valid-reset-token")).thenReturn("test@example.com");
     when(userService.changePassword(any())).thenReturn("test@example.com");
 
     mockMvc.perform(post(API_BASE + "/reset-password/test@example.com")
@@ -344,7 +354,7 @@ public class UserControllerTest {
   @Test
   @DisplayName("Should return 400 when password and confirm password mismatch")
   void shouldReturnBadRequestWhenPasswordMismatch() throws Exception {
-    createUserRequest.setConfirmPassword("differentPassword");
+    createUserRequest.setConfirmPassword("Different1!");
 
     mockMvc.perform(post(API_BASE + "/signup")
         .contentType(MediaType.APPLICATION_JSON)
@@ -468,6 +478,7 @@ public class UserControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "1")
   @DisplayName("Should return 404 when user does not exist")
   void shouldReturnNotFoundWhenUserDoesNotExist() throws Exception {
     UpdateUserRequest request = getUserUpdateRequest();
@@ -496,7 +507,7 @@ public class UserControllerTest {
   void shouldReturnUnauthorizedWhenPasswordIsIncorrect() throws Exception {
     AuthenticateUserRequest request = new AuthenticateUserRequest();
     request.setEmail("test@example.com");
-    request.setPassword("wrongPassword");
+    request.setPassword("wrongPassword1!");
 
     when(userService.verifyLogin(any(User.class))).thenThrow(new InvalidCredentials());
 
@@ -512,7 +523,7 @@ public class UserControllerTest {
   void shouldReturnNotFoundWhenEmailIsNotRegistered() throws Exception {
     AuthenticateUserRequest request = new AuthenticateUserRequest();
     request.setEmail("nonexistent@example.com");
-    request.setPassword("password");
+    request.setPassword("Password1!");
 
     when(userService.verifyLogin(any(User.class))).thenThrow(new UserNotFoundException());
 
@@ -528,8 +539,8 @@ public class UserControllerTest {
   void shouldReturnBadRequestWhenPasswordsDoNotMatch() throws Exception {
     ChangePasswordRequest request = new ChangePasswordRequest();
     request.setCurrentPassword("currentPassword");
-    request.setNewPassword("newPassword");
-    request.setConfirmPassword("differentPassword");
+    request.setNewPassword("newPassword1!");
+    request.setConfirmPassword("Different1!");
 
     mockMvc.perform(post(API_BASE + "/change-password/test@example.com")
         .contentType(MediaType.APPLICATION_JSON)
@@ -657,7 +668,7 @@ public class UserControllerTest {
         .contentType(MediaType.APPLICATION_JSON)
         .content("{\"idToken\":\"" + idTokenString + "\"}"))
         .andExpect(status().isUnauthorized())
-        .andExpect(content().string("Invalid token"));
+        .andExpect(jsonPath("$.error.code").value("invalidGoogleToken"));
   }
 
   @Test
@@ -670,6 +681,6 @@ public class UserControllerTest {
         .contentType(MediaType.APPLICATION_JSON)
         .content("{\"idToken\":\"" + idTokenString + "\"}"))
         .andExpect(status().isUnauthorized())
-        .andExpect(content().string("Invalid ID token"));
+        .andExpect(jsonPath("$.error.code").value("invalidIdToken"));
   }
 }

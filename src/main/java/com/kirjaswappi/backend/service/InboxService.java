@@ -141,6 +141,10 @@ public class InboxService {
     return chatService.getUnreadMessageCount(swapRequestId, userId);
   }
 
+  public Map<String, Long> getBatchUnreadMessageCounts(String userId, List<String> swapRequestIds) {
+    return chatService.getBatchUnreadMessageCounts(swapRequestIds, userId);
+  }
+
   public void markInboxItemAsRead(String swapRequestId, String userId) {
     // Get swap request
     Optional<SwapRequestDao> swapRequestOpt = swapRequestRepository.findById(swapRequestId);
@@ -230,16 +234,27 @@ public class InboxService {
   }
 
   private boolean canUpdateStatus(SwapRequestDao swapRequest, String userId, SwapStatus newStatus) {
-    // Receiver can accept, reject, or mark as reserved
-    if (swapRequest.receiver().id().equals(userId)) {
-      return newStatus == SwapStatus.ACCEPTED ||
-          newStatus == SwapStatus.REJECTED ||
-          newStatus == SwapStatus.RESERVED;
+    boolean isReceiver = swapRequest.receiver().id().equals(userId);
+    boolean isSender = swapRequest.sender().id().equals(userId);
+
+    if (!isReceiver && !isSender) {
+      return false;
     }
 
-    // Sender can only mark as expired (cancel their own request)
-    if (swapRequest.sender().id().equals(userId)) {
-      return newStatus == SwapStatus.EXPIRED;
+    // Accept/Reject/Reserve are receiver-only actions
+    if (newStatus == SwapStatus.ACCEPTED || newStatus == SwapStatus.REJECTED
+        || newStatus == SwapStatus.RESERVED) {
+      return isReceiver;
+    }
+
+    // Complete and Cancel can be done by either participant
+    if (newStatus == SwapStatus.COMPLETED || newStatus == SwapStatus.CANCELLED) {
+      return true;
+    }
+
+    // Expired can be triggered by sender (withdraw) or system
+    if (newStatus == SwapStatus.EXPIRED) {
+      return isSender;
     }
 
     return false;

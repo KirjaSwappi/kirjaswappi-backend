@@ -8,6 +8,7 @@ import static com.kirjaswappi.backend.common.utils.Constants.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -59,6 +60,11 @@ public class InboxController {
     }
     String userId = principal.getName();
     List<SwapRequest> swapRequests = inboxService.getUnifiedInbox(userId, status, sortBy);
+
+    // Batch-fetch unread counts to avoid N+1 queries
+    List<String> swapRequestIds = swapRequests.stream().map(SwapRequest::id).toList();
+    Map<String, Long> unreadCounts = inboxService.getBatchUnreadMessageCounts(userId, swapRequestIds);
+
     List<InboxItemResponse> response = swapRequests.stream()
         .map(swapRequest -> {
           InboxItemResponse item = new InboxItemResponse(swapRequest);
@@ -74,8 +80,8 @@ public class InboxController {
             }
           }
 
-          // Add unread message count using cached version
-          long unreadCount = inboxService.getUnreadMessageCount(userId, swapRequest.id());
+          // Use batch-fetched unread count
+          long unreadCount = unreadCounts.getOrDefault(swapRequest.id(), 0L);
           item.setUnreadMessageCount(unreadCount);
           // Set notification indicators
           item.setUnread(inboxService.isInboxItemUnread(swapRequest, userId));

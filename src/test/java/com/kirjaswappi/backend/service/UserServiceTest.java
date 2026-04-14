@@ -22,7 +22,9 @@ import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.GenreDao;
 import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.BookRepository;
+import com.kirjaswappi.backend.jpa.repositories.ChatMessageRepository;
 import com.kirjaswappi.backend.jpa.repositories.GenreRepository;
+import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.service.entities.Book;
 import com.kirjaswappi.backend.service.entities.Genre;
@@ -40,14 +42,17 @@ class UserServiceTest {
   @Mock
   private BookRepository bookRepository;
   @Mock
+  private ChatMessageRepository chatMessageRepository;
+  @Mock
   private GenreRepository genreRepository;
+  @Mock
+  private SwapRequestRepository swapRequestRepository;
   @Mock
   private EmailService emailService;
   @InjectMocks
   private UserService userService;
 
   @BeforeEach
-  @DisplayName("Setup mocks for UserServiceTest")
   void setUp() {
     MockitoAnnotations.openMocks(this);
   }
@@ -149,6 +154,8 @@ class UserServiceTest {
   void deleteUserDeletesUser() {
     UserDao dao = UserDao.builder().id("id").build();
     when(userRepository.findById("id")).thenReturn(Optional.of(dao));
+    when(swapRequestRepository.findBySenderIdOrderByRequestedAtDesc("id")).thenReturn(List.of());
+    when(swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc("id")).thenReturn(List.of());
     doNothing().when(userRepository).delete(dao);
     userService.deleteUser("id");
     verify(userRepository, times(1)).delete(dao);

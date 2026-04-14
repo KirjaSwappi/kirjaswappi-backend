@@ -33,6 +33,8 @@ class OTPServiceTest {
   private UserService userService;
   @Mock
   private EmailService emailService;
+  @Mock
+  private RateLimiterService rateLimiterService;
   @InjectMocks
   private OTPService otpService;
 
@@ -88,13 +90,13 @@ class OTPServiceTest {
   @DisplayName("Should throw exception when email is null in OTP")
   void verifyOTPThrowsOnNullEmail() {
     OTP nullEmailOtp = OTP.builder().email(null).otp(otpValue).createdAt(Instant.now()).build();
-    assertThrows(ResourceNotFoundException.class, () -> otpService.verifyOTPByEmail(nullEmailOtp));
+    assertThrows(BadRequestException.class, () -> otpService.verifyOTPByEmail(nullEmailOtp));
   }
 
   @Test
   @DisplayName("Should throw exception when saveAndSendOTP called with null email")
   void saveAndSendOTPThrowsOnNullEmail() {
-    assertThrows(UserNotFoundException.class, () -> otpService.saveAndSendOTP(null));
+    assertThrows(BadRequestException.class, () -> otpService.saveAndSendOTP(null));
   }
 
   @Test

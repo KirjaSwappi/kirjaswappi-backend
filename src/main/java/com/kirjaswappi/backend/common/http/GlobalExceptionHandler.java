@@ -58,9 +58,21 @@ public class GlobalExceptionHandler {
     return errorUtils.buildErrorResponse(exception, webRequest);
   }
 
+  @ExceptionHandler(BookNotFoundException.class)
+  @ResponseStatus(HttpStatus.NOT_FOUND)
+  public ErrorResponse handleBookNotFoundException(BookNotFoundException exception, WebRequest webRequest) {
+    return errorUtils.buildErrorResponse(exception, webRequest);
+  }
+
   @ExceptionHandler(ChatAccessDeniedException.class)
   @ResponseStatus(HttpStatus.FORBIDDEN)
   public ErrorResponse handleChatAccessDeniedException(ChatAccessDeniedException exception, WebRequest webRequest) {
+    return errorUtils.buildErrorResponse(exception, webRequest);
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  @ResponseStatus(HttpStatus.FORBIDDEN)
+  public ErrorResponse handleAccessDeniedException(AccessDeniedException exception, WebRequest webRequest) {
     return errorUtils.buildErrorResponse(exception, webRequest);
   }
 
@@ -128,5 +140,12 @@ public class GlobalExceptionHandler {
     ex.getBindingResult().getFieldErrors().forEach(fieldError -> error.addErrorDetail(
         "invalidField", fieldError.getDefaultMessage(), fieldError.getField()));
     return new ErrorResponse(error);
+  }
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex) {
+    log.warn("Invalid argument: {}", ex.getMessage());
+    return new ErrorResponse(new ErrorResponse.Error("invalidArgument", "Invalid request argument"));
   }
 }

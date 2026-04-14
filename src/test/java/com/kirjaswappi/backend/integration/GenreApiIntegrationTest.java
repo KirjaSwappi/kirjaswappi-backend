@@ -303,6 +303,25 @@ class GenreApiIntegrationTest {
         .andExpect(jsonPath("$.parentGenres['Arts & Crafts']").exists());
   }
 
+  // Helper method to create and save a genre with auto-generated ID
+  private GenreDao createGenreAutoId(String name, GenreDao parent) {
+    GenreDao genre = GenreDao.builder()
+        .name(name)
+        .parent(parent)
+        .build();
+    GenreDao saved = genreRepository.save(genre);
+
+    // Clear caches because direct repository save bypasses service eviction
+    if (cacheManager.getCache("genres") != null) {
+      cacheManager.getCache("genres").clear();
+    }
+    if (cacheManager.getCache("nested_genres") != null) {
+      cacheManager.getCache("nested_genres").clear();
+    }
+
+    return saved;
+  }
+
   // Helper method to create and save a genre
   private GenreDao createGenre(String id, String name, GenreDao parent) {
     GenreDao genre = GenreDao.builder()
@@ -623,9 +642,9 @@ class GenreApiIntegrationTest {
     @Test
     @DisplayName("Should delete genre successfully")
     void shouldDeleteGenreSuccessfully() throws Exception {
-      GenreDao genre = createGenre("delete-test-id", "Fiction", null);
+      GenreDao genre = createGenreAutoId("Fiction", null);
 
-      mockMvc.perform(delete("/api/v1/genres/delete-test-id"))
+      mockMvc.perform(delete("/api/v1/genres/" + genre.id()))
           .andExpect(status().isNoContent());
 
       // Verify genre is deleted by trying to get it via nested response
@@ -637,28 +656,28 @@ class GenreApiIntegrationTest {
     @Test
     @DisplayName("Should delete parent genre with child genres")
     void shouldDeleteParentGenreWithChildGenres() throws Exception {
-      GenreDao parent = createGenre("parent-to-delete", "Fiction", null);
-      GenreDao child1 = createGenre("child-1", "Science Fiction", parent);
-      GenreDao child2 = createGenre("child-2", "Fantasy", parent);
+      GenreDao parent = createGenreAutoId("Fiction", null);
+      GenreDao child1 = createGenreAutoId("Science Fiction", parent);
+      GenreDao child2 = createGenreAutoId("Fantasy", parent);
 
-      mockMvc.perform(delete("/api/v1/genres/parent-to-delete"))
+      mockMvc.perform(delete("/api/v1/genres/" + parent.id()))
           .andExpect(status().isNoContent());
     }
 
     @Test
     @DisplayName("Should delete child genre leaving parent intact")
     void shouldDeleteChildGenreLeavingParentIntact() throws Exception {
-      GenreDao parent = createGenre("parent-intact", "Fiction", null);
-      GenreDao child = createGenre("child-to-delete", "Science Fiction", parent);
+      GenreDao parent = createGenreAutoId("Fiction", null);
+      GenreDao child = createGenreAutoId("Science Fiction", parent);
 
-      mockMvc.perform(delete("/api/v1/genres/child-to-delete"))
+      mockMvc.perform(delete("/api/v1/genres/" + child.id()))
           .andExpect(status().isNoContent());
 
       // Verify parent still exists
       mockMvc.perform(get("/api/v1/genres"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.parentGenres.Fiction").exists())
-          .andExpect(jsonPath("$.parentGenres.Fiction.id").value("parent-intact"));
+          .andExpect(jsonPath("$.parentGenres.Fiction.id").value(parent.id()));
     }
 
     @Test
@@ -669,28 +688,28 @@ class GenreApiIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should handle deleting genre with special characters in id")
+    @DisplayName("Should handle deleting genre with auto-generated id")
     void shouldHandleDeletingGenreWithSpecialId() throws Exception {
-      GenreDao genre = createGenre("special-id-123", "Test Genre", null);
+      GenreDao genre = createGenreAutoId("Test Genre", null);
 
-      mockMvc.perform(delete("/api/v1/genres/special-id-123"))
+      mockMvc.perform(delete("/api/v1/genres/" + genre.id()))
           .andExpect(status().isNoContent());
     }
 
     @Test
     @DisplayName("Should delete multiple genres in sequence")
     void shouldDeleteMultipleGenresInSequence() throws Exception {
-      GenreDao genre1 = createGenre("seq-delete-1", "Genre 1", null);
-      GenreDao genre2 = createGenre("seq-delete-2", "Genre 2", null);
-      GenreDao genre3 = createGenre("seq-delete-3", "Genre 3", null);
+      GenreDao genre1 = createGenreAutoId("Genre 1", null);
+      GenreDao genre2 = createGenreAutoId("Genre 2", null);
+      GenreDao genre3 = createGenreAutoId("Genre 3", null);
 
-      mockMvc.perform(delete("/api/v1/genres/seq-delete-1"))
+      mockMvc.perform(delete("/api/v1/genres/" + genre1.id()))
           .andExpect(status().isNoContent());
 
-      mockMvc.perform(delete("/api/v1/genres/seq-delete-2"))
+      mockMvc.perform(delete("/api/v1/genres/" + genre2.id()))
           .andExpect(status().isNoContent());
 
-      mockMvc.perform(delete("/api/v1/genres/seq-delete-3"))
+      mockMvc.perform(delete("/api/v1/genres/" + genre3.id()))
           .andExpect(status().isNoContent());
 
       // Verify all are deleted

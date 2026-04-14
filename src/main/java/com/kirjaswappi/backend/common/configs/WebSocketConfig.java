@@ -60,7 +60,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     config.setUserDestinationPrefix("/user");
   }
 
-  @org.springframework.beans.factory.annotation.Value("${FRONTEND_URL:*}")
+  @org.springframework.beans.factory.annotation.Value("${FRONTEND_URL:http://localhost:5173}")
   private String[] allowedOriginPatterns;
 
   @Override
