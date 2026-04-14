@@ -109,6 +109,17 @@ public class UserController {
     return ResponseEntity.status(HttpStatus.OK).body(new UserResponse(updatedUser));
   }
 
+  @DeleteMapping(FAVOURITE_BOOKS + BOOK_ID)
+  @Operation(summary = "Remove a favourite book from a user.", responses = {
+      @ApiResponse(responseCode = "204", description = "Book removed from favourite list.") })
+  public ResponseEntity<Void> removeFavouriteBook(
+      @Parameter(description = "Book ID.") @PathVariable String bookId) {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    String userId = authentication.getName();
+    userService.removeFavouriteBook(userId, bookId);
+    return ResponseEntity.noContent().build();
+  }
+
   @PutMapping(ID)
   @Operation(summary = "Update user.", responses = {
       @ApiResponse(responseCode = "200", description = "User updated."),

@@ -308,6 +308,19 @@ public class UserService {
     return getUser(user.id());
   }
 
+  public void removeFavouriteBook(String userId, String bookId) {
+    var userDao = userRepository.findByIdAndIsEmailVerifiedTrue(userId)
+        .orElseThrow(() -> new UserNotFoundException(userId));
+
+    if (userDao.favBooks() == null || userDao.favBooks().stream()
+        .noneMatch(book -> book.id().equals(bookId))) {
+      throw new BadRequestException("bookNotFoundInFavBooks", bookId);
+    }
+
+    userDao.favBooks().removeIf(book -> book.id().equals(bookId));
+    userRepository.save(userDao);
+  }
+
   @CacheEvict(value = "users", key = "#userId")
   public void blockUser(String userId, String targetUserId) {
     var dao = userRepository.findByIdAndIsEmailVerifiedTrue(userId)
