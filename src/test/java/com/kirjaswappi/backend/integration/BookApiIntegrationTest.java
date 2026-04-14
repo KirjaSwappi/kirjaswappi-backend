@@ -22,6 +22,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -354,14 +355,13 @@ class BookApiIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should return 400 for non-existent book")
+    @DisplayName("Should return 404 for non-existent book")
     void shouldReturn404ForNonExistentBook() throws Exception {
-      // BookNotFoundException extends BusinessException which returns 400
       when(bookService.getBookById("nonexistent-id"))
           .thenThrow(new BookNotFoundException());
 
       mockMvc.perform(get(API_BASE + "/nonexistent-id"))
-          .andExpect(status().isBadRequest());
+          .andExpect(status().isNotFound());
     }
 
     @Test
@@ -526,9 +526,11 @@ class BookApiIntegrationTest {
   class UpdateBookTests {
 
     @Test
+    @WithMockUser(username = "user-123")
     @DisplayName("Should update book successfully")
     void shouldUpdateBookSuccessfully() throws Exception {
       Book book = createTestBook("book-1", "Updated Title", "Updated Author");
+      when(bookService.getBookById("book-1")).thenReturn(book);
       when(bookService.updateBook(any())).thenReturn(book);
 
       String swapCondition = """
@@ -590,9 +592,11 @@ class BookApiIntegrationTest {
     }
 
     @Test
+    @WithMockUser(username = "user-123")
     @DisplayName("Should update book with location data as JSON string")
     void shouldUpdateBookWithLocationAsJsonString() throws Exception {
       Book book = createTestBookWithLocation("book-1", "Updated Book", "Helsinki", "Finland");
+      when(bookService.getBookById("book-1")).thenReturn(book);
       when(bookService.updateBook(any())).thenReturn(book);
 
       String swapCondition = """
@@ -640,8 +644,12 @@ class BookApiIntegrationTest {
   class DeleteBookTests {
 
     @Test
+    @WithMockUser(username = "user-123")
     @DisplayName("Should delete book successfully")
     void shouldDeleteBookSuccessfully() throws Exception {
+      Book book = createTestBook("book-1", "Test Book", "Test Author");
+      when(bookService.getBookById("book-1")).thenReturn(book);
+
       mockMvc.perform(delete(API_BASE + "/book-1"))
           .andExpect(status().isNoContent());
     }
