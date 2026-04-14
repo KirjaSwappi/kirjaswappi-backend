@@ -34,7 +34,7 @@ import com.kirjaswappi.backend.common.components.FilterApiRequest;
 @Profile("cloud")
 public class CloudSecurityConfig {
 
-  @Value("${cors.allowed-origins:https://kirjaswappi.fi,https://www.kirjaswappi.fi}")
+  @Value("${cors.allowed-origins:https://kirjaswappi.fi,https://www.kirjaswappi.fi,https://canary.kirjaswappi.fi}")
   private String[] allowedOrigins;
 
   @Bean
