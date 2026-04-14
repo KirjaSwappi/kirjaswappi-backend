@@ -223,25 +223,23 @@ class BookControllerEdgeCaseTest {
   class BookNotFoundTests {
 
     @Test
-    @DisplayName("Should return 400 when book not found by ID")
-    void shouldReturn400WhenBookNotFoundById() throws Exception {
-      // BookNotFoundException extends BusinessException which returns 400 BAD_REQUEST
+    @DisplayName("Should return 404 when book not found by ID")
+    void shouldReturn404WhenBookNotFoundById() throws Exception {
       when(bookService.getBookById("nonexistent-id"))
           .thenThrow(new BookNotFoundException());
 
       mockMvc.perform(get(API_BASE + "/nonexistent-id"))
-          .andExpect(status().isBadRequest());
+          .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("Should return 400 when getting more books for nonexistent book")
-    void shouldReturn400WhenGettingMoreBooksForNonexistent() throws Exception {
-      // BookNotFoundException extends BusinessException which returns 400 BAD_REQUEST
+    @DisplayName("Should return 404 when getting more books for nonexistent book")
+    void shouldReturn404WhenGettingMoreBooksForNonexistent() throws Exception {
       when(bookService.getMoreBooksOfTheUser("nonexistent-id"))
           .thenThrow(new BookNotFoundException());
 
       mockMvc.perform(get(API_BASE + "/nonexistent-id/more-books"))
-          .andExpect(status().isBadRequest());
+          .andExpect(status().isNotFound());
     }
   }
 

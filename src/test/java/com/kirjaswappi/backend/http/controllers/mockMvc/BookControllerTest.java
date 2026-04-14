@@ -25,6 +25,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -178,6 +179,7 @@ class BookControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "user-123")
   @DisplayName("Should update a Book with swap type ByBooks successfully")
   void shouldUpdateBookWithConditionTypeByBooksSuccessfully() throws Exception {
     String swapCondition = """
@@ -194,7 +196,9 @@ class BookControllerTest {
         }
         """;
 
-    Book book = Book.builder().id("123").title("The Alchemist").build();
+    Book book = Book.builder().id("123").title("The Alchemist")
+        .owner(User.builder().id("user-123").build()).build();
+    when(bookService.getBookById("123")).thenReturn(book);
     Mockito.when(bookService.updateBook(any(Book.class))).thenReturn(book);
 
     mockMvc.perform(multipart(BASE_PATH + "/123")
@@ -217,6 +221,7 @@ class BookControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "user-123")
   @DisplayName("Should update a Book with swap type ByGenres successfully")
   void shouldUpdateBookWithConditionTypeByGenresSuccessfully() throws Exception {
     String swapCondition = """
@@ -229,7 +234,9 @@ class BookControllerTest {
         }
         """;
 
-    Book book = Book.builder().id("123").title("The Alchemist").build();
+    Book book = Book.builder().id("123").title("The Alchemist")
+        .owner(User.builder().id("user-123").build()).build();
+    when(bookService.getBookById("123")).thenReturn(book);
     Mockito.when(bookService.updateBook(any(Book.class))).thenReturn(book);
 
     mockMvc.perform(multipart(BASE_PATH + "/123")
@@ -252,6 +259,7 @@ class BookControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "user-123")
   @DisplayName("Should update a Book with swap type GiveAway successfully")
   void shouldUpdateBookWithConditionTypeByGiveAwaySuccessfully() throws Exception {
     String swapCondition = """
@@ -264,7 +272,9 @@ class BookControllerTest {
         }
         """;
 
-    Book book = Book.builder().id("123").title("The Alchemist").build();
+    Book book = Book.builder().id("123").title("The Alchemist")
+        .owner(User.builder().id("user-123").build()).build();
+    when(bookService.getBookById("123")).thenReturn(book);
     Mockito.when(bookService.updateBook(any(Book.class))).thenReturn(book);
 
     mockMvc.perform(multipart(BASE_PATH + "/123")
@@ -287,6 +297,7 @@ class BookControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "user-123")
   @DisplayName("Should update a Book with swap type OpenForOffers successfully")
   void shouldUpdateBookWithConditionTypeByOpenForOffersSuccessfully() throws Exception {
     String swapCondition = """
@@ -299,7 +310,9 @@ class BookControllerTest {
         }
         """;
 
-    Book book = Book.builder().id("123").title("The Alchemist").build();
+    Book book = Book.builder().id("123").title("The Alchemist")
+        .owner(User.builder().id("user-123").build()).build();
+    when(bookService.getBookById("123")).thenReturn(book);
     Mockito.when(bookService.updateBook(any(Book.class))).thenReturn(book);
 
     mockMvc.perform(multipart(BASE_PATH + "/123")
@@ -461,8 +474,12 @@ class BookControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "user-123")
   @DisplayName("Should delete a book successfully")
   void shouldReturnNoContentWhenDeletingSingleBook() throws Exception {
+    Book book = Book.builder().id("book123")
+        .owner(User.builder().id("user-123").build()).build();
+    when(bookService.getBookById("book123")).thenReturn(book);
     doNothing().when(bookService).deleteBook("book123");
     mockMvc.perform(delete(BASE_PATH + "/book123"))
         .andExpect(status().isNoContent());

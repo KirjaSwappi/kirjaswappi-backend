@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -103,8 +104,8 @@ class InboxControllerTest {
 
     List<SwapRequest> unifiedInbox = Arrays.asList(sentSwap, receivedSwap); // Sorted by latest messages
     when(inboxService.getUnifiedInbox("receiver123", null, null)).thenReturn(unifiedInbox);
-    when(inboxService.getUnreadMessageCount("receiver123", "received1")).thenReturn(2L);
-    when(inboxService.getUnreadMessageCount("receiver123", "sent1")).thenReturn(0L);
+    when(inboxService.getBatchUnreadMessageCounts("receiver123", List.of("sent1", "received1")))
+        .thenReturn(Map.of("received1", 2L, "sent1", 0L));
     when(inboxService.isInboxItemUnread(receivedSwap, "receiver123")).thenReturn(true);
     when(inboxService.isInboxItemUnread(sentSwap, "receiver123")).thenReturn(false);
 
@@ -141,8 +142,7 @@ class InboxControllerTest {
         .andExpect(jsonPath("$[1].hasNewMessages").value(true));
 
     verify(inboxService).getUnifiedInbox("receiver123", null, null);
-    verify(inboxService).getUnreadMessageCount("receiver123", "received1");
-    verify(inboxService).getUnreadMessageCount("receiver123", "sent1");
+    verify(inboxService).getBatchUnreadMessageCounts("receiver123", List.of("sent1", "received1"));
     verify(inboxService).isInboxItemUnread(receivedSwap, "receiver123");
     verify(inboxService).isInboxItemUnread(sentSwap, "receiver123");
   }
@@ -183,7 +183,8 @@ class InboxControllerTest {
 
     List<SwapRequest> swapRequests = List.of(swapRequest);
     when(inboxService.getUnifiedInbox("receiver123", "Pending", "latest_message")).thenReturn(swapRequests);
-    when(inboxService.getUnreadMessageCount("receiver123", "swap1")).thenReturn(1L);
+    when(inboxService.getBatchUnreadMessageCounts("receiver123", List.of("swap1")))
+        .thenReturn(Map.of("swap1", 1L));
     when(inboxService.isInboxItemUnread(swapRequest, "receiver123")).thenReturn(true);
 
     // When & Then
@@ -201,7 +202,7 @@ class InboxControllerTest {
         .andExpect(jsonPath("$[0].conversationType").value("received"));
 
     verify(inboxService).getUnifiedInbox("receiver123", "Pending", "latest_message");
-    verify(inboxService).getUnreadMessageCount("receiver123", "swap1");
+    verify(inboxService).getBatchUnreadMessageCounts("receiver123", List.of("swap1"));
     verify(inboxService).isInboxItemUnread(swapRequest, "receiver123");
   }
 
@@ -292,8 +293,8 @@ class InboxControllerTest {
     List<SwapRequest> swapRequests = Arrays.asList(swapRequest1, swapRequest2); // Sorted alphabetically by book
                                                                                 // title
     when(inboxService.getUnifiedInbox("receiver123", null, "book_title")).thenReturn(swapRequests);
-    when(inboxService.getUnreadMessageCount("receiver123", "swap1")).thenReturn(0L);
-    when(inboxService.getUnreadMessageCount("receiver123", "swap2")).thenReturn(0L);
+    when(inboxService.getBatchUnreadMessageCounts("receiver123", List.of("swap1", "swap2")))
+        .thenReturn(Map.of("swap1", 0L, "swap2", 0L));
     when(inboxService.isInboxItemUnread(swapRequest1, "receiver123")).thenReturn(false);
     when(inboxService.isInboxItemUnread(swapRequest2, "receiver123")).thenReturn(false);
 
@@ -311,8 +312,7 @@ class InboxControllerTest {
         .andExpect(jsonPath("$[1].bookToSwapWith.title").value("Z Test Book"));
 
     verify(inboxService).getUnifiedInbox("receiver123", null, "book_title");
-    verify(inboxService).getUnreadMessageCount("receiver123", "swap1");
-    verify(inboxService).getUnreadMessageCount("receiver123", "swap2");
+    verify(inboxService).getBatchUnreadMessageCounts("receiver123", List.of("swap1", "swap2"));
     verify(inboxService).isInboxItemUnread(swapRequest1, "receiver123");
     verify(inboxService).isInboxItemUnread(swapRequest2, "receiver123");
   }
@@ -353,7 +353,8 @@ class InboxControllerTest {
 
     List<SwapRequest> swapRequests = List.of(swapRequest);
     when(inboxService.getUnifiedInbox("receiver123", null, null)).thenReturn(swapRequests);
-    when(inboxService.getUnreadMessageCount("receiver123", "swap1")).thenReturn(1L);
+    when(inboxService.getBatchUnreadMessageCounts("receiver123", List.of("swap1")))
+        .thenReturn(Map.of("swap1", 1L));
     when(inboxService.isInboxItemUnread(swapRequest, "receiver123")).thenReturn(true);
 
     // Mock latest message with image but no text
@@ -423,7 +424,8 @@ class InboxControllerTest {
         .build();
 
     when(inboxService.getUnifiedInbox("receiver123", null, null)).thenReturn(List.of(swapRequest));
-    when(inboxService.getUnreadMessageCount("receiver123", "swap1")).thenReturn(0L);
+    when(inboxService.getBatchUnreadMessageCounts("receiver123", List.of("swap1")))
+        .thenReturn(Map.of("swap1", 0L));
     when(inboxService.isInboxItemUnread(swapRequest, "receiver123")).thenReturn(false);
     when(photoService.getBookCoverPhoto("cover-photo-id-123"))
         .thenReturn("https://minio.example.com/presigned-url");
@@ -473,7 +475,8 @@ class InboxControllerTest {
         .build();
 
     when(inboxService.getUnifiedInbox("receiver123", null, null)).thenReturn(List.of(swapRequest));
-    when(inboxService.getUnreadMessageCount("receiver123", "swap1")).thenReturn(0L);
+    when(inboxService.getBatchUnreadMessageCounts("receiver123", List.of("swap1")))
+        .thenReturn(Map.of("swap1", 0L));
     when(inboxService.isInboxItemUnread(swapRequest, "receiver123")).thenReturn(false);
     when(photoService.getBookCoverPhoto("missing-photo-id"))
         .thenThrow(new PhotoNotFoundException());

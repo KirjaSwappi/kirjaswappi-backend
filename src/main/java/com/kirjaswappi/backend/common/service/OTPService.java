@@ -74,6 +74,10 @@ public class OTPService {
   }
 
   public String verifyOTPByEmail(OTP otp) {
+    if (otp.email() == null) {
+      throw new ResourceNotFoundException("otpNotFound", (Object) null);
+    }
+
     // Rate limit OTP verification attempts
     if (isRateLimited(verifyAttempts, otp.email(), MAX_VERIFY_ATTEMPTS)) {
       throw new BadRequestException("tooManyVerifyAttempts", otp.email());
@@ -101,6 +105,10 @@ public class OTPService {
   }
 
   public String saveAndSendOTP(String email) throws IOException {
+    if (email == null) {
+      throw new UserNotFoundException();
+    }
+
     // Rate limit OTP send attempts
     if (isRateLimited(sendAttempts, email, MAX_SEND_ATTEMPTS)) {
       throw new BadRequestException("tooManySendOtpAttempts", email);

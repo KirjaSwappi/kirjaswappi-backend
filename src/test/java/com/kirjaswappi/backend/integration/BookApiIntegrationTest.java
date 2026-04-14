@@ -522,6 +522,35 @@ class BookApiIntegrationTest {
   }
 
   @Nested
+  @DisplayName("Map Bounds Query Tests")
+  class MapBoundsQueryTests {
+
+    @Test
+    @DisplayName("Should return books in map bounds")
+    void shouldReturnBooksInMapBounds() throws Exception {
+      Book book = createTestBookWithLocation("book-1", "Map Book", "Helsinki", "Finland");
+      when(bookService.getAllBooksByFilter(any(), any(Pageable.class)))
+          .thenReturn(new PageImpl<>(List.of(book), PageRequest.of(0, 100), 1));
+
+      mockMvc.perform(get(API_BASE + "/map")
+          .param("city", "Helsinki"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$._embedded.books.length()").value(1));
+    }
+
+    @Test
+    @DisplayName("Should return empty results when no books in bounds")
+    void shouldReturnEmptyResultsWhenNoBooksInBounds() throws Exception {
+      when(bookService.getAllBooksByFilter(any(), any(Pageable.class)))
+          .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 100), 0));
+
+      mockMvc.perform(get(API_BASE + "/map"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.page.totalElements").value(0));
+    }
+  }
+
+  @Nested
   @DisplayName("Update Book Tests")
   class UpdateBookTests {
 

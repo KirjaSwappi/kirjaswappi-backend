@@ -20,6 +20,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -46,6 +47,7 @@ class PhotoControllerTest {
       MediaType.IMAGE_JPEG_VALUE, "dummy".getBytes());
 
   @Test
+  @WithMockUser(username = "user123")
   @DisplayName("Should upload profile photo")
   void shouldUploadProfilePhoto() throws Exception {
     when(photoService.addProfilePhoto(userId, file)).thenReturn(photoUrl);
@@ -58,6 +60,7 @@ class PhotoControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "user123")
   @DisplayName("Should upload cover photo")
   void shouldUploadCoverPhoto() throws Exception {
     when(photoService.addCoverPhoto(userId, file)).thenReturn(photoUrl);
@@ -70,6 +73,7 @@ class PhotoControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "user123")
   @DisplayName("Should delete profile photo")
   void shouldDeleteProfilePhoto() throws Exception {
     doNothing().when(photoService).deleteProfilePhoto(userId);
@@ -79,6 +83,7 @@ class PhotoControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "user123")
   @DisplayName("Should delete cover photo")
   void shouldDeleteCoverPhoto() throws Exception {
     doNothing().when(photoService).deleteCoverPhoto(userId);

@@ -43,6 +43,9 @@ class OtpApiIntegrationTest {
   @MockitoBean
   private OTPService otpService;
 
+  @MockitoBean
+  private com.kirjaswappi.backend.common.utils.JwtUtil jwtUtil;
+
   @Autowired
   private ObjectMapper objectMapper;
 

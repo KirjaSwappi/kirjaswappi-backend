@@ -167,8 +167,9 @@ public class UserController {
   @Operation(summary = "Login user.", responses = {
       @ApiResponse(responseCode = "200", description = "User logged in.") })
   public ResponseEntity<UserLoginResponse> login(@Valid @RequestBody AuthenticateUserRequest authenticateUserRequest) {
-    if (isLoginRateLimited(authenticateUserRequest.getEmail().toLowerCase())) {
-      throw new BadRequestException("tooManyLoginAttempts", authenticateUserRequest.getEmail());
+    String email = authenticateUserRequest.getEmail();
+    if (email != null && isLoginRateLimited(email.toLowerCase())) {
+      throw new BadRequestException("tooManyLoginAttempts", email);
     }
     User user = userService.verifyLogin(authenticateUserRequest.toEntity());
     String userToken = jwtUtil.generateUserToken(user.id(), user.email());

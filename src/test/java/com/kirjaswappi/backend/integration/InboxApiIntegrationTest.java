@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -101,7 +102,8 @@ class InboxApiIntegrationTest {
           createTestSwapRequest("request-2", "user-3", userId, SwapStatus.ACCEPTED));
 
       when(inboxService.getUnifiedInbox(userId, null, null)).thenReturn(requests);
-      when(inboxService.getUnreadMessageCount(eq(userId), anyString())).thenReturn(0L);
+      when(inboxService.getBatchUnreadMessageCounts(eq(userId), anyList()))
+          .thenReturn(Map.of("request-1", 0L, "request-2", 0L));
       when(inboxService.isInboxItemUnread(any(), eq(userId))).thenReturn(false);
 
       mockMvc.perform(get(API_BASE)
@@ -132,7 +134,8 @@ class InboxApiIntegrationTest {
           createTestSwapRequest("request-1", userId, "user-2", SwapStatus.PENDING));
 
       when(inboxService.getUnifiedInbox(userId, "Pending", null)).thenReturn(requests);
-      when(inboxService.getUnreadMessageCount(eq(userId), anyString())).thenReturn(0L);
+      when(inboxService.getBatchUnreadMessageCounts(eq(userId), anyList()))
+          .thenReturn(Map.of("request-1", 0L));
       when(inboxService.isInboxItemUnread(any(), eq(userId))).thenReturn(false);
 
       mockMvc.perform(get(API_BASE)
@@ -151,7 +154,8 @@ class InboxApiIntegrationTest {
           createTestSwapRequest("request-1", userId, "user-2", SwapStatus.PENDING));
 
       when(inboxService.getUnifiedInbox(userId, null, "date")).thenReturn(requests);
-      when(inboxService.getUnreadMessageCount(eq(userId), anyString())).thenReturn(0L);
+      when(inboxService.getBatchUnreadMessageCounts(eq(userId), anyList()))
+          .thenReturn(Map.of("request-1", 0L));
       when(inboxService.isInboxItemUnread(any(), eq(userId))).thenReturn(false);
 
       mockMvc.perform(get(API_BASE)
@@ -184,7 +188,8 @@ class InboxApiIntegrationTest {
           createTestSwapRequest("request-1", userId, "user-2", SwapStatus.PENDING));
 
       when(inboxService.getUnifiedInbox(userId, null, null)).thenReturn(requests);
-      when(inboxService.getUnreadMessageCount(userId, "request-1")).thenReturn(5L);
+      when(inboxService.getBatchUnreadMessageCounts(eq(userId), anyList()))
+          .thenReturn(Map.of("request-1", 5L));
       when(inboxService.isInboxItemUnread(any(), eq(userId))).thenReturn(true);
 
       mockMvc.perform(get(API_BASE)
@@ -203,7 +208,8 @@ class InboxApiIntegrationTest {
           createTestSwapRequest("request-1", userId, "user-2", SwapStatus.PENDING));
 
       when(inboxService.getUnifiedInbox(userId, null, null)).thenReturn(requests);
-      when(inboxService.getUnreadMessageCount(eq(userId), anyString())).thenReturn(0L);
+      when(inboxService.getBatchUnreadMessageCounts(eq(userId), anyList()))
+          .thenReturn(Map.of("request-1", 0L));
       when(inboxService.isInboxItemUnread(any(), eq(userId))).thenReturn(false);
 
       mockMvc.perform(get(API_BASE)
@@ -220,7 +226,8 @@ class InboxApiIntegrationTest {
           createTestSwapRequest("request-1", "user-1", userId, SwapStatus.PENDING));
 
       when(inboxService.getUnifiedInbox(userId, null, null)).thenReturn(requests);
-      when(inboxService.getUnreadMessageCount(eq(userId), anyString())).thenReturn(0L);
+      when(inboxService.getBatchUnreadMessageCounts(eq(userId), anyList()))
+          .thenReturn(Map.of("request-1", 0L));
       when(inboxService.isInboxItemUnread(any(), eq(userId))).thenReturn(false);
 
       mockMvc.perform(get(API_BASE)
