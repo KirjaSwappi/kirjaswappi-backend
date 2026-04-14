@@ -52,13 +52,29 @@ public class OTPService {
 
   private boolean isRateLimited(ConcurrentHashMap<String, RateLimitEntry> attempts, String key, int maxAttempts) {
     var now = Instant.now();
-    var entry = attempts.compute(key, (k, existing) -> {
+    var entry = attempts.get(key);
+    if (entry == null) {
+      return false;
+    }
+    if (entry.windowStart().plus(RATE_LIMIT_WINDOW).isBefore(now)) {
+      attempts.remove(key);
+      return false;
+    }
+    return entry.count() > maxAttempts;
+  }
+
+  private void recordFailedAttempt(ConcurrentHashMap<String, RateLimitEntry> attempts, String key) {
+    var now = Instant.now();
+    attempts.compute(key, (k, existing) -> {
       if (existing == null || existing.windowStart().plus(RATE_LIMIT_WINDOW).isBefore(now)) {
         return new RateLimitEntry(1, now);
       }
       return new RateLimitEntry(existing.count() + 1, existing.windowStart());
     });
-    return entry.count() > maxAttempts;
+  }
+
+  private void clearAttempts(ConcurrentHashMap<String, RateLimitEntry> attempts, String key) {
+    attempts.remove(key);
   }
 
   private static String generateOTP() {
@@ -87,16 +103,19 @@ public class OTPService {
 
     // check provided OTP with the stored OTP:
     if (!otpEntity.otp().equals(otp.otp())) {
+      recordFailedAttempt(verifyAttempts, otp.email());
       throw new BadRequestException("otpDoesNotMatch", otp);
     }
 
     // Check if the OTP is older than 15 minutes
     if (otpEntity.createdAt().plus(Duration.ofMinutes(15)).isBefore(Instant.now())) {
+      recordFailedAttempt(verifyAttempts, otp.email());
       throw new BadRequestException("otpExpired", otp);
     }
 
     // Delete the OTP after verification:
     otpRepository.deleteAllByEmail(otp.email());
+    clearAttempts(verifyAttempts, otp.email());
     return otpEntity.email();
   }
 
@@ -116,6 +135,7 @@ public class OTPService {
 
     // Check if the user exists:
     if (!checkUserExists(email)) {
+      recordFailedAttempt(sendAttempts, email);
       throw new UserNotFoundException(email);
     }
 
@@ -131,6 +151,7 @@ public class OTPService {
 
     // Send OTP via email:
     emailService.sendOTPByEmail(dao.email(), newOTP.otp());
+    clearAttempts(sendAttempts, email);
     return dao.email();
   }
 }
