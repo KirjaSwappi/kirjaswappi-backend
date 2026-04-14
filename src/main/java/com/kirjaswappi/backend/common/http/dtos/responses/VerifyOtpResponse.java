@@ -15,7 +15,15 @@ public class VerifyOtpResponse {
   @Schema(description = "Confirmation message indicating OTP was verified", example = "OTP verified for user@example.com successfully.")
   private String message;
 
+  @Schema(description = "Short-lived token required for password reset", example = "eyJhbGciOiJIUzI1NiJ9...")
+  private String resetToken;
+
   public VerifyOtpResponse(String email) {
     this.message = "OTP verified for " + email + " successfully.";
+  }
+
+  public VerifyOtpResponse(String email, String resetToken) {
+    this.message = "OTP verified for " + email + " successfully.";
+    this.resetToken = resetToken;
   }
 }

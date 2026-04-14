@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.ConcurrentHashMap;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,6 +37,29 @@ public class OTPService {
   private final EmailService emailService;
 
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+  private static final int MAX_VERIFY_ATTEMPTS = 5;
+  private static final int MAX_SEND_ATTEMPTS = 5;
+  private static final Duration RATE_LIMIT_WINDOW = Duration.ofMinutes(15);
+
+  private final ConcurrentHashMap<String, RateLimitEntry> verifyAttempts = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, RateLimitEntry> sendAttempts = new ConcurrentHashMap<>();
+
+  private record RateLimitEntry(
+      int count,
+      Instant windowStart
+  ) {
+  }
+
+  private boolean isRateLimited(ConcurrentHashMap<String, RateLimitEntry> attempts, String key, int maxAttempts) {
+    var now = Instant.now();
+    var entry = attempts.compute(key, (k, existing) -> {
+      if (existing == null || existing.windowStart().plus(RATE_LIMIT_WINDOW).isBefore(now)) {
+        return new RateLimitEntry(1, now);
+      }
+      return new RateLimitEntry(existing.count() + 1, existing.windowStart());
+    });
+    return entry.count() > maxAttempts;
+  }
 
   private static String generateOTP() {
     return SECURE_RANDOM.ints(6, 0, NUMERIC.length())
@@ -50,6 +74,11 @@ public class OTPService {
   }
 
   public String verifyOTPByEmail(OTP otp) {
+    // Rate limit OTP verification attempts
+    if (isRateLimited(verifyAttempts, otp.email(), MAX_VERIFY_ATTEMPTS)) {
+      throw new BadRequestException("tooManyVerifyAttempts", otp.email());
+    }
+
     var otpEntity = this.getOTP(otp.email());
 
     // check provided OTP with the stored OTP:
@@ -72,6 +101,11 @@ public class OTPService {
   }
 
   public String saveAndSendOTP(String email) throws IOException {
+    // Rate limit OTP send attempts
+    if (isRateLimited(sendAttempts, email, MAX_SEND_ATTEMPTS)) {
+      throw new BadRequestException("tooManySendOtpAttempts", email);
+    }
+
     // Check if the user exists:
     if (!checkUserExists(email)) {
       throw new UserNotFoundException(email);

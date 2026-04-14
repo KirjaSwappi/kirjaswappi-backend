@@ -20,7 +20,9 @@ public enum SwapStatus {
   ACCEPTED("Accepted"),
   RESERVED("Reserved"),
   REJECTED("Rejected"),
-  EXPIRED("Expired");
+  EXPIRED("Expired"),
+  COMPLETED("Completed"),
+  CANCELLED("Cancelled");
 
   private final String code;
 
@@ -34,10 +36,10 @@ public enum SwapStatus {
 
   private Set<SwapStatus> getAllowedTransitions() {
     return switch (this) {
-    case PENDING -> Set.of(ACCEPTED, REJECTED, EXPIRED);
-    case ACCEPTED -> Set.of(RESERVED, EXPIRED);
-    case RESERVED -> Set.of(EXPIRED);
-    case REJECTED, EXPIRED -> Set.of();
+    case PENDING -> Set.of(ACCEPTED, REJECTED, EXPIRED, CANCELLED);
+    case ACCEPTED -> Set.of(RESERVED, EXPIRED, COMPLETED, CANCELLED);
+    case RESERVED -> Set.of(EXPIRED, COMPLETED, CANCELLED);
+    case REJECTED, EXPIRED, COMPLETED, CANCELLED -> Set.of();
     };
   }
 

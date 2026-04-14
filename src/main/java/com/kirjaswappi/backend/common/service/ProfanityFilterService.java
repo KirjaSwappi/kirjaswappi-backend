@@ -16,9 +16,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProfanityFilterService {
 
-  // Placeholder list of words to filter.
+  // Common profanity words to filter in a book exchange context
   private static final Set<String> BANNED_WORDS = Set.of(
-      "badword1", "badword2", "dangerousword");
+      "fuck", "shit", "asshole", "bitch", "bastard",
+      "dick", "cunt", "damn", "piss", "slut",
+      "whore", "nigger", "faggot", "retard", "twat",
+      "wanker", "bollocks", "motherfucker", "cocksucker", "arse");
 
   /**
    * Replaces banned words in the given text with asterisks.

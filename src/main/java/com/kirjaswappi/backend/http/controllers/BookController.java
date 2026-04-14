@@ -23,6 +23,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,6 +47,7 @@ import com.kirjaswappi.backend.service.entities.Book;
 import com.kirjaswappi.backend.service.enums.Condition;
 import com.kirjaswappi.backend.service.enums.Language;
 import com.kirjaswappi.backend.service.enums.SwapType;
+import com.kirjaswappi.backend.service.exceptions.AccessDeniedException;
 import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 import com.kirjaswappi.backend.service.filters.FindAllBooksFilter;
 
@@ -56,6 +58,8 @@ import com.kirjaswappi.backend.service.filters.FindAllBooksFilter;
 public class BookController {
   @Autowired
   private BookService bookService;
+
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   @PostMapping(consumes = "multipart/form-data")
   @Operation(summary = "Add book to a user.", responses = {
@@ -119,6 +123,17 @@ public class BookController {
     return ResponseEntity.status(HttpStatus.OK).body(LinkBuilder.forPage(response, API_BASE + BOOKS));
   }
 
+  @GetMapping("/map")
+  @Operation(summary = "Find books within map bounding box.", responses = {
+      @ApiResponse(responseCode = "200", description = "List of books within the map bounds.") })
+  public ResponseEntity<PagedModel<BookListResponse>> findBooksInMapBounds(
+      @Valid @ParameterObject FindAllBooksFilter filter,
+      @PageableDefault(size = 100) Pageable pageable) {
+    Page<Book> books = bookService.getAllBooksByFilter(filter, pageable);
+    Page<BookListResponse> response = books.map(BookListResponse::new);
+    return ResponseEntity.status(HttpStatus.OK).body(LinkBuilder.forPage(response, API_BASE + BOOKS + "/map"));
+  }
+
   @GetMapping("/near")
   @Operation(summary = "Find books near a specific location within a given radius.", responses = {
       @ApiResponse(responseCode = "200", description = "List of Books near the specified location."),
@@ -175,6 +190,7 @@ public class BookController {
   @Operation(summary = "Update book by Book ID.", responses = {
       @ApiResponse(responseCode = "200", description = "Book updated."),
       @ApiResponse(responseCode = "400", description = "Invalid request or ID mismatch."),
+      @ApiResponse(responseCode = "403", description = "Not the book owner."),
       @ApiResponse(responseCode = "404", description = "Book not found.") })
   public ResponseEntity<BookResponse> updateBook(@Parameter(description = "Book ID.") @PathVariable String id,
       @Valid @ModelAttribute UpdateBookRequest request) {
@@ -182,6 +198,8 @@ public class BookController {
     if (!id.equals(request.getId())) {
       throw new BadRequestException("idMismatch", id, request.getId());
     }
+    // verify ownership:
+    verifyBookOwnership(id);
     Book entity = request.toEntity();
     entity = this.parseBookSwapCondition(request.getSwapCondition(), entity);
     entity = this.parseBookLocation(request.getLocation(), entity);
@@ -192,8 +210,11 @@ public class BookController {
   @DeleteMapping(ID)
   @Operation(summary = "Delete book by Book ID.", responses = {
       @ApiResponse(responseCode = "204", description = "Book deleted."),
+      @ApiResponse(responseCode = "403", description = "Not the book owner."),
       @ApiResponse(responseCode = "404", description = "Book not found.") })
   public ResponseEntity<Void> deleteBook(@Parameter(description = "Book ID.") @PathVariable String id) {
+    // verify ownership:
+    verifyBookOwnership(id);
     bookService.deleteBook(id);
     return ResponseEntity.noContent().build();
   }
@@ -206,8 +227,15 @@ public class BookController {
     return ResponseEntity.noContent().build();
   }
 
+  private void verifyBookOwnership(String bookId) {
+    String authenticatedUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+    Book book = bookService.getBookById(bookId);
+    if (book.owner() == null || !authenticatedUserId.equals(book.owner().id())) {
+      throw new AccessDeniedException("notBookOwner", bookId);
+    }
+  }
+
   private Book parseBookSwapCondition(String swapConditionJson, Book book) {
-    var objectMapper = new ObjectMapper();
     try {
       var swapCondition = objectMapper.readValue(swapConditionJson, SwapConditionRequest.class).toEntity();
       return book.withSwapCondition(swapCondition);
@@ -220,7 +248,6 @@ public class BookController {
     if (locationJson == null || locationJson.isBlank()) {
       return book;
     }
-    var objectMapper = new ObjectMapper();
     try {
       var location = objectMapper.readValue(locationJson, BookLocationRequest.class).toEntity();
       return book.withLocation(location);

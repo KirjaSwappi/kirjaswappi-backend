@@ -27,6 +27,24 @@ public class ValidationUtil {
     return Pattern.compile(regexPattern).matcher(emailAddress).matches();
   }
 
+  public static void validatePassword(String password, String fieldName) {
+    if (password == null || password.trim().isEmpty()) {
+      throw new BadRequestException(fieldName + "CannotBeBlank", password);
+    }
+    if (password.length() < 8) {
+      throw new BadRequestException("passwordTooShort", password);
+    }
+    if (!Pattern.compile("[A-Z]").matcher(password).find()) {
+      throw new BadRequestException("passwordMissingUppercase", password);
+    }
+    if (!Pattern.compile("[a-z]").matcher(password).find()) {
+      throw new BadRequestException("passwordMissingLowercase", password);
+    }
+    if (!Pattern.compile("[0-9]").matcher(password).find()) {
+      throw new BadRequestException("passwordMissingDigit", password);
+    }
+  }
+
   public static boolean validateOtp(String otp) {
     return otp == null
         || otp.trim().isEmpty()

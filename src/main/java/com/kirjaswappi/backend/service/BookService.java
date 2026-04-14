@@ -39,6 +39,7 @@ import com.kirjaswappi.backend.mapper.*;
 import com.kirjaswappi.backend.service.entities.Book;
 import com.kirjaswappi.backend.service.entities.Genre;
 import com.kirjaswappi.backend.service.entities.SwappableBook;
+import com.kirjaswappi.backend.service.enums.SwapStatus;
 import com.kirjaswappi.backend.service.exceptions.BookNotFoundException;
 import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 import com.kirjaswappi.backend.service.filters.FindAllBooksFilter;
@@ -375,7 +376,9 @@ public class BookService {
     var bookDao = bookRepository.findByIdAndIsDeletedFalse(bookId)
         .orElseThrow(() -> new BookNotFoundException(bookId));
     var owner = bookDao.owner();
-    assert owner.books() != null;
+    if (owner.books() == null) {
+      return List.of();
+    }
     return owner.books().stream()
         .filter(book -> !book.id().equals(bookId)) // Exclude the current book
         .map(this::bookWithImageUrlAndOwner).toList();
@@ -447,10 +450,29 @@ public class BookService {
 
       var swapRequests = swapRequestRepository.findByBookToSwapWithIdAndSwapStatus(bookId, "PENDING");
       for (var request : swapRequests) {
+        // Cancel pending swap requests when book is deleted
+        if ("deleted".equals(action)) {
+          request.swapStatus(SwapStatus.CANCELLED.getCode());
+          swapRequestRepository.save(request);
+        }
         String title = "Book " + action.substring(0, 1).toUpperCase() + action.substring(1);
         String message = String.format("The book '%s' you requested has been %s by its owner.",
             bookDao.title(), action);
         notificationClient.sendNotification(request.sender().id(), title, message);
+      }
+
+      // Also cancel accepted/reserved swap requests when book is deleted
+      if ("deleted".equals(action)) {
+        for (String status : List.of("ACCEPTED", "RESERVED")) {
+          var activeRequests = swapRequestRepository.findByBookToSwapWithIdAndSwapStatus(bookId, status);
+          for (var request : activeRequests) {
+            request.swapStatus(SwapStatus.CANCELLED.getCode());
+            swapRequestRepository.save(request);
+            String message = String.format("The book '%s' you requested has been deleted by its owner.",
+                bookDao.title());
+            notificationClient.sendNotification(request.sender().id(), "Book Deleted", message);
+          }
+        }
       }
     } catch (Exception e) {
       log.error("Failed to notify swap request senders about book change. BookId: {}", bookId, e);

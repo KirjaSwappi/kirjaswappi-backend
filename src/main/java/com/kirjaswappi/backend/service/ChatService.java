@@ -163,7 +163,11 @@ public class ChatService {
     // Upload images and get unique IDs
     List<String> imageIds = new ArrayList<>();
     if (images != null && !images.isEmpty()) {
+      long maxImageSize = 5 * 1024 * 1024; // 5MB per image
       for (MultipartFile image : images) {
+        if (image.getSize() > maxImageSize) {
+          throw new IllegalArgumentException("Image size exceeds 5MB limit");
+        }
         String uniqueId = UUID.randomUUID().toString();
         imageService.uploadImage(image, uniqueId);
         imageIds.add(uniqueId);
@@ -288,6 +292,19 @@ public class ChatService {
     Map<String, Instant> result = new HashMap<>();
     for (ChatMessageDao msg : messages) {
       result.putIfAbsent(msg.swapRequestId(), msg.sentAt());
+    }
+    return result;
+  }
+
+  public Map<String, Long> getBatchUnreadMessageCounts(List<String> swapRequestIds, String userId) {
+    if (swapRequestIds == null || swapRequestIds.isEmpty()) {
+      return Map.of();
+    }
+    List<ChatMessageDao> unreadMessages = chatMessageRepository
+        .findUnreadBySwapRequestIdInAndSenderIdNot(swapRequestIds, new ObjectId(userId));
+    Map<String, Long> result = new HashMap<>();
+    for (ChatMessageDao msg : unreadMessages) {
+      result.merge(msg.swapRequestId(), 1L, Long::sum);
     }
     return result;
   }

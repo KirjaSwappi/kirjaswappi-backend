@@ -27,6 +27,7 @@ import com.kirjaswappi.backend.common.http.dtos.requests.VerifyOtpRequest;
 import com.kirjaswappi.backend.common.http.dtos.responses.SendOtpResponse;
 import com.kirjaswappi.backend.common.http.dtos.responses.VerifyOtpResponse;
 import com.kirjaswappi.backend.common.service.OTPService;
+import com.kirjaswappi.backend.common.utils.JwtUtil;
 
 @RestController
 @RequestMapping(API_BASE)
@@ -34,6 +35,9 @@ import com.kirjaswappi.backend.common.service.OTPService;
 public class OTPController {
   @Autowired
   private OTPService otpService;
+
+  @Autowired
+  private JwtUtil jwtUtil;
 
   @PostMapping(SEND_OTP)
   @Operation(summary = "Send OTP to user email", description = "Generates and sends a one-time password (OTP) to the specified email address.", responses = {
@@ -54,6 +58,7 @@ public class OTPController {
   })
   public ResponseEntity<VerifyOtpResponse> verifyOTP(@RequestBody VerifyOtpRequest request) {
     String email = otpService.verifyOTPByEmail(request.toEntity());
-    return ResponseEntity.status(HttpStatus.OK).body(new VerifyOtpResponse(email));
+    String resetToken = jwtUtil.generatePasswordResetToken(email);
+    return ResponseEntity.status(HttpStatus.OK).body(new VerifyOtpResponse(email, resetToken));
   }
 }

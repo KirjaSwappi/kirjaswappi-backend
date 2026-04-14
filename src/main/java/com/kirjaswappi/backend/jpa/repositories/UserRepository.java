@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 
 import com.kirjaswappi.backend.jpa.daos.UserDao;
 
@@ -21,4 +22,7 @@ public interface UserRepository extends MongoRepository<UserDao, String> {
   Optional<UserDao> findByIdAndIsEmailVerifiedTrue(String id);
 
   List<UserDao> findAllByIsEmailVerifiedTrue();
+
+  @Query(value = "{ '$or': [ { 'favGenres.$id': ObjectId(?0) }, { 'books.genres.$id': ObjectId(?0) } ] }", exists = true)
+  boolean existsByGenreId(String genreId);
 }

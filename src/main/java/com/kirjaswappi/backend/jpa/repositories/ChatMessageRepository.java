@@ -22,4 +22,7 @@ public interface ChatMessageRepository extends MongoRepository<ChatMessageDao, S
   Optional<ChatMessageDao> findFirstBySwapRequestIdOrderBySentAtDesc(String swapRequestId);
 
   List<ChatMessageDao> findBySwapRequestIdInOrderBySentAtDesc(List<String> swapRequestIds);
+
+  @Query(value = "{ 'swapRequestId': { $in: ?0 }, 'readByReceiver': false, 'sender.$id': { $ne: ?1 } }")
+  List<ChatMessageDao> findUnreadBySwapRequestIdInAndSenderIdNot(List<String> swapRequestIds, ObjectId userId);
 }

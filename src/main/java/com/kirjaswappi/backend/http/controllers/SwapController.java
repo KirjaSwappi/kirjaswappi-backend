@@ -39,7 +39,12 @@ public class SwapController {
   @PostMapping
   @Operation(summary = "Create swap request for a book.", description = "Create swap request for a book.", responses = {
       @ApiResponse(responseCode = "201", description = "Swap request created.") })
-  public ResponseEntity<SwapRequestResponse> createSwapRequest(@Valid @RequestBody CreateSwapRequest request) {
+  public ResponseEntity<SwapRequestResponse> createSwapRequest(@Valid @RequestBody CreateSwapRequest request,
+      Principal principal) {
+    // Override senderId with authenticated user to prevent spoofing
+    if (principal != null) {
+      request.setSenderId(principal.getName());
+    }
     SwapRequest createdSwapRequest = swapService.createSwapRequest(request.toEntity());
     return ResponseEntity.status(HttpStatus.CREATED).body(new SwapRequestResponse(createdSwapRequest));
   }

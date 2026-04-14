@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.kirjaswappi.backend.http.dtos.responses.NestedGenresResponse;
 import com.kirjaswappi.backend.http.dtos.responses.ParentGenreResponse;
-import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.GenreRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.mapper.GenreMapper;
@@ -148,19 +147,7 @@ public class GenreService {
   }
 
   private boolean isIsBeingGenreUsed(String id) {
-    return userRepository.findAll().stream().anyMatch(user -> isGenreInFavGenres(user, id) || isGenreInBooks(user, id));
-  }
-
-  private boolean isGenreInFavGenres(UserDao user, String id) {
-    return user.favGenres() != null
-        && user.favGenres().stream().anyMatch(favGenre -> favGenre.id().equals(id));
-  }
-
-  private boolean isGenreInBooks(UserDao user, String id) {
-    return user.books() != null && user.books().stream()
-        .anyMatch(book -> book.genres().stream().anyMatch(genre -> genre.id().equals(id)) ||
-            (book.swapCondition() != null &&
-                book.swapCondition().swappableGenres().stream().anyMatch(g -> g.id().equals(id))));
+    return userRepository.existsByGenreId(id);
   }
 
   @CacheEvict(value = { "genres", "nested_genres" }, allEntries = true)

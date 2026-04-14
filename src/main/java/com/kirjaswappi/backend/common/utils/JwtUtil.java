@@ -196,4 +196,34 @@ public class JwtUtil {
   public String extractUserId(String token) {
     return extractClaim(token, Claims::getSubject);
   }
+
+  // =========== Password Reset Token Methods ===========
+
+  private static final String RESET_TOKEN_PURPOSE = "passwordReset";
+  private static final long RESET_TOKEN_EXPIRATION_MS = 900000; // 15 minutes
+
+  public String generatePasswordResetToken(String email) {
+    Map<String, Object> claims = new HashMap<>();
+    claims.put(TOKEN_PURPOSE, RESET_TOKEN_PURPOSE);
+    return Jwts.builder()
+        .claims(claims)
+        .subject(email)
+        .issuedAt(new Date(System.currentTimeMillis()))
+        .expiration(new Date(System.currentTimeMillis() + RESET_TOKEN_EXPIRATION_MS))
+        .signWith(SECRET_KEY)
+        .compact();
+  }
+
+  public boolean validatePasswordResetToken(String token) {
+    try {
+      Claims claims = extractAllClaims(token);
+      return RESET_TOKEN_PURPOSE.equals(claims.get(TOKEN_PURPOSE)) && isTokenValid(token);
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  public String extractEmailFromResetToken(String token) {
+    return extractClaim(token, Claims::getSubject);
+  }
 }
