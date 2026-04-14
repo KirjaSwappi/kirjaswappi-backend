@@ -279,6 +279,7 @@ public class UserService {
     return dao.email();
   }
 
+  @CacheEvict(value = "users", key = "#user.id")
   public User addFavouriteBook(User user) {
     var userDao = userRepository.findByIdAndIsEmailVerifiedTrue(user.id())
         .orElseThrow(() -> new UserNotFoundException(user.email()));
@@ -308,6 +309,7 @@ public class UserService {
     return getUser(user.id());
   }
 
+  @CacheEvict(value = "users", key = "#userId")
   public void removeFavouriteBook(String userId, String bookId) {
     var userDao = userRepository.findByIdAndIsEmailVerifiedTrue(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
