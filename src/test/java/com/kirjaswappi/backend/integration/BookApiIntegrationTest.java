@@ -533,7 +533,10 @@ class BookApiIntegrationTest {
           .thenReturn(new PageImpl<>(List.of(book), PageRequest.of(0, 100), 1));
 
       mockMvc.perform(get(API_BASE + "/map")
-          .param("city", "Helsinki"))
+          .param("north", "61.0")
+          .param("south", "59.0")
+          .param("east", "26.0")
+          .param("west", "23.0"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$._embedded.books.length()").value(1));
     }
@@ -544,9 +547,21 @@ class BookApiIntegrationTest {
       when(bookService.getAllBooksByFilter(any(), any(Pageable.class)))
           .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 100), 0));
 
-      mockMvc.perform(get(API_BASE + "/map"))
+      mockMvc.perform(get(API_BASE + "/map")
+          .param("north", "61.0")
+          .param("south", "59.0")
+          .param("east", "26.0")
+          .param("west", "23.0"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.page.totalElements").value(0));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when map bounds are incomplete")
+    void shouldReturn400WhenMapBoundsIncomplete() throws Exception {
+      mockMvc.perform(get(API_BASE + "/map")
+          .param("north", "61.0"))
+          .andExpect(status().isBadRequest());
     }
   }
 

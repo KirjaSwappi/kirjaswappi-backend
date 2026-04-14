@@ -109,6 +109,7 @@ class SwapControllerTest {
     when(swapService.createSwapRequest(any())).thenReturn(entity);
 
     mockMvc.perform(post(API_PATH)
+        .with(withUser("user1"))
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
@@ -133,6 +134,7 @@ class SwapControllerTest {
     CreateSwapRequest request = new CreateSwapRequest(); // All fields null
 
     mockMvc.perform(post(API_PATH)
+        .with(withUser("user1"))
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
@@ -153,6 +155,7 @@ class SwapControllerTest {
     request.setSwapOffer(offer);
 
     mockMvc.perform(post(API_PATH)
+        .with(withUser("user1"))
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
@@ -170,6 +173,7 @@ class SwapControllerTest {
     request.setSwapOffer(new CreateSwapRequest.SwapOfferRequest()); // both null
 
     mockMvc.perform(post(API_PATH)
+        .with(withUser("user1"))
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());

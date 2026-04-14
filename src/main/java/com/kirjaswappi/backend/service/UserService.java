@@ -142,10 +142,10 @@ public class UserService {
     // Delete photos
     try {
       if (dao.profilePhoto() != null) {
-        photoService.deleteProfilePhoto(dao.profilePhoto());
+        photoService.deleteProfilePhoto(dao.id());
       }
       if (dao.coverPhoto() != null) {
-        photoService.deleteCoverPhoto(dao.coverPhoto());
+        photoService.deleteCoverPhoto(dao.id());
       }
     } catch (Exception ignored) {
       // Best-effort photo cleanup
@@ -220,7 +220,7 @@ public class UserService {
 
     // validate email and password:
     if (userRepository.findByEmailAndPassword(dao.email(), password).isEmpty()) {
-      throw new BadRequestException("currentPasswordMismatch", user.password());
+      throw new BadRequestException("currentPasswordMismatch", user.email());
     }
   }
 
@@ -238,7 +238,7 @@ public class UserService {
     String currentPassword = dao.password();
     String newPassword = Util.hashPassword(user.password(), dao.salt());
     if (currentPassword.equals(newPassword)) {
-      throw new BadRequestException("newPasswordCannotBeSameAsCurrentPassword", user.password());
+      throw new BadRequestException("newPasswordCannotBeSameAsCurrentPassword", user.email());
     }
 
     // add new salt to new password:

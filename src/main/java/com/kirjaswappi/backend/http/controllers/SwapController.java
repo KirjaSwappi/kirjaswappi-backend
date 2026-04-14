@@ -41,10 +41,11 @@ public class SwapController {
       @ApiResponse(responseCode = "201", description = "Swap request created.") })
   public ResponseEntity<SwapRequestResponse> createSwapRequest(@Valid @RequestBody CreateSwapRequest request,
       Principal principal) {
-    // Override senderId with authenticated user to prevent spoofing
-    if (principal != null) {
-      request.setSenderId(principal.getName());
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
+    // Override senderId with authenticated user to prevent spoofing
+    request.setSenderId(principal.getName());
     SwapRequest createdSwapRequest = swapService.createSwapRequest(request.toEntity());
     return ResponseEntity.status(HttpStatus.CREATED).body(new SwapRequestResponse(createdSwapRequest));
   }

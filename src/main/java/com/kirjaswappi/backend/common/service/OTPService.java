@@ -106,7 +106,7 @@ public class OTPService {
 
   public String saveAndSendOTP(String email) throws IOException {
     if (email == null) {
-      throw new UserNotFoundException();
+      throw new BadRequestException("emailCannotBeNull");
     }
 
     // Rate limit OTP send attempts

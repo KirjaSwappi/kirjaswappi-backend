@@ -125,10 +125,15 @@ public class BookController {
 
   @GetMapping("/map")
   @Operation(summary = "Find books within map bounding box.", responses = {
-      @ApiResponse(responseCode = "200", description = "List of books within the map bounds.") })
+      @ApiResponse(responseCode = "200", description = "List of books within the map bounds."),
+      @ApiResponse(responseCode = "400", description = "Missing required map bounds.") })
   public ResponseEntity<PagedModel<BookListResponse>> findBooksInMapBounds(
       @Valid @ParameterObject FindAllBooksFilter filter,
       @PageableDefault(size = 100) Pageable pageable) {
+    if (filter.getNorth() == null || filter.getSouth() == null
+        || filter.getEast() == null || filter.getWest() == null) {
+      throw new BadRequestException("allMapBoundsRequired");
+    }
     Page<Book> books = bookService.getAllBooksByFilter(filter, pageable);
     Page<BookListResponse> response = books.map(BookListResponse::new);
     return ResponseEntity.status(HttpStatus.OK).body(LinkBuilder.forPage(response, API_BASE + BOOKS + "/map"));
@@ -228,7 +233,11 @@ public class BookController {
   }
 
   private void verifyBookOwnership(String bookId) {
-    String authenticatedUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null) {
+      throw new AccessDeniedException("notBookOwner", bookId);
+    }
+    String authenticatedUserId = authentication.getName();
     Book book = bookService.getBookById(bookId);
     if (book.owner() == null || !authenticatedUserId.equals(book.owner().id())) {
       throw new AccessDeniedException("notBookOwner", bookId);

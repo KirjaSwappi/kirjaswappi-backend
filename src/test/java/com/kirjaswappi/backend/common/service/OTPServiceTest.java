@@ -94,7 +94,7 @@ class OTPServiceTest {
   @Test
   @DisplayName("Should throw exception when saveAndSendOTP called with null email")
   void saveAndSendOTPThrowsOnNullEmail() {
-    assertThrows(UserNotFoundException.class, () -> otpService.saveAndSendOTP(null));
+    assertThrows(BadRequestException.class, () -> otpService.saveAndSendOTP(null));
   }
 
   @Test

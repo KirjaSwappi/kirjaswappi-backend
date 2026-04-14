@@ -29,19 +29,19 @@ public class ValidationUtil {
 
   public static void validatePassword(String password, String fieldName) {
     if (password == null || password.trim().isEmpty()) {
-      throw new BadRequestException(fieldName + "CannotBeBlank", password);
+      throw new BadRequestException(fieldName + "CannotBeBlank", fieldName);
     }
     if (password.length() < 8) {
-      throw new BadRequestException("passwordTooShort", password);
+      throw new BadRequestException("passwordTooShort", fieldName);
     }
     if (!Pattern.compile("[A-Z]").matcher(password).find()) {
-      throw new BadRequestException("passwordMissingUppercase", password);
+      throw new BadRequestException("passwordMissingUppercase", fieldName);
     }
     if (!Pattern.compile("[a-z]").matcher(password).find()) {
-      throw new BadRequestException("passwordMissingLowercase", password);
+      throw new BadRequestException("passwordMissingLowercase", fieldName);
     }
     if (!Pattern.compile("[0-9]").matcher(password).find()) {
-      throw new BadRequestException("passwordMissingDigit", password);
+      throw new BadRequestException("passwordMissingDigit", fieldName);
     }
   }
 

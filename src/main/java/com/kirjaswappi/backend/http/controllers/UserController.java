@@ -80,14 +80,30 @@ public class UserController {
 
   private boolean isLoginRateLimited(String email) {
     long now = System.currentTimeMillis();
-    long[] entry = loginAttempts.compute(email, (key, existing) -> {
+    long[] entry = loginAttempts.get(email);
+    if (entry == null) {
+      return false;
+    }
+    if (now - entry[1] > LOGIN_RATE_LIMIT_WINDOW_MS) {
+      loginAttempts.remove(email);
+      return false;
+    }
+    return entry[0] > MAX_LOGIN_ATTEMPTS;
+  }
+
+  private void recordFailedLogin(String email) {
+    long now = System.currentTimeMillis();
+    loginAttempts.compute(email, (key, existing) -> {
       if (existing == null || now - existing[1] > LOGIN_RATE_LIMIT_WINDOW_MS) {
         return new long[] { 1, now };
       }
       existing[0]++;
       return existing;
     });
-    return entry[0] > MAX_LOGIN_ATTEMPTS;
+  }
+
+  private void clearLoginAttempts(String email) {
+    loginAttempts.remove(email);
   }
 
   @PostMapping(SIGNUP)
@@ -171,10 +187,20 @@ public class UserController {
     if (email != null && isLoginRateLimited(email.toLowerCase())) {
       throw new BadRequestException("tooManyLoginAttempts", email);
     }
-    User user = userService.verifyLogin(authenticateUserRequest.toEntity());
-    String userToken = jwtUtil.generateUserToken(user.id(), user.email());
-    String userRefreshToken = jwtUtil.generateUserRefreshToken(user.id(), user.email());
-    return ResponseEntity.status(HttpStatus.OK).body(new UserLoginResponse(user, userToken, userRefreshToken));
+    try {
+      User user = userService.verifyLogin(authenticateUserRequest.toEntity());
+      if (email != null) {
+        clearLoginAttempts(email.toLowerCase());
+      }
+      String userToken = jwtUtil.generateUserToken(user.id(), user.email());
+      String userRefreshToken = jwtUtil.generateUserRefreshToken(user.id(), user.email());
+      return ResponseEntity.status(HttpStatus.OK).body(new UserLoginResponse(user, userToken, userRefreshToken));
+    } catch (Exception e) {
+      if (email != null) {
+        recordFailedLogin(email.toLowerCase());
+      }
+      throw e;
+    }
   }
 
   @PostMapping(LOGIN_WITH_GOOGLE)
@@ -220,7 +246,7 @@ public class UserController {
   @PostMapping(RESET_PASSWORD + EMAIL)
   @Operation(summary = "Reset password.", responses = {
       @ApiResponse(responseCode = "200", description = "Password reset successful."),
-      @ApiResponse(responseCode = "401", description = "Invalid or expired reset token.") })
+      @ApiResponse(responseCode = "400", description = "Invalid or expired reset token.") })
   public ResponseEntity<ResetPasswordResponse> resetPassword(
       @Parameter(description = "User email.") @PathVariable String email,
       @Valid @RequestBody ResetPasswordRequest request) {
@@ -269,7 +295,11 @@ public class UserController {
   }
 
   private void verifyUserIdentity(String targetUserId) {
-    String authenticatedUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null) {
+      throw new AccessDeniedException("notAccountOwner", targetUserId);
+    }
+    String authenticatedUserId = authentication.getName();
     if (!authenticatedUserId.equals(targetUserId)) {
       throw new AccessDeniedException("notAccountOwner", targetUserId);
     }

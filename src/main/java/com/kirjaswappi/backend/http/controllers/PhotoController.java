@@ -146,7 +146,11 @@ public class PhotoController {
   }
 
   private void verifyPhotoOwnership(String targetUserId) {
-    String authenticatedUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null) {
+      throw new AccessDeniedException("notPhotoOwner", targetUserId);
+    }
+    String authenticatedUserId = authentication.getName();
     if (!authenticatedUserId.equals(targetUserId)) {
       throw new AccessDeniedException("notPhotoOwner", targetUserId);
     }

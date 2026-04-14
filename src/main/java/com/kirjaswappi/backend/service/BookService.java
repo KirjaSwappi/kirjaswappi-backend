@@ -448,7 +448,8 @@ public class BookService {
       if (bookDao == null)
         return;
 
-      var swapRequests = swapRequestRepository.findByBookToSwapWithIdAndSwapStatus(bookId, "PENDING");
+      var swapRequests = swapRequestRepository.findByBookToSwapWithIdAndSwapStatus(bookId,
+          SwapStatus.PENDING.getCode());
       for (var request : swapRequests) {
         // Cancel pending swap requests when book is deleted
         if ("deleted".equals(action)) {
@@ -463,7 +464,7 @@ public class BookService {
 
       // Also cancel accepted/reserved swap requests when book is deleted
       if ("deleted".equals(action)) {
-        for (String status : List.of("ACCEPTED", "RESERVED")) {
+        for (String status : List.of(SwapStatus.ACCEPTED.getCode(), SwapStatus.RESERVED.getCode())) {
           var activeRequests = swapRequestRepository.findByBookToSwapWithIdAndSwapStatus(bookId, status);
           for (var request : activeRequests) {
             request.swapStatus(SwapStatus.CANCELLED.getCode());
