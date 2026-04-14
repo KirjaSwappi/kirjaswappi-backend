@@ -20,6 +20,7 @@ import com.kirjaswappi.backend.common.utils.Util;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.BookRepository;
+import com.kirjaswappi.backend.jpa.repositories.ChatMessageRepository;
 import com.kirjaswappi.backend.jpa.repositories.GenreRepository;
 import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
@@ -42,6 +43,8 @@ public class UserService {
   private final PhotoService photoService;
 
   private final BookRepository bookRepository;
+
+  private final ChatMessageRepository chatMessageRepository;
 
   private final SwapRequestRepository swapRequestRepository;
 
@@ -121,6 +124,18 @@ public class UserService {
     // validate user exists:
     var dao = userRepository.findById(id)
         .orElseThrow(() -> new UserNotFoundException(id));
+
+    // Collect swap request IDs for chat message cleanup
+    List<String> swapRequestIds = new ArrayList<>();
+    swapRequestRepository.findBySenderIdOrderByRequestedAtDesc(id)
+        .forEach(sr -> swapRequestIds.add(sr.id()));
+    swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc(id)
+        .forEach(sr -> swapRequestIds.add(sr.id()));
+
+    // Delete chat messages for these swap requests
+    if (!swapRequestIds.isEmpty()) {
+      chatMessageRepository.deleteAllBySwapRequestIdIn(swapRequestIds);
+    }
 
     // Delete all swap requests involving this user
     swapRequestRepository.deleteAllBySenderId(id);

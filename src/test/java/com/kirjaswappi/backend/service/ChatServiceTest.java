@@ -35,6 +35,7 @@ import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
 import com.kirjaswappi.backend.service.entities.ChatMessage;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
 import com.kirjaswappi.backend.service.entities.User;
+import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 import com.kirjaswappi.backend.service.exceptions.ChatAccessDeniedException;
 import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 
@@ -63,7 +64,6 @@ class ChatServiceTest {
   private ChatMessageDao chatMessageDao;
 
   @BeforeEach
-  @DisplayName("Setup mocks for ChatService tests")
   void setUp() {
     MockitoAnnotations.openMocks(this);
 
@@ -200,11 +200,11 @@ class ChatServiceTest {
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
 
     // When & Then
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(BadRequestException.class,
         () -> chatService.sendMessage("swap123", "64e8f5d1a2b3c4d5e6f78905", ""));
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(BadRequestException.class,
         () -> chatService.sendMessage("swap123", "64e8f5d1a2b3c4d5e6f78905", "   "));
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(BadRequestException.class,
         () -> chatService.sendMessage("swap123", "64e8f5d1a2b3c4d5e6f78905", null));
 
     verify(swapRequestRepository, times(3)).findById("swap123");
@@ -375,11 +375,11 @@ class ChatServiceTest {
     // repository
 
     // When & Then
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(BadRequestException.class,
         () -> chatService.sendMessage("swap123", "64e8f5d1a2b3c4d5e6f78905", null, null));
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(BadRequestException.class,
         () -> chatService.sendMessage("swap123", "64e8f5d1a2b3c4d5e6f78905", "", new ArrayList<>()));
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(BadRequestException.class,
         () -> chatService.sendMessage("swap123", "64e8f5d1a2b3c4d5e6f78905", "   ", new ArrayList<>()));
 
     // Validation happens first, so repository should not be called

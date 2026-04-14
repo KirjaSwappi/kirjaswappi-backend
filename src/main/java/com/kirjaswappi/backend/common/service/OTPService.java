@@ -99,14 +99,16 @@ public class OTPService {
 
     String rateLimitKey = SEND_RATE_LIMIT_PREFIX + email;
 
-    // Rate limit OTP send attempts
+    // Rate limit OTP send attempts (applied regardless of user existence)
     if (rateLimiterService.isRateLimited(rateLimitKey, MAX_SEND_ATTEMPTS)) {
       throw new BadRequestException("tooManySendOtpAttempts", email);
     }
 
+    // Record the attempt before checking user existence to prevent enumeration
+    rateLimiterService.recordAttempt(rateLimitKey, RATE_LIMIT_WINDOW);
+
     // Check if the user exists:
     if (!checkUserExists(email)) {
-      rateLimiterService.recordAttempt(rateLimitKey, RATE_LIMIT_WINDOW);
       throw new UserNotFoundException(email);
     }
 
@@ -122,7 +124,6 @@ public class OTPService {
 
     // Send OTP via email:
     emailService.sendOTPByEmail(dao.email(), newOTP.otp());
-    rateLimiterService.clearAttempts(rateLimitKey);
     return dao.email();
   }
 }

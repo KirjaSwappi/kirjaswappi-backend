@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.bson.types.ObjectId;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -33,9 +34,11 @@ import com.kirjaswappi.backend.mapper.SwapRequestMapper;
 import com.kirjaswappi.backend.service.entities.ChatMessage;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
 import com.kirjaswappi.backend.service.entities.User;
+import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 import com.kirjaswappi.backend.service.exceptions.ChatAccessDeniedException;
 import com.kirjaswappi.backend.service.exceptions.SwapRequestNotFoundException;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -101,7 +104,7 @@ public class ChatService {
 
     // Validate message content
     if (message == null || message.trim().isEmpty()) {
-      throw new IllegalArgumentException("Message cannot be empty");
+      throw new BadRequestException("messageCannotBeBlank");
     }
 
     // Get sender user
@@ -141,7 +144,7 @@ public class ChatService {
     boolean hasImages = images != null && !images.isEmpty();
 
     if (!hasMessage && !hasImages) {
-      throw new IllegalArgumentException("Either message text or images must be provided");
+      throw new BadRequestException("messageOrImageRequired");
     }
 
     // Validate swap request exists
@@ -166,7 +169,7 @@ public class ChatService {
       long maxImageSize = 5 * 1024 * 1024; // 5MB per image
       for (MultipartFile image : images) {
         if (image.getSize() > maxImageSize) {
-          throw new IllegalArgumentException("Image size exceeds 5MB limit");
+          throw new BadRequestException("imageSizeExceedsLimit");
         }
         String uniqueId = UUID.randomUUID().toString();
         imageService.uploadImage(image, uniqueId);
@@ -345,6 +348,7 @@ public class ChatService {
             try {
               messagingTemplate.convertAndSendToUser(userId, "/queue/inbox.refresh", "refresh");
             } catch (Exception e) {
+              log.debug("Failed to broadcast inbox update to user {}: {}", userId, e.getMessage());
             }
           }
         });
@@ -352,8 +356,7 @@ public class ChatService {
         messagingTemplate.convertAndSendToUser(userId, "/queue/inbox.refresh", "refresh");
       }
     } catch (Exception e) {
-      // Log error but don't fail the message sending
-      // Real-time updates are nice-to-have, not critical
+      log.debug("Failed to register inbox broadcast for user {}: {}", userId, e.getMessage());
     }
   }
 }

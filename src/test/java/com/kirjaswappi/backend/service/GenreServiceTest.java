@@ -102,11 +102,10 @@ class GenreServiceTest {
   @Test
   @DisplayName("Deletes a genre by ID")
   void deleteGenreDeletesGenre() {
-    var dao = new GenreDao().id("1");
-    when(genreRepository.findById("1")).thenReturn(Optional.of(dao));
     when(genreRepository.existsById("1")).thenReturn(true);
+    when(userRepository.existsByFavGenresId("1")).thenReturn(false);
+    when(bookRepository.existsByGenresId("1")).thenReturn(false);
     doNothing().when(genreRepository).deleteById("1");
-    when(userRepository.findAll()).thenReturn(List.of());
     genreService.deleteGenre("1");
     verify(genreRepository, times(1)).deleteById("1");
   }
@@ -114,7 +113,7 @@ class GenreServiceTest {
   @Test
   @DisplayName("Throws when deleting a non-existent genre")
   void deleteGenreThrowsWhenNotFound() {
-    when(genreRepository.findById("1")).thenReturn(Optional.empty());
+    when(genreRepository.existsById("1")).thenReturn(false);
     assertThrows(GenreNotFoundException.class, () -> {
       genreService.deleteGenre("1");
     });
@@ -543,24 +542,6 @@ class GenreServiceTest {
   }
 
   @Test
-  @DisplayName("deleteGenre throws GenreCannotBeDeletedException when genre is only in swappable genres")
-  void deleteGenreThrowsWhenOnlyInSwappableGenres() {
-    // Arrange
-    when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.existsByFavGenresId("1")).thenReturn(false);
-    when(bookRepository.existsByGenresId("1")).thenReturn(true);
-
-    // Act & Assert
-    assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
-      genreService.deleteGenre("1");
-    });
-    verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).existsByFavGenresId("1");
-    verify(bookRepository, times(1)).existsByGenresId("1");
-    verify(genreRepository, never()).deleteById("1");
-  }
-
-  @Test
   @DisplayName("deleteGenre succeeds when genre is not being used")
   void deleteGenreSucceedsWhenNotUsed() {
     // Arrange
@@ -580,41 +561,39 @@ class GenreServiceTest {
   }
 
   @Test
-  @DisplayName("deleteGenre handles null favGenres gracefully")
-  void deleteGenreHandlesNullFavGenres() {
+  @DisplayName("deleteGenre short-circuits when favGenres check returns true")
+  void deleteGenreShortCircuitsOnFavGenresCheck() {
     // Arrange
     when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.existsByFavGenresId("1")).thenReturn(false);
-    when(bookRepository.existsByGenresId("1")).thenReturn(false);
-    doNothing().when(genreRepository).deleteById("1");
+    when(userRepository.existsByFavGenresId("1")).thenReturn(true);
 
-    // Act
-    genreService.deleteGenre("1");
-
-    // Assert
+    // Act & Assert
+    assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
+      genreService.deleteGenre("1");
+    });
     verify(genreRepository, times(1)).existsById("1");
     verify(userRepository, times(1)).existsByFavGenresId("1");
-    verify(bookRepository, times(1)).existsByGenresId("1");
-    verify(genreRepository, times(1)).deleteById("1");
+    // bookRepository should not be called due to short-circuit || evaluation
+    verify(bookRepository, never()).existsByGenresId("1");
+    verify(genreRepository, never()).deleteById("1");
   }
 
   @Test
-  @DisplayName("deleteGenre handles null books gracefully")
-  void deleteGenreHandlesNullBooks() {
+  @DisplayName("deleteGenre checks bookRepository when favGenres check returns false")
+  void deleteGenreChecksBookRepoWhenFavGenresNotUsed() {
     // Arrange
     when(genreRepository.existsById("1")).thenReturn(true);
     when(userRepository.existsByFavGenresId("1")).thenReturn(false);
-    when(bookRepository.existsByGenresId("1")).thenReturn(false);
-    doNothing().when(genreRepository).deleteById("1");
+    when(bookRepository.existsByGenresId("1")).thenReturn(true);
 
-    // Act
-    genreService.deleteGenre("1");
-
-    // Assert
+    // Act & Assert
+    assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
+      genreService.deleteGenre("1");
+    });
     verify(genreRepository, times(1)).existsById("1");
     verify(userRepository, times(1)).existsByFavGenresId("1");
     verify(bookRepository, times(1)).existsByGenresId("1");
-    verify(genreRepository, times(1)).deleteById("1");
+    verify(genreRepository, never()).deleteById("1");
   }
 
   /**

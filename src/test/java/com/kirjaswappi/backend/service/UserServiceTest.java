@@ -22,6 +22,7 @@ import com.kirjaswappi.backend.jpa.daos.BookDao;
 import com.kirjaswappi.backend.jpa.daos.GenreDao;
 import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.BookRepository;
+import com.kirjaswappi.backend.jpa.repositories.ChatMessageRepository;
 import com.kirjaswappi.backend.jpa.repositories.GenreRepository;
 import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
@@ -41,6 +42,8 @@ class UserServiceTest {
   @Mock
   private BookRepository bookRepository;
   @Mock
+  private ChatMessageRepository chatMessageRepository;
+  @Mock
   private GenreRepository genreRepository;
   @Mock
   private SwapRequestRepository swapRequestRepository;
@@ -50,7 +53,6 @@ class UserServiceTest {
   private UserService userService;
 
   @BeforeEach
-  @DisplayName("Setup mocks for UserServiceTest")
   void setUp() {
     MockitoAnnotations.openMocks(this);
   }
