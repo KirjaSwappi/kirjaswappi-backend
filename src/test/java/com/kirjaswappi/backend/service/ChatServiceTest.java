@@ -144,9 +144,8 @@ class ChatServiceTest {
     assertEquals("Hello, is this book still available?", result.getFirst().message());
     verify(swapRequestRepository, times(2)).findById("swap123"); // Called twice: once in getChatMessages, once in
                                                                  // markMessagesAsRead
-    verify(chatMessageRepository, times(2)).findBySwapRequestIdOrderBySentAtAsc("swap123"); // Called twice: once for
-                                                                                            // getting messages, once
-                                                                                            // for marking as read
+    verify(chatMessageRepository).findBySwapRequestIdOrderBySentAtAsc("swap123");
+    verify(chatMessageRepository).markAsRead("swap123", "64e8f5d1a2b3c4d5e6f78905");
   }
 
   @Test
@@ -231,25 +230,15 @@ class ChatServiceTest {
   @DisplayName("Should mark messages as read when user has access")
   void shouldMarkMessagesAsReadWhenUserHasAccess() {
     // Given
-    ChatMessageDao unreadMessage = ChatMessageDao.builder()
-        .id("msg456")
-        .sender(senderDao) // Message from sender
-        .readByReceiver(false)
-        .build();
-
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
-    when(chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc("swap123"))
-        .thenReturn(Arrays.asList(unreadMessage));
-    when(chatMessageRepository.saveAll(anyList())).thenReturn(List.of(unreadMessage));
+    when(chatMessageRepository.markAsRead("swap123", "64e8f5d1a2b3c4d5e6f78901")).thenReturn(1L);
 
     // When - receiver marks messages as read
     chatService.markMessagesAsRead("swap123", "64e8f5d1a2b3c4d5e6f78901");
 
     // Then
     verify(swapRequestRepository).findById("swap123");
-    verify(chatMessageRepository).findBySwapRequestIdOrderBySentAtAsc("swap123");
-    verify(chatMessageRepository).saveAll(List.of(unreadMessage));
-    assertTrue(unreadMessage.readByReceiver());
+    verify(chatMessageRepository).markAsRead("swap123", "64e8f5d1a2b3c4d5e6f78901");
   }
 
   @Test
@@ -301,9 +290,8 @@ class ChatServiceTest {
     assertEquals(1, result.size());
     verify(swapRequestRepository, times(2)).findById("swap123"); // Called twice: once in getChatMessages, once in
                                                                  // markMessagesAsRead
-    verify(chatMessageRepository, times(2)).findBySwapRequestIdOrderBySentAtAsc("swap123"); // Called twice: once for
-                                                                                            // getting messages, once
-                                                                                            // for marking as read
+    verify(chatMessageRepository).findBySwapRequestIdOrderBySentAtAsc("swap123");
+    verify(chatMessageRepository).markAsRead("swap123", "64e8f5d1a2b3c4d5e6f78901");
   }
 
   @Test
@@ -516,42 +504,29 @@ class ChatServiceTest {
   @DisplayName("Should not mark own messages as read")
   void shouldNotMarkOwnMessagesAsRead() {
     // Given
-    ChatMessageDao ownMessage = new ChatMessageDao()
-        .id("msg111")
-        .sender(senderDao) // Message from sender
-        .readByReceiver(false);
-
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
-    when(chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc("swap123"))
-        .thenReturn(Arrays.asList(ownMessage));
+    when(chatMessageRepository.markAsRead("swap123", "64e8f5d1a2b3c4d5e6f78905")).thenReturn(0L);
 
-    // When - sender marks messages as read (should not mark their own message)
+    // When - sender marks messages as read (own messages filtered by DB query)
     chatService.markMessagesAsRead("swap123", "64e8f5d1a2b3c4d5e6f78905");
 
     // Then
     verify(swapRequestRepository).findById("swap123");
-    verify(chatMessageRepository).findBySwapRequestIdOrderBySentAtAsc("swap123");
-    verify(chatMessageRepository, never()).save(any(ChatMessageDao.class)); // Should not save since it's own message
+    verify(chatMessageRepository).markAsRead("swap123", "64e8f5d1a2b3c4d5e6f78905");
   }
 
   @Test
   @DisplayName("Should not mark already read messages")
   void shouldNotMarkAlreadyReadMessages() {
     // Given
-    ChatMessageDao alreadyReadMessage = new ChatMessageDao()
-        .id("msg222")
-        .sender(senderDao) // Message from sender
-        .readByReceiver(true); // Already read
-
     when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
-    when(chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc("swap123"))
-        .thenReturn(Arrays.asList(alreadyReadMessage));
+    when(chatMessageRepository.markAsRead("swap123", "64e8f5d1a2b3c4d5e6f78901")).thenReturn(0L);
 
-    // When - receiver marks messages as read
+    // When - receiver marks messages as read (already read, so 0 modified)
     chatService.markMessagesAsRead("swap123", "64e8f5d1a2b3c4d5e6f78901");
 
     // Then
-    verify(chatMessageRepository, never()).save(any(ChatMessageDao.class)); // Should not save already read messages
+    verify(chatMessageRepository).markAsRead("swap123", "64e8f5d1a2b3c4d5e6f78901");
   }
 
   @Test
@@ -687,7 +662,8 @@ class ChatServiceTest {
     // Then
     assertNotNull(result);
     assertEquals(0, result.size());
-    verify(chatMessageRepository, times(2)).findBySwapRequestIdOrderBySentAtAsc("swap123");
+    verify(chatMessageRepository).findBySwapRequestIdOrderBySentAtAsc("swap123");
+    verify(chatMessageRepository).markAsRead("swap123", "64e8f5d1a2b3c4d5e6f78905");
   }
 
   @Test

@@ -4,40 +4,37 @@
  */
 package com.kirjaswappi.backend.common.service;
 
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 
-/**
- * Simple service to filter explicit or dangerous words from text. This is a
- * basic implementation that can be expanded with more comprehensive lists.
- */
 @Service
 public class ProfanityFilterService {
 
-  // Common profanity words to filter in a book exchange context
   private static final Set<String> BANNED_WORDS = Set.of(
       "fuck", "shit", "asshole", "bitch", "bastard",
       "dick", "cunt", "damn", "piss", "slut",
       "whore", "nigger", "faggot", "retard", "twat",
       "wanker", "bollocks", "motherfucker", "cocksucker", "arse");
 
-  /**
-   * Replaces banned words in the given text with asterisks.
-   *
-   * @param text The text to filter
-   * @return The filtered text
-   */
+  private static final List<Pattern> BANNED_PATTERNS;
+
+  static {
+    BANNED_PATTERNS = BANNED_WORDS.stream()
+        .map(word -> Pattern.compile("\\b" + Pattern.quote(word) + "\\b", Pattern.CASE_INSENSITIVE))
+        .toList();
+  }
+
   public String filter(String text) {
     if (text == null) {
       return null;
     }
 
     String filtered = text;
-    for (String word : BANNED_WORDS) {
-      // Case-insensitive replacement
-      filtered = filtered.replaceAll("(?i)" + Pattern.quote(word), "***");
+    for (Pattern pattern : BANNED_PATTERNS) {
+      filtered = pattern.matcher(filtered).replaceAll("***");
     }
     return filtered;
   }

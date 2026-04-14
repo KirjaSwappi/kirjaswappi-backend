@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.kirjaswappi.backend.http.dtos.responses.NestedGenresResponse;
 import com.kirjaswappi.backend.http.dtos.responses.ParentGenreResponse;
+import com.kirjaswappi.backend.jpa.repositories.BookRepository;
 import com.kirjaswappi.backend.jpa.repositories.GenreRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.mapper.GenreMapper;
@@ -38,6 +39,8 @@ public class GenreService {
   private final GenreRepository genreRepository;
 
   private final UserRepository userRepository;
+
+  private final BookRepository bookRepository;
 
   @Cacheable(value = "genres")
   public List<Genre> getGenres() {
@@ -147,7 +150,7 @@ public class GenreService {
   }
 
   private boolean isIsBeingGenreUsed(String id) {
-    return userRepository.existsByGenreId(id);
+    return userRepository.existsByFavGenresId(id) || bookRepository.existsByGenresId(id);
   }
 
   @CacheEvict(value = { "genres", "nested_genres" }, allEntries = true)

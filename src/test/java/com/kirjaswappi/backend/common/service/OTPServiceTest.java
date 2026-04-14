@@ -33,6 +33,8 @@ class OTPServiceTest {
   private UserService userService;
   @Mock
   private EmailService emailService;
+  @Mock
+  private RateLimiterService rateLimiterService;
   @InjectMocks
   private OTPService otpService;
 

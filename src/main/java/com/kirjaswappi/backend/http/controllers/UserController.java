@@ -7,9 +7,9 @@ package com.kirjaswappi.backend.http.controllers;
 import static com.kirjaswappi.backend.common.utils.Constants.*;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.validation.Valid;
 
@@ -41,6 +41,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.kirjaswappi.backend.common.http.ErrorResponse;
 import com.kirjaswappi.backend.common.service.OTPService;
+import com.kirjaswappi.backend.common.service.RateLimiterService;
 import com.kirjaswappi.backend.common.utils.JwtUtil;
 import com.kirjaswappi.backend.common.utils.LinkBuilder;
 import com.kirjaswappi.backend.http.dtos.requests.*;
@@ -73,38 +74,12 @@ public class UserController {
   @Autowired
   private JwtUtil jwtUtil;
 
-  // =========== LOGIN RATE LIMITING ===========
+  @Autowired
+  private RateLimiterService rateLimiterService;
+
   private static final int MAX_LOGIN_ATTEMPTS = 10;
-  private static final long LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-  private final ConcurrentHashMap<String, long[]> loginAttempts = new ConcurrentHashMap<>();
-
-  private boolean isLoginRateLimited(String email) {
-    long now = System.currentTimeMillis();
-    long[] entry = loginAttempts.get(email);
-    if (entry == null) {
-      return false;
-    }
-    if (now - entry[1] > LOGIN_RATE_LIMIT_WINDOW_MS) {
-      loginAttempts.remove(email);
-      return false;
-    }
-    return entry[0] >= MAX_LOGIN_ATTEMPTS;
-  }
-
-  private void recordFailedLogin(String email) {
-    long now = System.currentTimeMillis();
-    loginAttempts.compute(email, (key, existing) -> {
-      if (existing == null || now - existing[1] > LOGIN_RATE_LIMIT_WINDOW_MS) {
-        return new long[] { 1, now };
-      }
-      existing[0]++;
-      return existing;
-    });
-  }
-
-  private void clearLoginAttempts(String email) {
-    loginAttempts.remove(email);
-  }
+  private static final Duration LOGIN_RATE_LIMIT_WINDOW = Duration.ofMinutes(15);
+  private static final String LOGIN_RATE_LIMIT_PREFIX = "ratelimit:login:";
 
   @PostMapping(SIGNUP)
   @Operation(summary = "Create user.", responses = {
@@ -184,20 +159,21 @@ public class UserController {
       @ApiResponse(responseCode = "200", description = "User logged in.") })
   public ResponseEntity<UserLoginResponse> login(@Valid @RequestBody AuthenticateUserRequest authenticateUserRequest) {
     String email = authenticateUserRequest.getEmail();
-    if (email != null && isLoginRateLimited(email.toLowerCase())) {
+    String rateLimitKey = email != null ? LOGIN_RATE_LIMIT_PREFIX + email.toLowerCase() : null;
+    if (rateLimitKey != null && rateLimiterService.isRateLimited(rateLimitKey, MAX_LOGIN_ATTEMPTS)) {
       throw new BadRequestException("tooManyLoginAttempts", email);
     }
     try {
       User user = userService.verifyLogin(authenticateUserRequest.toEntity());
-      if (email != null) {
-        clearLoginAttempts(email.toLowerCase());
+      if (rateLimitKey != null) {
+        rateLimiterService.clearAttempts(rateLimitKey);
       }
       String userToken = jwtUtil.generateUserToken(user.id(), user.email());
       String userRefreshToken = jwtUtil.generateUserRefreshToken(user.id(), user.email());
       return ResponseEntity.status(HttpStatus.OK).body(new UserLoginResponse(user, userToken, userRefreshToken));
     } catch (Exception e) {
-      if (email != null) {
-        recordFailedLogin(email.toLowerCase());
+      if (rateLimitKey != null) {
+        rateLimiterService.recordAttempt(rateLimitKey, LOGIN_RATE_LIMIT_WINDOW);
       }
       throw e;
     }

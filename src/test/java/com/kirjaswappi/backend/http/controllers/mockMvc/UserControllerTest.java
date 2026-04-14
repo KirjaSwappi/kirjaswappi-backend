@@ -75,6 +75,9 @@ public class UserControllerTest {
   @MockitoBean
   private JwtUtil jwtUtil;
 
+  @MockitoBean
+  private com.kirjaswappi.backend.common.service.RateLimiterService rateLimiterService;
+
   private User user;
 
   private CreateUserRequest createUserRequest;

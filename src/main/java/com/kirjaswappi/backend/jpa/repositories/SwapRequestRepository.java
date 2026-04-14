@@ -32,4 +32,8 @@ public interface SwapRequestRepository extends MongoRepository<SwapRequestDao, S
 
   // Find active swap requests for a specific book
   List<SwapRequestDao> findByBookToSwapWithIdAndSwapStatus(String bookToSwapWithId, String swapStatus);
+
+  void deleteAllBySenderId(String senderId);
+
+  void deleteAllByReceiverId(String receiverId);
 }

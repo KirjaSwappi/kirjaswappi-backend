@@ -122,15 +122,9 @@ public class UserService {
     var dao = userRepository.findById(id)
         .orElseThrow(() -> new UserNotFoundException(id));
 
-    // Cancel all active swap requests involving this user (as sender or receiver)
-    var sentRequests = swapRequestRepository.findBySenderIdOrderByRequestedAtDesc(id);
-    var receivedRequests = swapRequestRepository.findByReceiverIdOrderByRequestedAtDesc(id);
-    for (var request : sentRequests) {
-      swapRequestRepository.deleteById(request.id());
-    }
-    for (var request : receivedRequests) {
-      swapRequestRepository.deleteById(request.id());
-    }
+    // Delete all swap requests involving this user
+    swapRequestRepository.deleteAllBySenderId(id);
+    swapRequestRepository.deleteAllByReceiverId(id);
 
     // Soft-delete all books owned by this user
     if (dao.books() != null) {

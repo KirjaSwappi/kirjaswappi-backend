@@ -22,6 +22,7 @@ import org.mockito.MockitoAnnotations;
 import com.kirjaswappi.backend.http.dtos.responses.NestedGenresResponse;
 import com.kirjaswappi.backend.http.dtos.responses.ParentGenreResponse;
 import com.kirjaswappi.backend.jpa.daos.GenreDao;
+import com.kirjaswappi.backend.jpa.repositories.BookRepository;
 import com.kirjaswappi.backend.jpa.repositories.GenreRepository;
 import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.service.entities.Genre;
@@ -33,6 +34,8 @@ class GenreServiceTest {
   private GenreRepository genreRepository;
   @Mock
   private UserRepository userRepository;
+  @Mock
+  private BookRepository bookRepository;
   @InjectMocks
   private GenreService genreService;
 
@@ -510,14 +513,14 @@ class GenreServiceTest {
   void deleteGenreThrowsWhenInFavoriteGenres() {
     // Arrange
     when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.existsByGenreId("1")).thenReturn(true);
+    when(userRepository.existsByFavGenresId("1")).thenReturn(true);
 
     // Act & Assert
     assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
       genreService.deleteGenre("1");
     });
     verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).existsByGenreId("1");
+    verify(userRepository, times(1)).existsByFavGenresId("1");
     verify(genreRepository, never()).deleteById("1");
   }
 
@@ -526,14 +529,16 @@ class GenreServiceTest {
   void deleteGenreThrowsWhenInBookGenres() {
     // Arrange
     when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.existsByGenreId("1")).thenReturn(true);
+    when(userRepository.existsByFavGenresId("1")).thenReturn(false);
+    when(bookRepository.existsByGenresId("1")).thenReturn(true);
 
     // Act & Assert
     assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
       genreService.deleteGenre("1");
     });
     verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).existsByGenreId("1");
+    verify(userRepository, times(1)).existsByFavGenresId("1");
+    verify(bookRepository, times(1)).existsByGenresId("1");
     verify(genreRepository, never()).deleteById("1");
   }
 
@@ -542,14 +547,16 @@ class GenreServiceTest {
   void deleteGenreThrowsWhenOnlyInSwappableGenres() {
     // Arrange
     when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.existsByGenreId("1")).thenReturn(true);
+    when(userRepository.existsByFavGenresId("1")).thenReturn(false);
+    when(bookRepository.existsByGenresId("1")).thenReturn(true);
 
     // Act & Assert
     assertThrows(com.kirjaswappi.backend.service.exceptions.GenreCannotBeDeletedException.class, () -> {
       genreService.deleteGenre("1");
     });
     verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).existsByGenreId("1");
+    verify(userRepository, times(1)).existsByFavGenresId("1");
+    verify(bookRepository, times(1)).existsByGenresId("1");
     verify(genreRepository, never()).deleteById("1");
   }
 
@@ -558,7 +565,8 @@ class GenreServiceTest {
   void deleteGenreSucceedsWhenNotUsed() {
     // Arrange
     when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.existsByGenreId("1")).thenReturn(false);
+    when(userRepository.existsByFavGenresId("1")).thenReturn(false);
+    when(bookRepository.existsByGenresId("1")).thenReturn(false);
     doNothing().when(genreRepository).deleteById("1");
 
     // Act
@@ -566,7 +574,8 @@ class GenreServiceTest {
 
     // Assert
     verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).existsByGenreId("1");
+    verify(userRepository, times(1)).existsByFavGenresId("1");
+    verify(bookRepository, times(1)).existsByGenresId("1");
     verify(genreRepository, times(1)).deleteById("1");
   }
 
@@ -575,7 +584,8 @@ class GenreServiceTest {
   void deleteGenreHandlesNullFavGenres() {
     // Arrange
     when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.existsByGenreId("1")).thenReturn(false);
+    when(userRepository.existsByFavGenresId("1")).thenReturn(false);
+    when(bookRepository.existsByGenresId("1")).thenReturn(false);
     doNothing().when(genreRepository).deleteById("1");
 
     // Act
@@ -583,7 +593,8 @@ class GenreServiceTest {
 
     // Assert
     verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).existsByGenreId("1");
+    verify(userRepository, times(1)).existsByFavGenresId("1");
+    verify(bookRepository, times(1)).existsByGenresId("1");
     verify(genreRepository, times(1)).deleteById("1");
   }
 
@@ -592,7 +603,8 @@ class GenreServiceTest {
   void deleteGenreHandlesNullBooks() {
     // Arrange
     when(genreRepository.existsById("1")).thenReturn(true);
-    when(userRepository.existsByGenreId("1")).thenReturn(false);
+    when(userRepository.existsByFavGenresId("1")).thenReturn(false);
+    when(bookRepository.existsByGenresId("1")).thenReturn(false);
     doNothing().when(genreRepository).deleteById("1");
 
     // Act
@@ -600,7 +612,8 @@ class GenreServiceTest {
 
     // Assert
     verify(genreRepository, times(1)).existsById("1");
-    verify(userRepository, times(1)).existsByGenreId("1");
+    verify(userRepository, times(1)).existsByFavGenresId("1");
+    verify(bookRepository, times(1)).existsByGenresId("1");
     verify(genreRepository, times(1)).deleteById("1");
   }
 

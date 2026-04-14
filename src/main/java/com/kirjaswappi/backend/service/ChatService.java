@@ -220,21 +220,8 @@ public class ChatService {
       throw new ChatAccessDeniedException();
     }
 
-    // Get all messages in this chat that are not from the current user and are
-    // unread
-    List<ChatMessageDao> allMessages = chatMessageRepository.findBySwapRequestIdOrderBySentAtAsc(swapRequestId);
-    List<ChatMessageDao> unreadMessages = allMessages
-        .stream()
-        .filter(msg -> !msg.sender().id().equals(userId) && !msg.readByReceiver())
-        .toList();
-
-    // Mark messages as read
-    for (ChatMessageDao message : unreadMessages) {
-      message.readByReceiver(true);
-    }
-    if (!unreadMessages.isEmpty()) {
-      chatMessageRepository.saveAll(unreadMessages);
-    }
+    // Bulk-update unread messages in a single DB operation
+    chatMessageRepository.markAsRead(swapRequestId, userId);
 
     // Also mark the swap request inbox item as read so the inbox endpoint returns
     // unread=false

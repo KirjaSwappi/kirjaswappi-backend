@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.ConcurrentHashMap;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,46 +35,14 @@ public class OTPService {
 
   private final EmailService emailService;
 
+  private final RateLimiterService rateLimiterService;
+
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
   private static final int MAX_VERIFY_ATTEMPTS = 5;
   private static final int MAX_SEND_ATTEMPTS = 5;
   private static final Duration RATE_LIMIT_WINDOW = Duration.ofMinutes(15);
-
-  private final ConcurrentHashMap<String, RateLimitEntry> verifyAttempts = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, RateLimitEntry> sendAttempts = new ConcurrentHashMap<>();
-
-  private record RateLimitEntry(
-      int count,
-      Instant windowStart
-  ) {
-  }
-
-  private boolean isRateLimited(ConcurrentHashMap<String, RateLimitEntry> attempts, String key, int maxAttempts) {
-    var now = Instant.now();
-    var entry = attempts.get(key);
-    if (entry == null) {
-      return false;
-    }
-    if (entry.windowStart().plus(RATE_LIMIT_WINDOW).isBefore(now)) {
-      attempts.remove(key);
-      return false;
-    }
-    return entry.count() >= maxAttempts;
-  }
-
-  private void recordFailedAttempt(ConcurrentHashMap<String, RateLimitEntry> attempts, String key) {
-    var now = Instant.now();
-    attempts.compute(key, (k, existing) -> {
-      if (existing == null || existing.windowStart().plus(RATE_LIMIT_WINDOW).isBefore(now)) {
-        return new RateLimitEntry(1, now);
-      }
-      return new RateLimitEntry(existing.count() + 1, existing.windowStart());
-    });
-  }
-
-  private void clearAttempts(ConcurrentHashMap<String, RateLimitEntry> attempts, String key) {
-    attempts.remove(key);
-  }
+  private static final String VERIFY_RATE_LIMIT_PREFIX = "ratelimit:otp-verify:";
+  private static final String SEND_RATE_LIMIT_PREFIX = "ratelimit:otp-send:";
 
   private static String generateOTP() {
     return SECURE_RANDOM.ints(6, 0, NUMERIC.length())
@@ -94,8 +61,10 @@ public class OTPService {
       throw new BadRequestException("emailCannotBeNull");
     }
 
+    String rateLimitKey = VERIFY_RATE_LIMIT_PREFIX + otp.email();
+
     // Rate limit OTP verification attempts
-    if (isRateLimited(verifyAttempts, otp.email(), MAX_VERIFY_ATTEMPTS)) {
+    if (rateLimiterService.isRateLimited(rateLimitKey, MAX_VERIFY_ATTEMPTS)) {
       throw new BadRequestException("tooManyVerifyAttempts", otp.email());
     }
 
@@ -103,19 +72,19 @@ public class OTPService {
 
     // check provided OTP with the stored OTP:
     if (!otpEntity.otp().equals(otp.otp())) {
-      recordFailedAttempt(verifyAttempts, otp.email());
+      rateLimiterService.recordAttempt(rateLimitKey, RATE_LIMIT_WINDOW);
       throw new BadRequestException("otpDoesNotMatch", otp);
     }
 
     // Check if the OTP is older than 15 minutes
     if (otpEntity.createdAt().plus(Duration.ofMinutes(15)).isBefore(Instant.now())) {
-      recordFailedAttempt(verifyAttempts, otp.email());
+      rateLimiterService.recordAttempt(rateLimitKey, RATE_LIMIT_WINDOW);
       throw new BadRequestException("otpExpired", otp);
     }
 
     // Delete the OTP after verification:
     otpRepository.deleteAllByEmail(otp.email());
-    clearAttempts(verifyAttempts, otp.email());
+    rateLimiterService.clearAttempts(rateLimitKey);
     return otpEntity.email();
   }
 
@@ -128,14 +97,16 @@ public class OTPService {
       throw new BadRequestException("emailCannotBeNull");
     }
 
+    String rateLimitKey = SEND_RATE_LIMIT_PREFIX + email;
+
     // Rate limit OTP send attempts
-    if (isRateLimited(sendAttempts, email, MAX_SEND_ATTEMPTS)) {
+    if (rateLimiterService.isRateLimited(rateLimitKey, MAX_SEND_ATTEMPTS)) {
       throw new BadRequestException("tooManySendOtpAttempts", email);
     }
 
     // Check if the user exists:
     if (!checkUserExists(email)) {
-      recordFailedAttempt(sendAttempts, email);
+      rateLimiterService.recordAttempt(rateLimitKey, RATE_LIMIT_WINDOW);
       throw new UserNotFoundException(email);
     }
 
@@ -151,7 +122,7 @@ public class OTPService {
 
     // Send OTP via email:
     emailService.sendOTPByEmail(dao.email(), newOTP.otp());
-    clearAttempts(sendAttempts, email);
+    rateLimiterService.clearAttempts(rateLimitKey);
     return dao.email();
   }
 }
