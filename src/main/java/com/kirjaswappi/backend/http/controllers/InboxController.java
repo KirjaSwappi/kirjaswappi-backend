@@ -61,7 +61,7 @@ public class InboxController {
     String userId = principal.getName();
     List<SwapRequest> swapRequests = inboxService.getUnifiedInbox(userId, status, sortBy);
 
-    // Batch-fetch unread counts and latest messages to avoid N+1 queries
+    // Batch-fetch unread counts to avoid N+1 queries
     List<String> swapRequestIds = swapRequests.stream().map(SwapRequest::id).toList();
     Map<String, Long> unreadCounts = inboxService.getBatchUnreadMessageCounts(userId, swapRequestIds);
 

@@ -88,7 +88,7 @@ class OTPServiceTest {
   @DisplayName("Should throw exception when email is null in OTP")
   void verifyOTPThrowsOnNullEmail() {
     OTP nullEmailOtp = OTP.builder().email(null).otp(otpValue).createdAt(Instant.now()).build();
-    assertThrows(ResourceNotFoundException.class, () -> otpService.verifyOTPByEmail(nullEmailOtp));
+    assertThrows(BadRequestException.class, () -> otpService.verifyOTPByEmail(nullEmailOtp));
   }
 
   @Test

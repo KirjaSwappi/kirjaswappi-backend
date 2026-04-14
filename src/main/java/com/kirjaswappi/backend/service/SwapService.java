@@ -150,10 +150,13 @@ public class SwapService {
       throw new IllegalSwapRequestException("onlyParticipantsCanChangeStatus");
     }
 
-    // Only receivers can accept/reject/reserve; both can cancel/complete
+    // Only receivers can accept/reject/reserve; only senders can expire
     if ((newStatus == SwapStatus.ACCEPTED || newStatus == SwapStatus.REJECTED || newStatus == SwapStatus.RESERVED)
         && !isReceiver) {
       throw new IllegalSwapRequestException("onlyReceiverCanChangeStatus");
+    }
+    if (newStatus == SwapStatus.EXPIRED && !isSender) {
+      throw new IllegalSwapRequestException("onlySenderCanExpire");
     }
 
     SwapStatus currentStatus = swapRequest.swapStatus();

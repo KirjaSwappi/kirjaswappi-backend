@@ -88,7 +88,7 @@ public class UserController {
       loginAttempts.remove(email);
       return false;
     }
-    return entry[0] > MAX_LOGIN_ATTEMPTS;
+    return entry[0] >= MAX_LOGIN_ATTEMPTS;
   }
 
   private void recordFailedLogin(String email) {

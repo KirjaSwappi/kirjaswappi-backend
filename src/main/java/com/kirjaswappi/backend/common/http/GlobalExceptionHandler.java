@@ -146,6 +146,6 @@ public class GlobalExceptionHandler {
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   public ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex) {
     log.warn("Invalid argument: {}", ex.getMessage());
-    return new ErrorResponse(new ErrorResponse.Error("invalidArgument", ex.getMessage()));
+    return new ErrorResponse(new ErrorResponse.Error("invalidArgument", "Invalid request argument"));
   }
 }

@@ -60,7 +60,7 @@ public class OTPService {
       attempts.remove(key);
       return false;
     }
-    return entry.count() > maxAttempts;
+    return entry.count() >= maxAttempts;
   }
 
   private void recordFailedAttempt(ConcurrentHashMap<String, RateLimitEntry> attempts, String key) {
@@ -91,7 +91,7 @@ public class OTPService {
 
   public String verifyOTPByEmail(OTP otp) {
     if (otp.email() == null) {
-      throw new ResourceNotFoundException("otpNotFound", (Object) null);
+      throw new BadRequestException("emailCannotBeNull");
     }
 
     // Rate limit OTP verification attempts
