@@ -11,6 +11,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
+import com.kirjaswappi.backend.jpa.daos.ChatMessageDao;
+
 @Repository
 public class CustomChatMessageRepositoryImpl implements CustomChatMessageRepository {
 
@@ -26,6 +28,6 @@ public class CustomChatMessageRepositoryImpl implements CustomChatMessageReposit
         .and("readByReceiver").is(false)
         .and("sender.$id").ne(new ObjectId(userId)));
     Update update = new Update().set("readByReceiver", true);
-    return mongoTemplate.updateMulti(query, update, "chatMessages").getModifiedCount();
+    return mongoTemplate.updateMulti(query, update, ChatMessageDao.class).getModifiedCount();
   }
 }

@@ -466,7 +466,7 @@ class InboxServiceTest {
   }
 
   @Test
-  @DisplayName("Should not update inbox item if already read by receiver")
+  @DisplayName("Should update inbox item even if already read by receiver")
   void shouldNotUpdateInboxItemIfAlreadyReadByReceiver() {
     // Given
     Instant readTime = Instant.parse("2025-01-01T12:00:00Z");
@@ -476,14 +476,15 @@ class InboxServiceTest {
     // When
     inboxService.markInboxItemAsRead("received1", "receiver123");
 
-    // Then
-    assertEquals(readTime, receivedSwapRequest.readByReceiverAt()); // Should remain unchanged
+    // Then - timestamp should be updated to a newer value
+    assertNotNull(receivedSwapRequest.readByReceiverAt());
+    assertNotEquals(readTime, receivedSwapRequest.readByReceiverAt());
     verify(swapRequestRepository).findById("received1");
-    verify(swapRequestRepository, never()).save(any()); // Should not save if already read
+    verify(swapRequestRepository).save(receivedSwapRequest);
   }
 
   @Test
-  @DisplayName("Should not update inbox item if already read by sender")
+  @DisplayName("Should update inbox item even if already read by sender")
   void shouldNotUpdateInboxItemIfAlreadyReadBySender() {
     // Given
     Instant readTime = Instant.parse("2025-01-01T12:00:00Z");
@@ -493,9 +494,10 @@ class InboxServiceTest {
     // When
     inboxService.markInboxItemAsRead("received1", "sender123");
 
-    // Then
-    assertEquals(readTime, receivedSwapRequest.readBySenderAt()); // Should remain unchanged
-    verify(swapRequestRepository, never()).save(any()); // Should not save if already read
+    // Then - timestamp should be updated to a newer value
+    assertNotNull(receivedSwapRequest.readBySenderAt());
+    assertNotEquals(readTime, receivedSwapRequest.readBySenderAt());
+    verify(swapRequestRepository).save(receivedSwapRequest);
   }
 
   @Test

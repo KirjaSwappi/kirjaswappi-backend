@@ -52,4 +52,5 @@ public class Constants {
   public static final String REPORTS = "/reports";
   public static final String BLOCK = "/block";
   public static final String MUTE = "/mute";
+  public static final String READ = "/read";
 }

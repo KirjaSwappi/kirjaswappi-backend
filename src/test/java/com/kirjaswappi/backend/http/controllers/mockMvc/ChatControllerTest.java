@@ -333,6 +333,49 @@ class ChatControllerTest {
     verifyNoInteractions(chatService);
   }
 
+  @Test
+  @DisplayName("Should return 204 when marking chat as read")
+  void shouldReturn204WhenMarkingChatAsRead() throws Exception {
+    mockMvc.perform(patch(API_PATH + "/swap123/chat/read")
+        .with(withUser("user123")))
+        .andExpect(status().isNoContent());
+
+    verify(chatService).markMessagesAsRead("swap123", "user123");
+  }
+
+  @Test
+  @DisplayName("Should return 401 when principal is missing for mark as read")
+  void shouldReturn401WhenPrincipalIsMissingForMarkAsRead() throws Exception {
+    mockMvc.perform(patch(API_PATH + "/swap123/chat/read"))
+        .andExpect(status().isUnauthorized());
+
+    verifyNoInteractions(chatService);
+  }
+
+  @Test
+  @DisplayName("Should return 404 when swap request not found for mark as read")
+  void shouldReturn404WhenSwapRequestNotFoundForMarkAsRead() throws Exception {
+    doThrow(new SwapRequestNotFoundException()).when(chatService).markMessagesAsRead("swap123", "user123");
+
+    mockMvc.perform(patch(API_PATH + "/swap123/chat/read")
+        .with(withUser("user123")))
+        .andExpect(status().isNotFound());
+
+    verify(chatService).markMessagesAsRead("swap123", "user123");
+  }
+
+  @Test
+  @DisplayName("Should return 403 when user has no access to mark as read")
+  void shouldReturn403WhenUserHasNoAccessToMarkAsRead() throws Exception {
+    doThrow(new ChatAccessDeniedException()).when(chatService).markMessagesAsRead("swap123", "user123");
+
+    mockMvc.perform(patch(API_PATH + "/swap123/chat/read")
+        .with(withUser("user123")))
+        .andExpect(status().isForbidden());
+
+    verify(chatService).markMessagesAsRead("swap123", "user123");
+  }
+
   private static RequestPostProcessor withUser(String userId) {
     return request -> {
       request.setUserPrincipal(() -> userId);

@@ -109,6 +109,27 @@ public class ChatController {
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
 
+  @PatchMapping(ID + CHAT + READ)
+  @Operation(summary = "Mark chat messages as read", description = "Mark all unread messages in a swap request chat as read for the authenticated user", responses = {
+      @ApiResponse(responseCode = "204", description = "Messages marked as read successfully"),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - missing or invalid authentication"),
+      @ApiResponse(responseCode = "403", description = "Access denied - user not authorized for this chat"),
+      @ApiResponse(responseCode = "404", description = "Swap request not found")
+  })
+  public ResponseEntity<Void> markChatAsRead(
+      @Parameter(description = "Swap request ID", required = true) @PathVariable String id,
+      Principal principal) {
+
+    if (principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+    String userId = principal.getName();
+
+    chatService.markMessagesAsRead(id, userId);
+
+    return ResponseEntity.noContent().build();
+  }
+
   private ChatMessageResponse.SwapContextResponse createSwapContext(SwapRequest swapRequest) {
     ChatMessageResponse.SwapContextResponse context = new ChatMessageResponse.SwapContextResponse();
 
