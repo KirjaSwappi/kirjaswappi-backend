@@ -127,6 +127,14 @@ public class ChatService {
         ? swapRequest.receiver().id()
         : swapRequest.sender().id();
 
+    // Reset the receiver's read timestamp so the inbox shows unread
+    if (swapRequest.receiver().id().equals(receiverId)) {
+      swapRequest.readByReceiverAt(null);
+    } else {
+      swapRequest.readBySenderAt(null);
+    }
+    swapRequestRepository.save(swapRequest);
+
     // Clear cache for both sender and receiver to avoid stale data
     clearUnreadCountCache(receiverId, swapRequestId);
     clearUnreadCountCache(senderId, swapRequestId);
@@ -196,6 +204,14 @@ public class ChatService {
         ? swapRequest.receiver().id()
         : swapRequest.sender().id();
 
+    // Reset the receiver's read timestamp so the inbox shows unread
+    if (swapRequest.receiver().id().equals(receiverId)) {
+      swapRequest.readByReceiverAt(null);
+    } else {
+      swapRequest.readBySenderAt(null);
+    }
+    swapRequestRepository.save(swapRequest);
+
     // Clear cache for both sender and receiver to avoid stale data
     clearUnreadCountCache(receiverId, swapRequestId);
     clearUnreadCountCache(senderId, swapRequestId);
@@ -229,10 +245,10 @@ public class ChatService {
     // Also mark the swap request inbox item as read so the inbox endpoint returns
     // unread=false
     Instant now = Instant.now();
-    if (swapRequest.receiver().id().equals(userId) && swapRequest.readByReceiverAt() == null) {
+    if (swapRequest.receiver().id().equals(userId)) {
       swapRequest.readByReceiverAt(now);
       swapRequestRepository.save(swapRequest);
-    } else if (swapRequest.sender().id().equals(userId) && swapRequest.readBySenderAt() == null) {
+    } else if (swapRequest.sender().id().equals(userId)) {
       swapRequest.readBySenderAt(now);
       swapRequestRepository.save(swapRequest);
     }

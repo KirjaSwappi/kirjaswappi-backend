@@ -26,6 +26,6 @@ public class CustomChatMessageRepositoryImpl implements CustomChatMessageReposit
         .and("readByReceiver").is(false)
         .and("sender.$id").ne(new ObjectId(userId)));
     Update update = new Update().set("readByReceiver", true);
-    return mongoTemplate.updateMulti(query, update, "chatMessages").getModifiedCount();
+    return mongoTemplate.updateMulti(query, update, "chat_messages").getModifiedCount();
   }
 }

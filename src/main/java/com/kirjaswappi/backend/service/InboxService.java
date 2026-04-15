@@ -154,19 +154,13 @@ public class InboxService {
 
     SwapRequestDao swapRequestDao = swapRequestOpt.get();
     Instant now = Instant.now();
-    boolean updated = false;
 
-    // Mark as read by the appropriate user
-    if (swapRequestDao.receiver().id().equals(userId) && swapRequestDao.readByReceiverAt() == null) {
+    // Always update the read timestamp
+    if (swapRequestDao.receiver().id().equals(userId)) {
       swapRequestDao.readByReceiverAt(now);
-      updated = true;
-    } else if (swapRequestDao.sender().id().equals(userId) && swapRequestDao.readBySenderAt() == null) {
+      swapRequestRepository.save(swapRequestDao);
+    } else if (swapRequestDao.sender().id().equals(userId)) {
       swapRequestDao.readBySenderAt(now);
-      updated = true;
-    }
-
-    // Save if updated
-    if (updated) {
       swapRequestRepository.save(swapRequestDao);
     }
   }
