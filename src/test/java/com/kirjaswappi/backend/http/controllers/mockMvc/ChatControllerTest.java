@@ -27,6 +27,7 @@ import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMock
 import com.kirjaswappi.backend.http.controllers.ChatController;
 import com.kirjaswappi.backend.http.dtos.requests.SendMessageRequest;
 import com.kirjaswappi.backend.service.ChatService;
+import com.kirjaswappi.backend.service.InboxService;
 import com.kirjaswappi.backend.service.entities.Book;
 import com.kirjaswappi.backend.service.entities.ChatMessage;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
@@ -46,6 +47,9 @@ class ChatControllerTest {
 
   @MockitoBean
   private ChatService chatService;
+
+  @MockitoBean
+  private InboxService inboxService;
 
   @Autowired
   private ObjectMapper objectMapper;
