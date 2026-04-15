@@ -128,12 +128,7 @@ public class ChatService {
         : swapRequest.sender().id();
 
     // Reset the receiver's read timestamp so the inbox shows unread
-    if (swapRequest.receiver().id().equals(receiverId)) {
-      swapRequest.readByReceiverAt(null);
-    } else {
-      swapRequest.readBySenderAt(null);
-    }
-    swapRequestRepository.save(swapRequest);
+    resetRecipientReadTimestamp(swapRequest, receiverId);
 
     // Clear cache for both sender and receiver to avoid stale data
     clearUnreadCountCache(receiverId, swapRequestId);
@@ -205,12 +200,7 @@ public class ChatService {
         : swapRequest.sender().id();
 
     // Reset the receiver's read timestamp so the inbox shows unread
-    if (swapRequest.receiver().id().equals(receiverId)) {
-      swapRequest.readByReceiverAt(null);
-    } else {
-      swapRequest.readBySenderAt(null);
-    }
-    swapRequestRepository.save(swapRequest);
+    resetRecipientReadTimestamp(swapRequest, receiverId);
 
     // Clear cache for both sender and receiver to avoid stale data
     clearUnreadCountCache(receiverId, swapRequestId);
@@ -343,6 +333,15 @@ public class ChatService {
   private boolean hasAccessToChat(SwapRequestDao swapRequest, String userId) {
     return swapRequest.sender().id().equals(userId) ||
         swapRequest.receiver().id().equals(userId);
+  }
+
+  private void resetRecipientReadTimestamp(SwapRequestDao swapRequest, String recipientId) {
+    if (swapRequest.receiver().id().equals(recipientId)) {
+      swapRequest.readByReceiverAt(null);
+    } else {
+      swapRequest.readBySenderAt(null);
+    }
+    swapRequestRepository.save(swapRequest);
   }
 
   private List<String> convertImageIdsToUrls(List<String> imageIds) {

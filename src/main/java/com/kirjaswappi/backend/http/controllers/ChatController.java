@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.*;
 import com.kirjaswappi.backend.http.dtos.requests.SendMessageRequest;
 import com.kirjaswappi.backend.http.dtos.responses.ChatMessageResponse;
 import com.kirjaswappi.backend.service.ChatService;
-import com.kirjaswappi.backend.service.InboxService;
 import com.kirjaswappi.backend.service.entities.ChatMessage;
 import com.kirjaswappi.backend.service.entities.SwapRequest;
 
@@ -38,8 +37,6 @@ import com.kirjaswappi.backend.service.entities.SwapRequest;
 public class ChatController {
 
   private final ChatService chatService;
-
-  private final InboxService inboxService;
 
   @GetMapping(ID + CHAT)
   @Operation(summary = "Get chat messages for a swap request", description = "Retrieve all chat messages for a specific swap request with book swap context. User must be sender or receiver. Automatically marks messages as read.", responses = {
@@ -129,7 +126,6 @@ public class ChatController {
     String userId = principal.getName();
 
     chatService.markMessagesAsRead(id, userId);
-    inboxService.markInboxItemAsRead(id, userId);
 
     return ResponseEntity.noContent().build();
   }
