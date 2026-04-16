@@ -4,7 +4,6 @@
  */
 package com.kirjaswappi.backend.http.controllers.mockMvc;
 
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -498,8 +497,8 @@ class BookControllerEdgeCaseTest {
     }
 
     @Test
-    @DisplayName("Should return 400 when genres is empty")
-    void shouldReturn400WhenGenresEmpty() throws Exception {
+    @DisplayName("Should return 400 when genres is missing")
+    void shouldReturn400WhenGenresMissing() throws Exception {
       String swapCondition = """
           {
             "swapType": "GiveAway",
@@ -520,12 +519,11 @@ class BookControllerEdgeCaseTest {
     }
 
     @Test
-    @DisplayName("Should not return 403 for malformed multipart request")
-    void shouldNotReturn403ForMalformedRequest() throws Exception {
-      // Send a multipart request with completely missing required fields
+    @DisplayName("Should return 400 for malformed multipart request")
+    void shouldReturn400ForMalformedRequest() throws Exception {
       mockMvc.perform(multipart(API_BASE)
           .file(coverPhoto))
-          .andExpect(result -> assertNotEquals(403, result.getResponse().getStatus()));
+          .andExpect(status().isBadRequest());
     }
   }
 }
