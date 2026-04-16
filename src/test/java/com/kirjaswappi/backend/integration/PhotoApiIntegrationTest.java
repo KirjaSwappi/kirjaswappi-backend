@@ -29,6 +29,7 @@ import com.kirjaswappi.backend.common.http.controllers.mockMvc.config.CustomMock
 import com.kirjaswappi.backend.http.controllers.PhotoController;
 import com.kirjaswappi.backend.service.PhotoService;
 import com.kirjaswappi.backend.service.entities.Photo;
+import com.kirjaswappi.backend.service.exceptions.PhotoNotFoundException;
 import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 
 /**
@@ -287,6 +288,26 @@ class PhotoApiIntegrationTest {
       mockMvc.perform(multipart(API_BASE + "/cover")
           .file(imageFile)
           .param("userId", "nonexistent"))
+          .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Should return 404 when profile photo not found")
+    void shouldReturn404WhenProfilePhotoNotFound() throws Exception {
+      when(photoService.getPhotoByUserId("user-no-photo", true))
+          .thenThrow(new PhotoNotFoundException());
+
+      mockMvc.perform(get(API_BASE + "/profile/by-id/user-no-photo"))
+          .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Should return 404 when cover photo not found")
+    void shouldReturn404WhenCoverPhotoNotFound() throws Exception {
+      when(photoService.getPhotoByUserId("user-no-photo", false))
+          .thenThrow(new PhotoNotFoundException());
+
+      mockMvc.perform(get(API_BASE + "/cover/by-id/user-no-photo"))
           .andExpect(status().isNotFound());
     }
   }
