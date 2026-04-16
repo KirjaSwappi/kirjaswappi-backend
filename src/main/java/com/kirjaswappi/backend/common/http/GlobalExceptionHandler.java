@@ -10,11 +10,14 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import com.kirjaswappi.backend.common.exceptions.BusinessException;
@@ -153,5 +156,30 @@ public class GlobalExceptionHandler {
   public ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex) {
     log.warn("Invalid argument: {}", ex.getMessage());
     return new ErrorResponse(new ErrorResponse.Error("invalidArgument", "Invalid request argument"));
+  }
+
+  @ExceptionHandler(BindException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorResponse handleBindException(BindException ex) {
+    log.warn("Request binding failed: {}", ex.getMessage());
+    var error = new ErrorResponse.Error("bindingFailed", "Request binding failed");
+    ex.getFieldErrors().forEach(fieldError -> error.addErrorDetail(
+        "invalidField", fieldError.getDefaultMessage(), fieldError.getField()));
+    return new ErrorResponse(error);
+  }
+
+  @ExceptionHandler(MultipartException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorResponse handleMultipartException(MultipartException ex) {
+    log.warn("Multipart request failed: {}", ex.getMessage());
+    return new ErrorResponse(new ErrorResponse.Error("invalidMultipartRequest", "Invalid multipart request"));
+  }
+
+  @ExceptionHandler(MissingServletRequestPartException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorResponse handleMissingPartException(MissingServletRequestPartException ex) {
+    log.warn("Missing request part: {}", ex.getMessage());
+    return new ErrorResponse(
+        new ErrorResponse.Error("missingRequestPart", "Required part '" + ex.getRequestPartName() + "' is missing"));
   }
 }
