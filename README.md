@@ -1,31 +1,42 @@
 [![Main](https://github.com/kirjaswappi/kirjaswappi-backend/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/kirjaswappi/kirjaswappi-backend/actions/workflows/main.yml)
 
-# KirjaSwappi Backend Service
+# KirjaSwappi Backend
 
-This repository contains the `kirjaswappi backend` service for the KirjaSwappi Platform. The KirjaSwappi backend service is a [Spring Boot](https://spring.io/projects/spring-boot) Application.
+REST API for [KirjaSwappi](https://kirjaswappi.fi) — a book exchange platform. Built with Java 25 and Spring Boot 4.0.
 
-## Local Development Setup
+## Tech Stack
 
-To start developing, you first need to set up your local machine with JDK 25.
+- Java 25 + Spring Boot 4.0
+- MongoDB + Spring Data
+- Redis (caching)
+- RabbitMQ (WebSocket/STOMP messaging)
+- MinIO (S3-compatible photo storage)
+- gRPC (notification service integration)
 
-To build the application and run all tests, execute
+## Getting Started
 
-```console
+**Prerequisites:** JDK 25
+
+```bash
+# Build and run tests
 mvn clean package
-```
 
-To run the application, you can run
-
-```console
+# Run locally
 mvn spring-boot:run
-```
 
-To format the source code, you can run
-
-```console
+# Format code
 mvn spotless:apply
 ```
 
-## API documentation
+Configure via `src/main/resources/application-local.yaml` for local development.
 
-API documentation is available on: [Swagger](https://api.kirjaswappi.fi/swagger-ui/index.html).
+## API Documentation
+
+[Swagger UI](https://api.kirjaswappi.fi/swagger-ui/index.html)
+
+## Links
+
+- **Production API:** <https://api.kirjaswappi.fi>
+- **Frontend:** <https://kirjaswappi.fi>
+
+© 2025 KirjaSwappi. All rights reserved.
