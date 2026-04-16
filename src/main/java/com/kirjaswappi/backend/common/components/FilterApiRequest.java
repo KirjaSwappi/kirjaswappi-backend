@@ -84,21 +84,24 @@ public class FilterApiRequest extends OncePerRequestFilter {
     try {
       if (jwtUtil.isUserToken(jwt)) {
         // User token: validate and set userId as principal
-        if (jwtUtil.validateUserToken(jwt)) {
-          String userId = jwtUtil.extractUserId(jwt);
-          String role = jwtUtil.extractRole(jwt);
-          List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
-          UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-              userId, null, authorities);
-          authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-          SecurityContextHolder.getContext().setAuthentication(authToken);
+        if (!jwtUtil.validateUserToken(jwt)) {
+          throw new InvalidJwtTokenException("Invalid or expired user token");
         }
+        String userId = jwtUtil.extractUserId(jwt);
+        String role = jwtUtil.extractRole(jwt);
+        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+            userId, null, authorities);
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
       } else {
         // Admin token: validate against AdminUser
         String username = jwtUtil.extractUsername(jwt);
         AdminUser userDetails = adminUserService.getAdminUserInfo(username);
-        if (jwtUtil.validateJwtToken(jwt, userDetails))
-          setAuthentication(request, jwt, userDetails);
+        if (!jwtUtil.validateJwtToken(jwt, userDetails)) {
+          throw new InvalidJwtTokenException("Invalid or expired admin token");
+        }
+        setAuthentication(request, jwt, userDetails);
       }
     } catch (JwtException | AuthenticationException | ClassCastException e) {
       logger.warn(e.getMessage());

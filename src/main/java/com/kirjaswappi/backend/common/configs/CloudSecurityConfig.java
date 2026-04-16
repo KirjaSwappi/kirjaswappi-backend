@@ -14,10 +14,13 @@ import static org.springframework.http.HttpMethod.POST;
 import java.util.Arrays;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -33,6 +36,8 @@ import com.kirjaswappi.backend.common.components.FilterApiRequest;
 @EnableWebSecurity
 @Profile("cloud")
 public class CloudSecurityConfig {
+
+  private static final Logger logger = LoggerFactory.getLogger(CloudSecurityConfig.class);
 
   @Value("${cors.allowed-origins:https://kirjaswappi.fi,https://www.kirjaswappi.fi,https://canary.kirjaswappi.fi}")
   private String[] allowedOrigins;
@@ -74,10 +79,24 @@ public class CloudSecurityConfig {
             .requestMatchers(DELETE, API_BASE + ADMIN_USERS + USERNAME).hasAuthority(ADMIN)
             .requestMatchers(DELETE, API_BASE + SWAP_REQUESTS).hasAuthority(ADMIN)
             .requestMatchers(DELETE, API_BASE + BOOKS).hasAuthority(ADMIN)
-            .requestMatchers(API_DOCS, SWAGGER_UI).permitAll()
+            .requestMatchers(API_DOCS, SWAGGER_UI, "/error").permitAll()
             .anyRequest().hasAnyAuthority(ADMIN, USER))
         .addFilterBefore(filterApiRequest, UsernamePasswordAuthenticationFilter.class)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .exceptionHandling(ex -> ex
+            .accessDeniedHandler((request, response, accessDeniedException) -> {
+              logger.warn("Access denied: {} {} — auth: {}, reason: {}",
+                  request.getMethod(), request.getRequestURI(),
+                  request.getHeader("Authorization") != null ? "present" : "missing",
+                  accessDeniedException.getMessage());
+              response.setStatus(HttpStatus.FORBIDDEN.value());
+            })
+            .authenticationEntryPoint((request, response, authException) -> {
+              logger.warn("Unauthenticated: {} {} — reason: {}",
+                  request.getMethod(), request.getRequestURI(),
+                  authException.getMessage());
+              response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            }))
         .build();
   }
 

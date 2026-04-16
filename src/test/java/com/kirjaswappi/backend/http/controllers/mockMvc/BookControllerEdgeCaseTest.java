@@ -4,6 +4,7 @@
  */
 package com.kirjaswappi.backend.http.controllers.mockMvc;
 
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -428,6 +429,103 @@ class BookControllerEdgeCaseTest {
           .param("page", "0")
           .param("size", "0"))
           .andExpect(status().isOk());
+    }
+  }
+
+  @Nested
+  @DisplayName("Malformed Request Body Cases — should return 400 not 403")
+  class MalformedRequestBodyTests {
+
+    @Test
+    @DisplayName("Should return 400 when swapCondition JSON is invalid")
+    void shouldReturn400WhenSwapConditionJsonIsInvalid() throws Exception {
+      mockMvc.perform(multipart(API_BASE)
+          .file(coverPhoto)
+          .param("title", "Test Book")
+          .param("author", "Test Author")
+          .param("language", "English")
+          .param("condition", "Good")
+          .param("genres", "Fiction")
+          .param("ownerId", "user-123")
+          .param("swapCondition", "not-valid-json"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should return 400 when location JSON is invalid")
+    void shouldReturn400WhenLocationJsonIsInvalid() throws Exception {
+      String swapCondition = """
+          {
+            "swapType": "GiveAway",
+            "giveAway": true,
+            "openForOffers": false
+          }
+          """;
+
+      mockMvc.perform(multipart(API_BASE)
+          .file(coverPhoto)
+          .param("title", "Test Book")
+          .param("author", "Test Author")
+          .param("language", "English")
+          .param("condition", "Good")
+          .param("genres", "Fiction")
+          .param("ownerId", "user-123")
+          .param("swapCondition", swapCondition)
+          .param("location", "not-valid-json"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should return 400 when no cover photo is provided")
+    void shouldReturn400WhenNoCoverPhoto() throws Exception {
+      String swapCondition = """
+          {
+            "swapType": "GiveAway",
+            "giveAway": true,
+            "openForOffers": false
+          }
+          """;
+
+      mockMvc.perform(multipart(API_BASE)
+          .param("title", "Test Book")
+          .param("author", "Test Author")
+          .param("language", "English")
+          .param("condition", "Good")
+          .param("genres", "Fiction")
+          .param("ownerId", "user-123")
+          .param("swapCondition", swapCondition))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should return 400 when genres is empty")
+    void shouldReturn400WhenGenresEmpty() throws Exception {
+      String swapCondition = """
+          {
+            "swapType": "GiveAway",
+            "giveAway": true,
+            "openForOffers": false
+          }
+          """;
+
+      mockMvc.perform(multipart(API_BASE)
+          .file(coverPhoto)
+          .param("title", "Test Book")
+          .param("author", "Test Author")
+          .param("language", "English")
+          .param("condition", "Good")
+          .param("ownerId", "user-123")
+          .param("swapCondition", swapCondition))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should not return 403 for malformed multipart request")
+    void shouldNotReturn403ForMalformedRequest() throws Exception {
+      // Send a multipart request with completely missing required fields
+      mockMvc.perform(multipart(API_BASE)
+          .file(coverPhoto))
+          .andExpect(result -> assertNotEquals(403, result.getResponse().getStatus()));
     }
   }
 }
