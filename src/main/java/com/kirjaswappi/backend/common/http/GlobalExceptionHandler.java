@@ -64,6 +64,12 @@ public class GlobalExceptionHandler {
     return errorUtils.buildErrorResponse(exception, webRequest);
   }
 
+  @ExceptionHandler(PhotoNotFoundException.class)
+  @ResponseStatus(HttpStatus.NOT_FOUND)
+  public ErrorResponse handlePhotoNotFoundException(PhotoNotFoundException exception, WebRequest webRequest) {
+    return errorUtils.buildErrorResponse(exception, webRequest);
+  }
+
   @ExceptionHandler(ChatAccessDeniedException.class)
   @ResponseStatus(HttpStatus.FORBIDDEN)
   public ErrorResponse handleChatAccessDeniedException(ChatAccessDeniedException exception, WebRequest webRequest) {
