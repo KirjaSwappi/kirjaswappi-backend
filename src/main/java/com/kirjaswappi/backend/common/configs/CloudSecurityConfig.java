@@ -75,6 +75,7 @@ public class CloudSecurityConfig {
             // Public form submissions (contact, feedback, etc.) — no auth required
             .requestMatchers(POST, API_BASE + FORMS + "/**").permitAll()
             // Public read-only endpoints (no auth required)
+            .requestMatchers(GET, API_BASE + BOOKS).permitAll()
             .requestMatchers(GET, API_BASE + BOOKS + "/**").permitAll()
             .requestMatchers(GET, API_BASE + GENRES).permitAll()
             .requestMatchers(GET, API_BASE + CITIES).permitAll()
