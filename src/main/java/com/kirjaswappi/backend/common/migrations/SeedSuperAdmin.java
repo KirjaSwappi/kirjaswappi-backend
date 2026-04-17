@@ -45,7 +45,7 @@ public class SeedSuperAdmin {
       AdminUserDao admin = AdminUserDao.builder()
           .username(normalizedUsername)
           .password(password)
-          .role(Role.ADMIN.getCode())
+          .role(Role.MASTER_ADMIN.getCode())
           .build();
       mongoTemplate.save(admin);
     }

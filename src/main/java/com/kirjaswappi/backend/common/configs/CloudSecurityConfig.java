@@ -5,6 +5,7 @@
 package com.kirjaswappi.backend.common.configs;
 
 import static com.kirjaswappi.backend.common.configs.CloudSecurityConfig.Scopes.ADMIN;
+import static com.kirjaswappi.backend.common.configs.CloudSecurityConfig.Scopes.MASTER_ADMIN;
 import static com.kirjaswappi.backend.common.configs.CloudSecurityConfig.Scopes.USER;
 import static com.kirjaswappi.backend.common.utils.Constants.*;
 import static org.springframework.http.HttpMethod.DELETE;
@@ -86,13 +87,13 @@ public class CloudSecurityConfig {
             .requestMatchers(GET, API_BASE + PHOTOS + SUPPORTED_COVER_PHOTOS).permitAll()
             // Password reset (unauthenticated by nature)
             .requestMatchers(POST, API_BASE + USERS + RESET_PASSWORD + "/**").permitAll()
-            .requestMatchers(POST, API_BASE + ADMIN_USERS).hasAuthority(ADMIN)
-            .requestMatchers(GET, API_BASE + ADMIN_USERS).hasAnyAuthority(ADMIN, USER)
-            .requestMatchers(DELETE, API_BASE + ADMIN_USERS + USERNAME).hasAuthority(ADMIN)
-            .requestMatchers(DELETE, API_BASE + SWAP_REQUESTS).hasAuthority(ADMIN)
-            .requestMatchers(DELETE, API_BASE + BOOKS).hasAuthority(ADMIN)
+            .requestMatchers(POST, API_BASE + ADMIN_USERS).hasAuthority(MASTER_ADMIN)
+            .requestMatchers(GET, API_BASE + ADMIN_USERS).hasAnyAuthority(MASTER_ADMIN, ADMIN, USER)
+            .requestMatchers(DELETE, API_BASE + ADMIN_USERS + USERNAME).hasAnyAuthority(MASTER_ADMIN, ADMIN)
+            .requestMatchers(DELETE, API_BASE + SWAP_REQUESTS).hasAnyAuthority(MASTER_ADMIN, ADMIN)
+            .requestMatchers(DELETE, API_BASE + BOOKS).hasAnyAuthority(MASTER_ADMIN, ADMIN)
             .requestMatchers(API_DOCS, SWAGGER_UI, "/error").permitAll()
-            .anyRequest().hasAnyAuthority(ADMIN, USER))
+            .anyRequest().hasAnyAuthority(MASTER_ADMIN, ADMIN, USER))
         .addFilterBefore(filterApiRequest, UsernamePasswordAuthenticationFilter.class)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .exceptionHandling(ex -> ex
@@ -113,6 +114,7 @@ public class CloudSecurityConfig {
   }
 
   static class Scopes {
+    public static final String MASTER_ADMIN = "MASTER_ADMIN";
     public static final String ADMIN = "ADMIN";
     public static final String USER = "USER";
   }
