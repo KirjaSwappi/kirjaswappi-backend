@@ -5,6 +5,7 @@
 package com.kirjaswappi.backend.common.configs;
 
 import static com.kirjaswappi.backend.common.configs.CloudSecurityConfig.Scopes.ADMIN;
+import static com.kirjaswappi.backend.common.configs.CloudSecurityConfig.Scopes.MASTER_ADMIN;
 import static com.kirjaswappi.backend.common.configs.CloudSecurityConfig.Scopes.USER;
 import static com.kirjaswappi.backend.common.utils.Constants.*;
 import static org.springframework.http.HttpMethod.DELETE;
@@ -61,10 +62,11 @@ public class CloudSecurityConfig {
     return http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .csrf(csrf -> csrf.disable()) // Disable CSRF protection
         .authorizeHttpRequests(authorize -> authorize
+            // =========== PUBLIC — infrastructure ===========
             .requestMatchers(HEALTH, API_BASE + AUTHENTICATE,
                 API_BASE + AUTHENTICATE + REFRESH, "/ws/**")
             .permitAll()
-            // User auth endpoints (no JWT required)
+            // =========== PUBLIC — authentication ===========
             .requestMatchers(POST, API_BASE + USERS + LOGIN).permitAll()
             .requestMatchers(POST, API_BASE + USERS + LOGIN_WITH_GOOGLE).permitAll()
             .requestMatchers(POST, API_BASE + USERS + SIGNUP).permitAll()
@@ -72,9 +74,8 @@ public class CloudSecurityConfig {
             .requestMatchers(POST, API_BASE + USERS + "/refresh-token").permitAll()
             .requestMatchers(POST, API_BASE + SEND_OTP).permitAll()
             .requestMatchers(POST, API_BASE + VERIFY_OTP).permitAll()
-            // Public form submissions (contact, feedback, etc.) — no auth required
-            .requestMatchers(POST, API_BASE + FORMS + "/**").permitAll()
-            // Public read-only endpoints (no auth required)
+            .requestMatchers(POST, API_BASE + USERS + RESET_PASSWORD + "/**").permitAll()
+            // =========== PUBLIC — read-only browse ===========
             .requestMatchers(GET, API_BASE + BOOKS).permitAll()
             .requestMatchers(GET, API_BASE + BOOKS + "/**").permitAll()
             .requestMatchers(GET, API_BASE + GENRES).permitAll()
@@ -84,15 +85,18 @@ public class CloudSecurityConfig {
             .requestMatchers(GET, API_BASE + PHOTOS + PROFILE_PHOTO + BY_ID + "/**").permitAll()
             .requestMatchers(GET, API_BASE + PHOTOS + COVER_PHOTO + BY_ID + "/**").permitAll()
             .requestMatchers(GET, API_BASE + PHOTOS + SUPPORTED_COVER_PHOTOS).permitAll()
-            // Password reset (unauthenticated by nature)
-            .requestMatchers(POST, API_BASE + USERS + RESET_PASSWORD + "/**").permitAll()
-            .requestMatchers(POST, API_BASE + ADMIN_USERS).hasAuthority(ADMIN)
-            .requestMatchers(GET, API_BASE + ADMIN_USERS).hasAnyAuthority(ADMIN, USER)
-            .requestMatchers(DELETE, API_BASE + ADMIN_USERS + USERNAME).hasAuthority(ADMIN)
-            .requestMatchers(DELETE, API_BASE + SWAP_REQUESTS).hasAuthority(ADMIN)
-            .requestMatchers(DELETE, API_BASE + BOOKS).hasAuthority(ADMIN)
+            // =========== PUBLIC — forms ===========
+            .requestMatchers(POST, API_BASE + FORMS + "/**").permitAll()
             .requestMatchers(API_DOCS, SWAGGER_UI, "/error").permitAll()
-            .anyRequest().hasAnyAuthority(ADMIN, USER))
+            // =========== MASTER_ADMIN only ===========
+            .requestMatchers(POST, API_BASE + ADMIN_USERS).hasAuthority(MASTER_ADMIN)
+            // =========== ADMIN (includes MASTER_ADMIN) ===========
+            .requestMatchers(GET, API_BASE + ADMIN_USERS).hasAnyAuthority(MASTER_ADMIN, ADMIN, USER)
+            .requestMatchers(DELETE, API_BASE + ADMIN_USERS + USERNAME).hasAnyAuthority(MASTER_ADMIN, ADMIN)
+            .requestMatchers(DELETE, API_BASE + SWAP_REQUESTS).hasAnyAuthority(MASTER_ADMIN, ADMIN)
+            .requestMatchers(DELETE, API_BASE + BOOKS).hasAnyAuthority(MASTER_ADMIN, ADMIN)
+            // =========== AUTHENTICATED — any logged-in user ===========
+            .anyRequest().hasAnyAuthority(MASTER_ADMIN, ADMIN, USER))
         .addFilterBefore(filterApiRequest, UsernamePasswordAuthenticationFilter.class)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .exceptionHandling(ex -> ex
@@ -113,6 +117,7 @@ public class CloudSecurityConfig {
   }
 
   static class Scopes {
+    public static final String MASTER_ADMIN = "MASTER_ADMIN";
     public static final String ADMIN = "ADMIN";
     public static final String USER = "USER";
   }

@@ -13,6 +13,7 @@ import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 
 @Getter
 public enum Role {
+  MASTER_ADMIN("MasterAdmin"),
   ADMIN("Admin"),
   USER("User");
 
