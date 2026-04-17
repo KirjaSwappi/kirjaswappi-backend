@@ -4,6 +4,8 @@
  */
 package com.kirjaswappi.backend.common.migrations;
 
+import java.util.Locale;
+
 import io.mongock.api.annotations.ChangeUnit;
 import io.mongock.api.annotations.Execution;
 import io.mongock.api.annotations.RollbackExecution;
@@ -33,13 +35,15 @@ public class SeedSuperAdmin {
       return;
     }
 
+    String normalizedUsername = username.toLowerCase(Locale.ROOT);
+
     boolean exists = mongoTemplate.exists(
-        Query.query(Criteria.where("username").is(username.toLowerCase())),
+        Query.query(Criteria.where("username").is(normalizedUsername)),
         AdminUserDao.class);
 
     if (!exists) {
       AdminUserDao admin = AdminUserDao.builder()
-          .username(username.toLowerCase())
+          .username(normalizedUsername)
           .password(password)
           .role(Role.ADMIN.getCode())
           .build();
@@ -52,7 +56,7 @@ public class SeedSuperAdmin {
     String username = System.getenv("SUPER_ADMIN_USERNAME");
     if (username != null && !username.isBlank()) {
       mongoTemplate.remove(
-          Query.query(Criteria.where("username").is(username.toLowerCase())),
+          Query.query(Criteria.where("username").is(username.toLowerCase(Locale.ROOT))),
           AdminUserDao.class);
     }
   }
