@@ -77,10 +77,7 @@ public class SwapService {
     Book bookToSwapWith = bookService.getBookById(swapRequest.bookToSwapWith().id());
 
     // check if the bookToSwapWith belongs to the receiver:
-    if (Optional.ofNullable(receiver.books())
-        .stream()
-        .flatMap(Collection::stream)
-        .noneMatch(book -> book.id().equals(bookToSwapWith.id()))) {
+    if (bookToSwapWith.owner() == null || !bookToSwapWith.owner().id().equals(receiver.id())) {
       throw new IllegalSwapRequestException("bookToSwapWithDoesNotBelongToReceiver");
     }
 
