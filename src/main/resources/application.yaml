@@ -12,8 +12,11 @@ spring:
     encoding: UTF-8
   servlet:
     multipart:
-      max-file-size: 100MB
-      max-request-size: 100MB
+      # Single image cap (book cover, profile/cover photo, chat attachment)
+      max-file-size: 10MB
+      # Total request cap allows up to ~5 cover photos in a single book
+      # creation multipart request.
+      max-request-size: 50MB
 
   mail:
     host: ${EMAIL_HOST}
@@ -70,12 +73,8 @@ resilience4j.retry:
 
 logging:
   level:
-    com.kirjaswappi.backend.jpa.repositories.CustomBookRepositoryImpl: DEBUG
     org:
       springframework:
-        mail: DEBUG
-        boot:
-          actuate: DEBUG
         security: INFO
 
 google:
@@ -87,6 +86,7 @@ notification:
     host: ${NOTIFICATION_SERVICE_HOST:notify.kirjaswappi.fi}
     port: ${NOTIFICATION_SERVICE_PORT:50051}
     enabled: ${NOTIFICATION_SERVICE_ENABLED:true}
+    apiKey: ${NOTIFICATION_API_KEY:}
 
 management:
   endpoints:

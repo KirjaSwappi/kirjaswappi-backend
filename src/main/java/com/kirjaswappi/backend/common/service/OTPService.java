@@ -22,7 +22,6 @@ import com.kirjaswappi.backend.common.service.mappers.OTPMapper;
 import com.kirjaswappi.backend.service.UserService;
 import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 import com.kirjaswappi.backend.service.exceptions.ResourceNotFoundException;
-import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 
 @Service
 @Transactional
@@ -64,7 +63,7 @@ public class OTPService {
     String rateLimitKey = VERIFY_RATE_LIMIT_PREFIX + otp.email();
 
     // Rate limit OTP verification attempts
-    if (rateLimiterService.isRateLimited(rateLimitKey, MAX_VERIFY_ATTEMPTS)) {
+    if (rateLimiterService.isRateLimitedFailClosed(rateLimitKey, MAX_VERIFY_ATTEMPTS)) {
       throw new BadRequestException("tooManyVerifyAttempts", otp.email());
     }
 
@@ -100,16 +99,19 @@ public class OTPService {
     String rateLimitKey = SEND_RATE_LIMIT_PREFIX + email;
 
     // Rate limit OTP send attempts (applied regardless of user existence)
-    if (rateLimiterService.isRateLimited(rateLimitKey, MAX_SEND_ATTEMPTS)) {
+    if (rateLimiterService.isRateLimitedFailClosed(rateLimitKey, MAX_SEND_ATTEMPTS)) {
       throw new BadRequestException("tooManySendOtpAttempts", email);
     }
 
     // Record the attempt before checking user existence to prevent enumeration
     rateLimiterService.recordAttempt(rateLimitKey, RATE_LIMIT_WINDOW);
 
-    // Check if the user exists:
+    // Account-enumeration mitigation: behave the same way for known and unknown
+    // emails. We always return success; for unknown emails we silently no-op
+    // (no OTP saved, no email sent) so timing and response shape do not leak
+    // whether the address has an account.
     if (!checkUserExists(email)) {
-      throw new UserNotFoundException(email);
+      return email;
     }
 
     // Delete all the previous OTPs:

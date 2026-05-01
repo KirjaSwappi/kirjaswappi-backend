@@ -11,6 +11,7 @@ import static com.kirjaswappi.backend.common.utils.Constants.*;
 import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.http.HttpMethod.PUT;
 
 import java.util.Arrays;
 import java.util.List;
@@ -80,21 +81,33 @@ public class CloudSecurityConfig {
             .requestMatchers(GET, API_BASE + BOOKS + "/**").permitAll()
             .requestMatchers(GET, API_BASE + GENRES).permitAll()
             .requestMatchers(GET, API_BASE + CITIES).permitAll()
-            .requestMatchers(GET, API_BASE + USERS + ID).permitAll()
             .requestMatchers(GET, API_BASE + USERS + ID + BOOKS).permitAll()
             .requestMatchers(GET, API_BASE + PHOTOS + PROFILE_PHOTO + BY_ID + "/**").permitAll()
             .requestMatchers(GET, API_BASE + PHOTOS + COVER_PHOTO + BY_ID + "/**").permitAll()
             .requestMatchers(GET, API_BASE + PHOTOS + SUPPORTED_COVER_PHOTOS).permitAll()
             // =========== PUBLIC — forms ===========
             .requestMatchers(POST, API_BASE + FORMS + "/**").permitAll()
-            .requestMatchers(API_DOCS, SWAGGER_UI, "/error").permitAll()
+            .requestMatchers("/error").permitAll()
+            // =========== Disable Swagger / OpenAPI in cloud profile ===========
+            .requestMatchers(API_DOCS, SWAGGER_UI).denyAll()
             // =========== MASTER_ADMIN only ===========
             .requestMatchers(POST, API_BASE + ADMIN_USERS).hasAuthority(MASTER_ADMIN)
             // =========== ADMIN (includes MASTER_ADMIN) ===========
-            .requestMatchers(GET, API_BASE + ADMIN_USERS).hasAnyAuthority(MASTER_ADMIN, ADMIN, USER)
+            .requestMatchers(GET, API_BASE + ADMIN_USERS).hasAnyAuthority(MASTER_ADMIN, ADMIN)
+            .requestMatchers(GET, API_BASE + USERS).hasAnyAuthority(MASTER_ADMIN, ADMIN)
             .requestMatchers(DELETE, API_BASE + ADMIN_USERS + USERNAME).hasAnyAuthority(MASTER_ADMIN, ADMIN)
             .requestMatchers(DELETE, API_BASE + SWAP_REQUESTS).hasAnyAuthority(MASTER_ADMIN, ADMIN)
             .requestMatchers(DELETE, API_BASE + BOOKS).hasAnyAuthority(MASTER_ADMIN, ADMIN)
+            // Genre taxonomy mutations: admins only
+            .requestMatchers(POST, API_BASE + GENRES).hasAnyAuthority(MASTER_ADMIN, ADMIN)
+            .requestMatchers(POST, API_BASE + GENRES + "/**").hasAnyAuthority(MASTER_ADMIN, ADMIN)
+            .requestMatchers(PUT, API_BASE + GENRES + "/**").hasAnyAuthority(MASTER_ADMIN, ADMIN)
+            .requestMatchers(DELETE, API_BASE + GENRES + "/**").hasAnyAuthority(MASTER_ADMIN, ADMIN)
+            // Supported cover photos catalog: admins only
+            .requestMatchers(POST, API_BASE + PHOTOS + SUPPORTED_COVER_PHOTOS)
+            .hasAnyAuthority(MASTER_ADMIN, ADMIN)
+            .requestMatchers(DELETE, API_BASE + PHOTOS + SUPPORTED_COVER_PHOTOS + "/**")
+            .hasAnyAuthority(MASTER_ADMIN, ADMIN)
             // =========== AUTHENTICATED — any logged-in user ===========
             .anyRequest().hasAnyAuthority(MASTER_ADMIN, ADMIN, USER))
         .addFilterBefore(filterApiRequest, UsernamePasswordAuthenticationFilter.class)

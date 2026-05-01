@@ -35,3 +35,12 @@ s3:
 jwt:
   secret: abcdefghijklmnopqrstuvwxyz1234567890
   expiration: 300000
+
+logging:
+  level:
+    com.kirjaswappi.backend.jpa.repositories.CustomBookRepositoryImpl: DEBUG
+    org:
+      springframework:
+        mail: DEBUG
+        boot:
+          actuate: DEBUG

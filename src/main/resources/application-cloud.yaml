@@ -9,20 +9,27 @@ spring:
       database: ${MONGODB_DATABASE}
   cache:
     type: redis
-
-
   threads:
     virtual:
       enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
 springdoc:
+  api-docs:
+    enabled: false
   swagger-ui:
+    enabled: false
     schemes:
       - https
 
 server:
   forward-headers-strategy: native
   port: 10000
+  shutdown: graceful
+  error:
+    include-stacktrace: never
+    include-message: never
 
 s3:
   url: ${S3_URL}

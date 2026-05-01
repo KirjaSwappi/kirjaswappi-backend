@@ -7,9 +7,12 @@ package com.kirjaswappi.backend.common.utils;
 import static com.kirjaswappi.backend.common.utils.Constants.ROLE;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 import javax.crypto.SecretKey;
@@ -21,13 +24,19 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import com.kirjaswappi.backend.common.service.entities.AdminUser;
 
 @Component
 public class JwtUtil {
+  private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
+
   @Value("${jwt.secret}")
   private String SECRET_STRING;
   @Value("${jwt.expiration}")
@@ -35,7 +44,13 @@ public class JwtUtil {
   @Value("${jwt.refresh-expiration:604800000}")
   private long REFRESH_TOKEN_EXPIRATION_MS; // default 7 days
 
+  @Autowired(required = false)
+  private StringRedisTemplate redisTemplate;
+
   private SecretKey SECRET_KEY;
+
+  private static final String RESET_TOKEN_USED_PREFIX = "jwt:reset:used:";
+  private static final String REFRESH_TOKEN_REVOKED_PREFIX = "jwt:refresh:revoked:";
 
   @PostConstruct
   public void init() {
@@ -166,11 +181,54 @@ public class JwtUtil {
     claims.put(EMAIL_CLAIM, email);
     return Jwts.builder()
         .claims(claims)
+        .id(UUID.randomUUID().toString())
         .subject(userId)
         .issuedAt(new Date(System.currentTimeMillis()))
         .expiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION_MS))
         .signWith(SECRET_KEY)
         .compact();
+  }
+
+  /**
+   * Adds the refresh token's jti to a Redis denylist so it cannot be used to mint
+   * new access tokens. Used on logout and password change.
+   */
+  public void revokeUserRefreshToken(String token) {
+    if (redisTemplate == null) {
+      return;
+    }
+    try {
+      Claims claims = extractAllClaims(token);
+      String jti = claims.getId();
+      if (jti == null || jti.isBlank()) {
+        return;
+      }
+      Date exp = claims.getExpiration();
+      Duration ttl = exp != null
+          ? Duration.between(Instant.now(), exp.toInstant()).plusMinutes(1)
+          : Duration.ofDays(7).plusMinutes(1);
+      if (ttl.isNegative() || ttl.isZero()) {
+        ttl = Duration.ofMinutes(1);
+      }
+      redisTemplate.opsForValue().set(REFRESH_TOKEN_REVOKED_PREFIX + jti, "1", ttl);
+    } catch (Exception e) {
+      logger.warn("Failed to revoke refresh token: {}", e.getMessage());
+    }
+  }
+
+  private boolean isRefreshTokenRevoked(String token) {
+    if (redisTemplate == null) {
+      return false;
+    }
+    try {
+      String jti = extractAllClaims(token).getId();
+      if (jti == null || jti.isBlank()) {
+        return false;
+      }
+      return Boolean.TRUE.equals(redisTemplate.hasKey(REFRESH_TOKEN_REVOKED_PREFIX + jti));
+    } catch (Exception e) {
+      return false;
+    }
   }
 
   public boolean isUserToken(String token) {
@@ -190,7 +248,10 @@ public class JwtUtil {
     if (!isUserToken(token) || !isTokenValid(token))
       return false;
     Claims claims = extractAllClaims(token);
-    return REFRESH_PURPOSE.equals(claims.get(TOKEN_PURPOSE));
+    if (!REFRESH_PURPOSE.equals(claims.get(TOKEN_PURPOSE))) {
+      return false;
+    }
+    return !isRefreshTokenRevoked(token);
   }
 
   public String extractUserId(String token) {
@@ -207,6 +268,7 @@ public class JwtUtil {
     claims.put(TOKEN_PURPOSE, RESET_TOKEN_PURPOSE);
     return Jwts.builder()
         .claims(claims)
+        .id(UUID.randomUUID().toString())
         .subject(email)
         .issuedAt(new Date(System.currentTimeMillis()))
         .expiration(new Date(System.currentTimeMillis() + RESET_TOKEN_EXPIRATION_MS))
@@ -217,9 +279,46 @@ public class JwtUtil {
   public boolean validatePasswordResetToken(String token) {
     try {
       Claims claims = extractAllClaims(token);
-      return RESET_TOKEN_PURPOSE.equals(claims.get(TOKEN_PURPOSE)) && isTokenValid(token);
+      if (!RESET_TOKEN_PURPOSE.equals(claims.get(TOKEN_PURPOSE)) || !isTokenValid(token)) {
+        return false;
+      }
+      // Reject if jti is already in the consumed set.
+      if (redisTemplate != null) {
+        String jti = claims.getId();
+        if (jti != null && Boolean.TRUE.equals(redisTemplate.hasKey(RESET_TOKEN_USED_PREFIX + jti))) {
+          return false;
+        }
+      }
+      return true;
     } catch (Exception e) {
       return false;
+    }
+  }
+
+  /**
+   * Mark the reset token's jti as consumed so it cannot be replayed within its
+   * expiry window. Stores until the JWT exp + a small buffer.
+   */
+  public void consumePasswordResetToken(String token) {
+    if (redisTemplate == null) {
+      return; // best-effort when Redis is unavailable
+    }
+    try {
+      Claims claims = extractAllClaims(token);
+      String jti = claims.getId();
+      if (jti == null || jti.isBlank()) {
+        return;
+      }
+      Date exp = claims.getExpiration();
+      Duration ttl = exp != null
+          ? Duration.between(Instant.now(), exp.toInstant()).plusMinutes(1)
+          : Duration.ofMinutes(20);
+      if (ttl.isNegative() || ttl.isZero()) {
+        ttl = Duration.ofMinutes(1);
+      }
+      redisTemplate.opsForValue().set(RESET_TOKEN_USED_PREFIX + jti, "1", ttl);
+    } catch (Exception e) {
+      logger.warn("Failed to mark reset token as consumed: {}", e.getMessage());
     }
   }
 
