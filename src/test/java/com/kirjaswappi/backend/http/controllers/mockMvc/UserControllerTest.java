@@ -246,7 +246,7 @@ public class UserControllerTest {
     request.setConfirmPassword("newPassword1!");
     request.setResetToken("valid-reset-token");
 
-    when(jwtUtil.validatePasswordResetToken("valid-reset-token")).thenReturn(true);
+    when(jwtUtil.validateAndConsumePasswordResetToken("valid-reset-token")).thenReturn(true);
     when(jwtUtil.extractEmailFromResetToken("valid-reset-token")).thenReturn("test@example.com");
     when(userService.changePassword(any())).thenReturn("test@example.com");
 
