@@ -26,6 +26,9 @@ public class ChangePasswordRequest {
   @Schema(description = "The confirm password of the user.", example = "newPassword", requiredMode = REQUIRED)
   private String confirmPassword;
 
+  @Schema(description = "Optional refresh token to revoke on password change.")
+  private String userRefreshToken;
+
   public User toChangePasswordEntity(String email) {
     this.validateProperties(email);
     return User.builder()

@@ -218,7 +218,8 @@ public class JwtUtil {
 
   private boolean isRefreshTokenRevoked(String token) {
     if (redisTemplate == null) {
-      return false;
+      logger.warn("Redis unavailable — treating refresh token as revoked (fail-closed)");
+      return true;
     }
     try {
       String jti = extractAllClaims(token).getId();
@@ -227,7 +228,8 @@ public class JwtUtil {
       }
       return Boolean.TRUE.equals(redisTemplate.hasKey(REFRESH_TOKEN_REVOKED_PREFIX + jti));
     } catch (Exception e) {
-      return false;
+      logger.warn("Redis error during revocation check — failing closed: {}", e.getMessage());
+      return true;
     }
   }
 
@@ -276,13 +278,45 @@ public class JwtUtil {
         .compact();
   }
 
+  /**
+   * Atomically validate AND consume the password-reset token. Returns true only
+   * if the token is structurally valid, unexpired, and its jti has not been
+   * consumed yet (SETNX guarantees at-most-once use).
+   */
+  public boolean validateAndConsumePasswordResetToken(String token) {
+    try {
+      Claims claims = extractAllClaims(token);
+      if (!RESET_TOKEN_PURPOSE.equals(claims.get(TOKEN_PURPOSE)) || !isTokenValid(token)) {
+        return false;
+      }
+      if (redisTemplate == null) {
+        return true;
+      }
+      String jti = claims.getId();
+      if (jti == null || jti.isBlank()) {
+        return false;
+      }
+      Date exp = claims.getExpiration();
+      Duration ttl = exp != null
+          ? Duration.between(Instant.now(), exp.toInstant()).plusMinutes(1)
+          : Duration.ofMinutes(20);
+      if (ttl.isNegative() || ttl.isZero()) {
+        ttl = Duration.ofMinutes(1);
+      }
+      Boolean wasAbsent = redisTemplate.opsForValue()
+          .setIfAbsent(RESET_TOKEN_USED_PREFIX + jti, "1", ttl);
+      return Boolean.TRUE.equals(wasAbsent);
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
   public boolean validatePasswordResetToken(String token) {
     try {
       Claims claims = extractAllClaims(token);
       if (!RESET_TOKEN_PURPOSE.equals(claims.get(TOKEN_PURPOSE)) || !isTokenValid(token)) {
         return false;
       }
-      // Reject if jti is already in the consumed set.
       if (redisTemplate != null) {
         String jti = claims.getId();
         if (jti != null && Boolean.TRUE.equals(redisTemplate.hasKey(RESET_TOKEN_USED_PREFIX + jti))) {

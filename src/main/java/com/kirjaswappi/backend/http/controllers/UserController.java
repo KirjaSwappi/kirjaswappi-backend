@@ -273,6 +273,9 @@ public class UserController {
     try {
       userService.verifyCurrentPassword(request.toVerifyPasswordEntity(email));
       String userEmail = userService.changePassword(request.toChangePasswordEntity(email));
+      if (request.getUserRefreshToken() != null && !request.getUserRefreshToken().isBlank()) {
+        jwtUtil.revokeUserRefreshToken(request.getUserRefreshToken());
+      }
       rateLimiterService.clearAttempts(rateLimitKey);
       return ResponseEntity.status(HttpStatus.OK).body(new ChangePasswordResponse(userEmail));
     } catch (Exception e) {
@@ -293,8 +296,8 @@ public class UserController {
       throw new BadRequestException("tooManyResetPasswordAttempts", email);
     }
     try {
-      // Validate reset token from OTP verification
-      if (!jwtUtil.validatePasswordResetToken(request.getResetToken())) {
+      // Atomically validate + consume — prevents TOCTOU replay
+      if (!jwtUtil.validateAndConsumePasswordResetToken(request.getResetToken())) {
         rateLimiterService.recordAttempt(rateLimitKey, RESET_PW_RATE_LIMIT_WINDOW);
         throw new BadRequestException("invalidOrExpiredResetToken", email);
       }
@@ -303,8 +306,6 @@ public class UserController {
         rateLimiterService.recordAttempt(rateLimitKey, RESET_PW_RATE_LIMIT_WINDOW);
         throw new BadRequestException("resetTokenEmailMismatch", email);
       }
-      // Single-use: invalidate this token by marking its jti as consumed.
-      jwtUtil.consumePasswordResetToken(request.getResetToken());
       String userEmail = userService.changePassword(request.toUserEntity(email));
       rateLimiterService.clearAttempts(rateLimitKey);
       return ResponseEntity.status(HttpStatus.OK).body(new ResetPasswordResponse(userEmail));
