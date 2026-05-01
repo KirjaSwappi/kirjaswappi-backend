@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
-import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.query.Criteria;
 
 @Getter
@@ -87,14 +86,14 @@ public class FindAllBooksFilter {
     // Add filter criteria:
     combinedCriteria.add(Criteria.where("isDeleted").is(false));
 
-    // Filter by owner ID if provided:
+    // DBRef owner.$id is stored as ObjectId by Spring Data Mongo (verified by
+    // UserApiIntegrationTest pagination assertions). Match the type.
     if (this.ownerId != null && !this.ownerId.isEmpty()) {
-      combinedCriteria.add(Criteria.where("owner.$id").is(new ObjectId(this.ownerId)));
+      combinedCriteria.add(Criteria.where("owner.$id").is(new org.bson.types.ObjectId(this.ownerId)));
     }
 
-    // Filter by not owner ID if provided:
     if (this.notOwnerId != null && !this.notOwnerId.isEmpty()) {
-      combinedCriteria.add(Criteria.where("owner.$id").ne(new ObjectId(this.notOwnerId)));
+      combinedCriteria.add(Criteria.where("owner.$id").ne(new org.bson.types.ObjectId(this.notOwnerId)));
     }
 
     // Add language, condition, and genre filters:

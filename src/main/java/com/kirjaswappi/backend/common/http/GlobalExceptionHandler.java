@@ -8,6 +8,7 @@ import static com.kirjaswappi.backend.common.utils.PathProvider.getCurrentPath;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
@@ -181,5 +182,13 @@ public class GlobalExceptionHandler {
     log.warn("Missing request part: {}", ex.getMessage());
     return new ErrorResponse(
         new ErrorResponse.Error("missingRequestPart", "Required part '" + ex.getRequestPartName() + "' is missing"));
+  }
+
+  @ExceptionHandler(OptimisticLockingFailureException.class)
+  @ResponseStatus(HttpStatus.CONFLICT)
+  public ErrorResponse handleOptimisticLockingFailure(OptimisticLockingFailureException ex) {
+    log.warn("Optimistic locking conflict: {}", ex.getMessage());
+    return new ErrorResponse(new ErrorResponse.Error("conflictingUpdate",
+        "The resource was modified concurrently. Please refresh and try again."));
   }
 }

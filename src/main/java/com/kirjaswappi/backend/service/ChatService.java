@@ -15,7 +15,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.bson.types.ObjectId;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,8 +26,10 @@ import com.kirjaswappi.backend.common.service.ImageService;
 import com.kirjaswappi.backend.common.service.ProfanityFilterService;
 import com.kirjaswappi.backend.jpa.daos.ChatMessageDao;
 import com.kirjaswappi.backend.jpa.daos.SwapRequestDao;
+import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.ChatMessageRepository;
 import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
+import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.mapper.ChatMessageMapper;
 import com.kirjaswappi.backend.mapper.SwapRequestMapper;
 import com.kirjaswappi.backend.service.entities.ChatMessage;
@@ -50,6 +51,8 @@ public class ChatService {
 
   private final UserService userService;
 
+  private final UserRepository userRepository;
+
   private final ImageService imageService;
 
   private final SimpMessagingTemplate messagingTemplate;
@@ -57,6 +60,16 @@ public class ChatService {
   private final ProfanityFilterService profanityFilterService;
 
   private final org.springframework.cache.CacheManager cacheManager;
+
+  /**
+   * Statuses in which back-and-forth chat is permitted. After REJECTED / EXPIRED
+   * / CANCELLED / COMPLETED, history is still readable but no new messages may be
+   * sent. We compare case-insensitively because some legacy documents store the
+   * upper-cased name ("PENDING") while the enum's canonical code is mixed-case
+   * ("Pending").
+   */
+  private static final java.util.Set<String> ACTIVE_CHAT_STATUSES = java.util.Set.of(
+      "PENDING", "ACCEPTED", "RESERVED");
 
   public List<ChatMessage> getChatMessages(String swapRequestId, String userId) {
 
@@ -99,6 +112,16 @@ public class ChatService {
 
     // Validate user has access to this chat (must be sender or receiver)
     if (!hasAccessToChat(swapRequest, senderId)) {
+      throw new ChatAccessDeniedException();
+    }
+
+    // Block sending after the swap is closed (history remains readable).
+    if (!isChatActive(swapRequest)) {
+      throw new BadRequestException("chatClosedForSwap", swapRequest.swapStatus());
+    }
+
+    // Block sending if the counterparty has blocked the sender.
+    if (isBlockedByCounterparty(swapRequest, senderId)) {
       throw new ChatAccessDeniedException();
     }
 
@@ -160,6 +183,14 @@ public class ChatService {
 
     // Validate user has access to this chat (must be sender or receiver)
     if (!hasAccessToChat(swapRequest, senderId)) {
+      throw new ChatAccessDeniedException();
+    }
+
+    if (!isChatActive(swapRequest)) {
+      throw new BadRequestException("chatClosedForSwap", swapRequest.swapStatus());
+    }
+
+    if (isBlockedByCounterparty(swapRequest, senderId)) {
       throw new ChatAccessDeniedException();
     }
 
@@ -263,7 +294,7 @@ public class ChatService {
 
     // Count unread messages not sent by the current user
     return chatMessageRepository.countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot(
-        swapRequestId, new ObjectId(userId));
+        swapRequestId, new org.bson.types.ObjectId(userId));
   }
 
   public void clearUnreadCountCache(String userId, String swapRequestId) {
@@ -297,7 +328,7 @@ public class ChatService {
       return Map.of();
     }
     List<ChatMessageDao> unreadMessages = chatMessageRepository
-        .findUnreadBySwapRequestIdInAndSenderIdNot(swapRequestIds, new ObjectId(userId));
+        .findUnreadBySwapRequestIdInAndSenderIdNot(swapRequestIds, new org.bson.types.ObjectId(userId));
     Map<String, Long> result = new HashMap<>();
     for (ChatMessageDao msg : unreadMessages) {
       result.merge(msg.swapRequestId(), 1L, Long::sum);
@@ -333,6 +364,25 @@ public class ChatService {
   private boolean hasAccessToChat(SwapRequestDao swapRequest, String userId) {
     return swapRequest.sender().id().equals(userId) ||
         swapRequest.receiver().id().equals(userId);
+  }
+
+  private boolean isChatActive(SwapRequestDao swapRequest) {
+    String status = swapRequest.swapStatus();
+    return status != null && ACTIVE_CHAT_STATUSES.contains(status.toUpperCase(java.util.Locale.ROOT));
+  }
+
+  /**
+   * Returns true if the *counterparty* of the sender has the sender on their
+   * block list. We never silently swallow the message — the API rejects it.
+   */
+  private boolean isBlockedByCounterparty(SwapRequestDao swapRequest, String senderId) {
+    String counterpartyId = swapRequest.sender().id().equals(senderId)
+        ? swapRequest.receiver().id()
+        : swapRequest.sender().id();
+    return userRepository.findById(counterpartyId)
+        .map(UserDao::blockedUserIds)
+        .filter(blocked -> blocked != null && blocked.contains(senderId))
+        .isPresent();
   }
 
   private void resetRecipientReadTimestamp(SwapRequestDao swapRequest, String recipientId) {

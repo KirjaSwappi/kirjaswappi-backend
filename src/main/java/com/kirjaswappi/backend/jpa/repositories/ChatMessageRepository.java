@@ -17,6 +17,10 @@ public interface ChatMessageRepository
     extends MongoRepository<ChatMessageDao, String>, CustomChatMessageRepository {
   List<ChatMessageDao> findBySwapRequestIdOrderBySentAtAsc(String swapRequestId);
 
+  // Spring Data Mongo stores DBRef sender.$id as ObjectId because the inserted
+  // user IDs are 24-char hex strings (verified by
+  // ChatMessageRepositoryIntegrationTest).
+  // Pass ObjectId so the type matches the stored value.
   @Query(value = "{ 'swapRequestId': ?0, 'readByReceiver': false, 'sender.$id': { $ne: ?1 } }", count = true)
   long countBySwapRequestIdAndReadByReceiverFalseAndSenderIdNot(String swapRequestId, ObjectId userId);
 

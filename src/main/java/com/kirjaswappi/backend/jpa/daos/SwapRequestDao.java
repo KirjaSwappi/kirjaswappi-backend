@@ -12,6 +12,7 @@ import lombok.*;
 import lombok.experimental.Accessors;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.mapping.DBRef;
@@ -33,6 +34,9 @@ import com.mongodb.lang.Nullable;
 public class SwapRequestDao {
   @Id
   private String id;
+
+  @Version
+  private Long version;
 
   @NotNull
   @DBRef

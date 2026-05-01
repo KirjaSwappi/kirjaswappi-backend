@@ -24,6 +24,7 @@ public class CustomChatMessageRepositoryImpl implements CustomChatMessageReposit
 
   @Override
   public long markAsRead(String swapRequestId, String userId) {
+    // Spring Data Mongo stores DBRef sender.$id as ObjectId; match the type.
     Query query = new Query(Criteria.where("swapRequestId").is(swapRequestId)
         .and("readByReceiver").is(false)
         .and("sender.$id").ne(new ObjectId(userId)));
