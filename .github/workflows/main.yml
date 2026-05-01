@@ -28,11 +28,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Build Package (skip tests)
-        run: mvn clean package -DskipTests
-
-      - name: Deploy to GitHub Packages
-        run: mvn deploy -s .github/mvn/settings.xml -DskipTests
+      - name: Build, run tests, deploy
+        run: mvn -B deploy -s .github/mvn/settings.xml
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
