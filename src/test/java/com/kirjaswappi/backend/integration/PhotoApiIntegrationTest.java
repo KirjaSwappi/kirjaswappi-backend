@@ -51,16 +51,19 @@ class PhotoApiIntegrationTest {
   private final String userId = "user-123";
   private final String email = "test@example.com";
   private final String photoUrl = "https://storage.example.com/photos/test.jpg";
+  // Minimal JPEG SOI marker so ValidationUtil's magic-byte check passes.
+  private static final byte[] JPEG_BYTES = new byte[] { (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0,
+      0, 16, 'J', 'F', 'I', 'F', 0, 1, 1, 0, 0, 1, 0, 1, 0, 0 };
   private final MockMultipartFile imageFile = new MockMultipartFile(
       "image",
       "photo.jpg",
       MediaType.IMAGE_JPEG_VALUE,
-      "test image content".getBytes());
+      JPEG_BYTES);
   private final MockMultipartFile supportedCoverPhotoFile = new MockMultipartFile(
       "coverPhoto",
       "cover.jpg",
       MediaType.IMAGE_JPEG_VALUE,
-      "cover image content".getBytes());
+      JPEG_BYTES);
 
   @Nested
   @DisplayName("Profile Photo Tests")

@@ -21,11 +21,13 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kirjaswappi.backend.common.service.RateLimiterService;
 import com.kirjaswappi.backend.config.TestContainersConfig;
 import com.kirjaswappi.backend.http.dtos.requests.*;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
@@ -64,6 +66,11 @@ class UserApiIntegrationTest {
 
   @Autowired
   private ObjectMapper objectMapper;
+
+  // Bypass the real rate limiter (which would otherwise hit a missing Redis in
+  // this lightweight integration test) so we can exercise auth flows directly.
+  @MockitoBean
+  private RateLimiterService rateLimiterService;
 
   private MockMvc mockMvc;
 
@@ -358,15 +365,18 @@ class UserApiIntegrationTest {
   class GetUserTests {
 
     @Test
-    @DisplayName("Should return user by ID")
+    @DisplayName("Should return public profile when viewing another user")
     void shouldReturnUserById() throws Exception {
       UserDao user = createTestUser("Test", "User", "test@example.com");
 
+      // Anonymous (or non-self) callers receive PublicUserResponse: name + city
+      // only. Email and other PII are intentionally hidden — see audit A1.
       mockMvc.perform(get(API_BASE + "/" + user.id()))
           .andExpect(status().isOk())
-          .andExpect(jsonPath("$.email").value("test@example.com"))
           .andExpect(jsonPath("$.firstName").value("Test"))
-          .andExpect(jsonPath("$.lastName").value("User"));
+          .andExpect(jsonPath("$.lastName").value("User"))
+          .andExpect(jsonPath("$.email").doesNotExist())
+          .andExpect(jsonPath("$.phoneNumber").doesNotExist());
     }
 
     @Test
@@ -577,8 +587,10 @@ class UserApiIntegrationTest {
   class PasswordManagementTests {
 
     @Test
-    @DisplayName("Should return 400 when passwords do not match for change password")
+    @DisplayName("Should return 403 when changing another user's password")
     void shouldReturn400WhenPasswordsMismatchForChangePassword() throws Exception {
+      // Without an authenticated principal matching the path email, the
+      // controller now refuses with 403 (audit B6: tied to authenticated user).
       ChangePasswordRequest request = new ChangePasswordRequest();
       request.setCurrentPassword("currentPassword");
       request.setNewPassword("newPassword");
@@ -587,7 +599,7 @@ class UserApiIntegrationTest {
       mockMvc.perform(post(API_BASE + "/change-password/test@example.com")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isBadRequest());
+          .andExpect(status().isForbidden());
     }
 
     @Test

@@ -51,11 +51,14 @@ class BookControllerEdgeCaseTest {
   @MockitoBean
   private BookService bookService;
 
+  // Minimal JPEG SOI marker so ValidationUtil's magic-byte check passes.
+  private static final byte[] JPEG_BYTES = new byte[] { (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0,
+      0, 16, 'J', 'F', 'I', 'F', 0, 1, 1, 0, 0, 1, 0, 1, 0, 0 };
   private final MockMultipartFile coverPhoto = new MockMultipartFile(
       "coverPhotos",
       "book.jpg",
       MediaType.IMAGE_JPEG_VALUE,
-      "dummy".getBytes());
+      JPEG_BYTES);
 
   @Nested
   @DisplayName("Location-Based Query Edge Cases")
@@ -267,6 +270,7 @@ class BookControllerEdgeCaseTest {
           .param("condition", "Good")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition))
           .andExpect(status().isBadRequest());
     }
@@ -291,6 +295,7 @@ class BookControllerEdgeCaseTest {
           .param("condition", "Good")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition))
           .andExpect(status().isBadRequest());
     }
@@ -315,13 +320,14 @@ class BookControllerEdgeCaseTest {
           .param("language", "English")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition))
           .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("Should return 400 when ownerId is missing")
-    void shouldReturn400WhenOwnerIdMissing() throws Exception {
+    @DisplayName("Should return 401 when create book is anonymous (no principal)")
+    void shouldReturn401WhenAnonymousCreate() throws Exception {
       String swapCondition = """
           {
             "swapType": "GiveAway",
@@ -340,7 +346,7 @@ class BookControllerEdgeCaseTest {
           .param("condition", "Good")
           .param("genres", "Fiction")
           .param("swapCondition", swapCondition))
-          .andExpect(status().isBadRequest());
+          .andExpect(status().isForbidden());
     }
 
     @Test
@@ -353,7 +359,7 @@ class BookControllerEdgeCaseTest {
           .param("language", "English")
           .param("condition", "Good")
           .param("genres", "Fiction")
-          .param("ownerId", "user-123"))
+          .principal(() -> "user-123"))
           .andExpect(status().isBadRequest());
     }
   }
@@ -446,6 +452,7 @@ class BookControllerEdgeCaseTest {
           .param("condition", "Good")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", "not-valid-json"))
           .andExpect(status().isBadRequest());
     }
@@ -469,6 +476,7 @@ class BookControllerEdgeCaseTest {
           .param("condition", "Good")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition)
           .param("location", "not-valid-json"))
           .andExpect(status().isBadRequest());
@@ -492,6 +500,7 @@ class BookControllerEdgeCaseTest {
           .param("condition", "Good")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition))
           .andExpect(status().isBadRequest());
     }
@@ -514,6 +523,7 @@ class BookControllerEdgeCaseTest {
           .param("language", "English")
           .param("condition", "Good")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition))
           .andExpect(status().isBadRequest());
     }
@@ -522,7 +532,8 @@ class BookControllerEdgeCaseTest {
     @DisplayName("Should return 400 for malformed multipart request")
     void shouldReturn400ForMalformedRequest() throws Exception {
       mockMvc.perform(multipart(API_BASE)
-          .file(coverPhoto))
+          .file(coverPhoto)
+          .principal(() -> "user-123"))
           .andExpect(status().isBadRequest());
     }
   }

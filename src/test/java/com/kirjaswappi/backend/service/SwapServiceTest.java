@@ -28,6 +28,7 @@ import com.kirjaswappi.backend.jpa.daos.SwapRequestDao;
 import com.kirjaswappi.backend.jpa.daos.SwappableBookDao;
 import com.kirjaswappi.backend.jpa.daos.UserDao;
 import com.kirjaswappi.backend.jpa.repositories.SwapRequestRepository;
+import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.service.entities.Book;
 import com.kirjaswappi.backend.service.entities.Genre;
 import com.kirjaswappi.backend.service.entities.SwapCondition;
@@ -50,17 +51,26 @@ class SwapServiceTest {
   @Mock
   private UserService userService;
   @Mock
+  private UserRepository userRepository;
+  @Mock
   private BookService bookService;
   @Mock
   private GenreService genreService;
   @Mock
   private NotificationClient notificationClient;
+  @Mock
+  private PhotoService photoService;
   @InjectMocks
   private SwapService swapService;
 
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
+    // Default: no users have anyone blocked. Tests that need a block must
+    // override this stub explicitly.
+    when(userRepository.findById(anyString())).thenReturn(Optional.empty());
+    // Cover photo resolution is a no-op for tests that don't care about URLs.
+    when(photoService.getBookCoverPhoto(anyString())).thenAnswer(inv -> inv.getArgument(0));
   }
 
   @Test
@@ -901,7 +911,7 @@ class SwapServiceTest {
     verify(notificationClient).sendNotification(
         eq("sender123"),
         eq("Swap Request Update"),
-        eq("Your swap request for 'Amazing Book' has been accepted"));
+        eq("Swap request for 'Amazing Book' has been accepted"));
   }
 
   @Test
