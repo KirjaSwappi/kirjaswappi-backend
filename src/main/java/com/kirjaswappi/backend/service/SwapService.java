@@ -11,6 +11,7 @@ import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
 
+import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -50,8 +51,8 @@ public class SwapService {
 
   public SwapRequest createSwapRequest(SwapRequest swapRequest) {
     // validation: check if the swap request exists already for this book
-    if (swapRequestRepository.existsAlready(swapRequest.sender().id(),
-        swapRequest.receiver().id(), swapRequest.bookToSwapWith().id())) {
+    if (swapRequestRepository.existsAlready(new ObjectId(swapRequest.sender().id()),
+        new ObjectId(swapRequest.receiver().id()), new ObjectId(swapRequest.bookToSwapWith().id()))) {
       throw new SwapRequestExistsAlreadyException();
     }
 
@@ -215,13 +216,21 @@ public class SwapService {
       return swapRequest;
     }
     List<String> rawCovers = swapRequest.bookToSwapWith().coverPhotos();
-    if (rawCovers == null || rawCovers.isEmpty()) {
-      return swapRequest;
+    if (rawCovers != null && !rawCovers.isEmpty()) {
+      List<String> resolved = new ArrayList<>(rawCovers.size());
+      for (String uniqueId : rawCovers) {
+        resolved.add(photoService.getBookCoverPhoto(uniqueId));
+      }
+      swapRequest = swapRequest.withBookToSwapWith(swapRequest.bookToSwapWith().withCoverPhotos(resolved));
     }
-    List<String> resolved = new ArrayList<>(rawCovers.size());
-    for (String uniqueId : rawCovers) {
-      resolved.add(photoService.getBookCoverPhoto(uniqueId));
+
+    if (swapRequest.swapOffer() != null && swapRequest.swapOffer().offeredBook() != null) {
+      String offeredCover = swapRequest.swapOffer().offeredBook().getCoverPhoto();
+      if (offeredCover != null && !offeredCover.isBlank()) {
+        swapRequest.swapOffer().offeredBook().setCoverPhoto(photoService.getBookCoverPhoto(offeredCover));
+      }
     }
-    return swapRequest.withBookToSwapWith(swapRequest.bookToSwapWith().withCoverPhotos(resolved));
+
+    return swapRequest;
   }
 }

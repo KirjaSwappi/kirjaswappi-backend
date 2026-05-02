@@ -70,7 +70,9 @@ public class OTPService {
     var otpEntity = this.getOTP(otp.email());
 
     // check provided OTP with the stored OTP:
-    if (!otpEntity.otp().equals(otp.otp())) {
+    if (!java.security.MessageDigest.isEqual(
+        otpEntity.otp().getBytes(java.nio.charset.StandardCharsets.UTF_8),
+        otp.otp().getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
       rateLimiterService.recordAttempt(rateLimitKey, RATE_LIMIT_WINDOW);
       throw new BadRequestException("otpDoesNotMatch", otp);
     }

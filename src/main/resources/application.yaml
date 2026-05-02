@@ -79,7 +79,7 @@ logging:
 
 google:
   api:
-    clientId: 43921547457-06chtojpprgds80g1gq5tprmn5qg0hmq.apps.googleusercontent.com
+    clientId: ${GOOGLE_CLIENT_ID:43921547457-06chtojpprgds80g1gq5tprmn5qg0hmq.apps.googleusercontent.com}
 
 notification:
   service:
@@ -87,6 +87,7 @@ notification:
     port: ${NOTIFICATION_SERVICE_PORT:50051}
     enabled: ${NOTIFICATION_SERVICE_ENABLED:true}
     apiKey: ${NOTIFICATION_API_KEY:}
+    useTls: ${NOTIFICATION_SERVICE_USE_TLS:false}
 
 management:
   endpoints:

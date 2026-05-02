@@ -29,7 +29,8 @@ public class BackendApplication {
     // production (KIRJASWAPPI_PRODUCTION=true) but the active profile is
     // not 'cloud', fail fast — LocalSecurityConfig disables all security.
     String productionFlag = System.getenv("KIRJASWAPPI_PRODUCTION");
-    if ("true".equalsIgnoreCase(productionFlag) && !activeProfile.contains("cloud")) {
+    if ("true".equalsIgnoreCase(productionFlag)
+        && !java.util.Arrays.asList(activeProfile.split(",")).contains("cloud")) {
       log.error("Refusing to start: KIRJASWAPPI_PRODUCTION=true but active profile '{}' does not include 'cloud'. "
           + "LocalSecurityConfig disables authentication; running with this combination would expose the API.",
           activeProfile);

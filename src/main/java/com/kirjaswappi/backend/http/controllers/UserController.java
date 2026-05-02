@@ -323,7 +323,11 @@ public class UserController {
   public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
     String refreshToken = request.getUserRefreshToken();
     if (refreshToken != null && !refreshToken.isBlank()) {
-      jwtUtil.revokeUserRefreshToken(refreshToken);
+      var authentication = SecurityContextHolder.getContext().getAuthentication();
+      String tokenSubject = jwtUtil.extractUserId(refreshToken);
+      if (authentication != null && authentication.getName().equals(tokenSubject)) {
+        jwtUtil.revokeUserRefreshToken(refreshToken);
+      }
     }
     return ResponseEntity.noContent().build();
   }

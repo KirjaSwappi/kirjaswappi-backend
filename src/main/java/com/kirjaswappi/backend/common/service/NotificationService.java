@@ -55,17 +55,20 @@ public class NotificationService implements NotificationClient {
       @Value("${notification.service.host}") String host,
       @Value("${notification.service.port}") int port,
       @Value("${notification.service.enabled:true}") boolean enabled,
-      @Value("${notification.service.apiKey:}") String apiKey) {
+      @Value("${notification.service.apiKey:}") String apiKey,
+      @Value("${notification.service.useTls:false}") boolean useTls) {
 
     this.enabled = enabled;
 
     if (enabled) {
-      this.channel = ManagedChannelBuilder.forAddress(host, port)
-          .usePlaintext()
+      var builder = ManagedChannelBuilder.forAddress(host, port)
           .keepAliveTime(30, TimeUnit.SECONDS)
           .keepAliveTimeout(5, TimeUnit.SECONDS)
-          .keepAliveWithoutCalls(true)
-          .build();
+          .keepAliveWithoutCalls(true);
+      if (!useTls) {
+        builder.usePlaintext();
+      }
+      this.channel = builder.build();
 
       var bareStub = NotificationServiceGrpc.newBlockingStub(channel);
       if (apiKey != null && !apiKey.isBlank()) {

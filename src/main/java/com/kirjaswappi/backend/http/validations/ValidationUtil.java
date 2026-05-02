@@ -32,6 +32,9 @@ public class ValidationUtil {
     if (password == null || password.trim().isEmpty()) {
       throw new BadRequestException(fieldName + "CannotBeBlank", fieldName);
     }
+    if (password.length() > 128) {
+      throw new BadRequestException("passwordTooLong", fieldName);
+    }
     if (password.length() < 8) {
       throw new BadRequestException("passwordTooShort", fieldName);
     }
@@ -115,7 +118,8 @@ public class ValidationUtil {
     }
     // HEIC/HEIF: "....ftypheic" / "....ftypmif1" / "....ftypmsf1"
     if (head.length >= 12 && head[4] == 'f' && head[5] == 't' && head[6] == 'y' && head[7] == 'p') {
-      return true;
+      String brand = new String(head, 8, 4, java.nio.charset.StandardCharsets.US_ASCII);
+      return brand.equals("heic") || brand.equals("heix") || brand.equals("mif1") || brand.equals("msf1");
     }
     return false;
   }

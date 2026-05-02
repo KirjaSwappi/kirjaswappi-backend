@@ -25,6 +25,7 @@ public class PublicUserResponse {
   private String city;
   private String country;
   private String aboutMe;
+  private String profilePhoto;
   private List<String> favGenres;
   private List<BookListResponse> books;
 
@@ -35,6 +36,7 @@ public class PublicUserResponse {
     this.city = entity.city();
     this.country = entity.country();
     this.aboutMe = entity.aboutMe();
+    this.profilePhoto = entity.profilePhoto();
     this.favGenres = entity.favGenres() != null ? entity.favGenres().stream().map(Genre::getName).toList()
         : List.of();
     this.books = entity.books() != null ? entity.books().stream().map(BookListResponse::new).toList()

@@ -56,6 +56,8 @@ class ChatServiceTest {
   private ProfanityFilterService profanityFilterService;
   @Mock
   private org.springframework.cache.CacheManager cacheManager;
+  @Mock
+  private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
   @InjectMocks
   private ChatService chatService;
 

@@ -42,7 +42,7 @@ class NotificationServiceTest {
   void setUp() {
     MockitoAnnotations.openMocks(this);
     // Initialize NotificationService manually to control @Value fields
-    notificationService = new NotificationService("localhost", 9090, true, "");
+    notificationService = new NotificationService("localhost", 9090, true, "", false);
 
     // Inject mocks using ReflectionTestUtils since they are not injected by
     // constructor
@@ -170,7 +170,7 @@ class NotificationServiceTest {
   @DisplayName("Should skip cleanup when disabled")
   void shouldSkipCleanupWhenDisabled() {
     // Given
-    NotificationService disabledService = new NotificationService("localhost", 9090, false, "");
+    NotificationService disabledService = new NotificationService("localhost", 9090, false, "", false);
     ReflectionTestUtils.setField(disabledService, "notificationOutboxRepository", notificationOutboxRepository);
 
     // When

@@ -7,6 +7,8 @@ spring:
       autoIndexCreation: true
       uri: ${MONGODB_URI}
       database: ${MONGODB_DATABASE}
+    redis:
+      password: ${REDIS_PASSWORD}
   cache:
     type: redis
   threads:
@@ -14,6 +16,9 @@ spring:
       enabled: true
   lifecycle:
     timeout-per-shutdown-phase: 30s
+  rabbitmq:
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
 
 springdoc:
   api-docs:

@@ -59,9 +59,10 @@ public class RateLimiterService {
 
   public void recordAttempt(String key, Duration window) {
     try {
-      redisTemplate.opsForValue().increment(key);
-      // Always set expiry to ensure TTL is present even if a prior set failed
-      redisTemplate.expire(key, window);
+      Long count = redisTemplate.opsForValue().increment(key);
+      if (count != null && count == 1L) {
+        redisTemplate.expire(key, window);
+      }
     } catch (Exception e) {
       log.warn("Redis unavailable for recording rate limit attempt: {}", e.getMessage());
     }

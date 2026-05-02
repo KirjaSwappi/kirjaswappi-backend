@@ -77,10 +77,11 @@ public class FindAllBooksFilter {
 
     // Add search criteria:
     if (search != null && !search.isEmpty()) {
+      String escaped = java.util.regex.Pattern.quote(search);
       combinedCriteria.add(new Criteria().orOperator(
-          Criteria.where("title").regex(search, "i"),
-          Criteria.where("author").regex(search, "i"),
-          Criteria.where("description").regex(search, "i")));
+          Criteria.where("title").regex(escaped, "i"),
+          Criteria.where("author").regex(escaped, "i"),
+          Criteria.where("description").regex(escaped, "i")));
     }
 
     // Add filter criteria:
@@ -166,12 +167,12 @@ public class FindAllBooksFilter {
 
     // Filter by city if provided:
     if (city != null && !city.isEmpty()) {
-      combinedCriteria.add(Criteria.where("location.city").regex(city, "i"));
+      combinedCriteria.add(Criteria.where("location.city").regex(java.util.regex.Pattern.quote(city), "i"));
     }
 
     // Filter by country if provided:
     if (country != null && !country.isEmpty()) {
-      combinedCriteria.add(Criteria.where("location.country").regex(country, "i"));
+      combinedCriteria.add(Criteria.where("location.country").regex(java.util.regex.Pattern.quote(country), "i"));
     }
 
     // Filter by map bounding box if provided:

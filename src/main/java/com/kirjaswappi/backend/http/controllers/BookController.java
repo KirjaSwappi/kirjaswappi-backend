@@ -142,9 +142,6 @@ public class BookController {
     if (filter.getNorth() < filter.getSouth()) {
       throw new BadRequestException("invalidMapBounds", "north must be >= south");
     }
-    if (filter.getEast() < filter.getWest()) {
-      throw new BadRequestException("invalidMapBounds", "east must be >= west");
-    }
     Page<Book> books = bookService.getAllBooksByFilter(filter, pageable);
     Page<BookListResponse> response = books.map(BookListResponse::new);
     return ResponseEntity.status(HttpStatus.OK).body(LinkBuilder.forPage(response, API_BASE + BOOKS + "/map"));

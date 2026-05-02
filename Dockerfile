@@ -1,5 +1,5 @@
 ################ Build stage ################
-FROM maven:3-sapmachine-25 AS builder
+FROM maven:3.9.9-sapmachine-25 AS builder
 
 WORKDIR /build
 
@@ -16,7 +16,7 @@ RUN mvn -B -q -DskipTests package \
     && cp target/backend-*-SNAPSHOT.jar /build/app.jar
 
 ################ Runtime stage ################
-FROM eclipse-temurin:25-jre
+FROM eclipse-temurin:25-jre-noble
 
 # Create non-root user with stable UID/GID.
 RUN groupadd --system --gid 1001 kirja \

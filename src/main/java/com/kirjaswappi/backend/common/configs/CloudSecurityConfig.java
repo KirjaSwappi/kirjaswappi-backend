@@ -75,7 +75,7 @@ public class CloudSecurityConfig {
             .requestMatchers(POST, API_BASE + USERS + "/refresh-token").permitAll()
             .requestMatchers(POST, API_BASE + SEND_OTP).permitAll()
             .requestMatchers(POST, API_BASE + VERIFY_OTP).permitAll()
-            .requestMatchers(POST, API_BASE + USERS + RESET_PASSWORD + "/**").permitAll()
+            .requestMatchers(POST, API_BASE + USERS + RESET_PASSWORD + "/{email}").permitAll()
             // =========== PUBLIC — read-only browse ===========
             .requestMatchers(GET, API_BASE + BOOKS).permitAll()
             .requestMatchers(GET, API_BASE + BOOKS + "/**").permitAll()

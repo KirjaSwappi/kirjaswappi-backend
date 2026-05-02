@@ -15,6 +15,10 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +64,8 @@ public class ChatService {
   private final ProfanityFilterService profanityFilterService;
 
   private final org.springframework.cache.CacheManager cacheManager;
+
+  private final MongoTemplate mongoTemplate;
 
   /**
    * Statuses in which back-and-forth chat is permitted. After REJECTED / EXPIRED
@@ -386,12 +392,16 @@ public class ChatService {
   }
 
   private void resetRecipientReadTimestamp(SwapRequestDao swapRequest, String recipientId) {
+    Update update = new Update();
     if (swapRequest.receiver().id().equals(recipientId)) {
-      swapRequest.readByReceiverAt(null);
+      update.set("readByReceiverAt", null);
     } else {
-      swapRequest.readBySenderAt(null);
+      update.set("readBySenderAt", null);
     }
-    swapRequestRepository.save(swapRequest);
+    mongoTemplate.updateFirst(
+        Query.query(Criteria.where("_id").is(swapRequest.id())),
+        update,
+        SwapRequestDao.class);
   }
 
   private List<String> convertImageIdsToUrls(List<String> imageIds) {

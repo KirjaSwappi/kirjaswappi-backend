@@ -109,7 +109,7 @@ public class CreateBookRequest {
     if (!ValidationUtil.validateNotBlank(this.swapCondition)) {
       throw new BadRequestException("swapConditionIsRequired");
     }
-    if (this.coverPhotos == null) {
+    if (this.coverPhotos == null || this.coverPhotos.isEmpty()) {
       throw new BadRequestException("atLeastOneCoverPhotoIsRequired");
     }
     for (var coverPhoto : this.coverPhotos) {

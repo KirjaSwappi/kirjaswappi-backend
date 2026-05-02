@@ -141,6 +141,7 @@ public class JwtUtil {
   private String createRefreshToken(Map<String, Object> claims, String subject) {
     return Jwts.builder()
         .claims(claims)
+        .id(UUID.randomUUID().toString())
         .subject(subject)
         .issuedAt(new Date(System.currentTimeMillis()))
         .expiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION_MS))
@@ -195,6 +196,7 @@ public class JwtUtil {
    */
   public void revokeUserRefreshToken(String token) {
     if (redisTemplate == null) {
+      logger.error("Cannot revoke refresh token — Redis unavailable");
       return;
     }
     try {
@@ -224,7 +226,7 @@ public class JwtUtil {
     try {
       String jti = extractAllClaims(token).getId();
       if (jti == null || jti.isBlank()) {
-        return false;
+        return true;
       }
       return Boolean.TRUE.equals(redisTemplate.hasKey(REFRESH_TOKEN_REVOKED_PREFIX + jti));
     } catch (Exception e) {
@@ -290,7 +292,8 @@ public class JwtUtil {
         return false;
       }
       if (redisTemplate == null) {
-        return true;
+        logger.error("Cannot validate reset token — Redis unavailable (fail-closed)");
+        return false;
       }
       String jti = claims.getId();
       if (jti == null || jti.isBlank()) {
