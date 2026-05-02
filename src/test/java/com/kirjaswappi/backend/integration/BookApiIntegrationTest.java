@@ -52,11 +52,14 @@ class BookApiIntegrationTest {
   @MockitoBean
   private BookService bookService;
 
+  // Minimal JPEG SOI marker so ValidationUtil's magic-byte check passes.
+  private static final byte[] JPEG_BYTES = new byte[] { (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0,
+      0, 16, 'J', 'F', 'I', 'F', 0, 1, 1, 0, 0, 1, 0, 1, 0, 0 };
   private final MockMultipartFile coverPhoto = new MockMultipartFile(
       "coverPhotos",
       "book.jpg",
       MediaType.IMAGE_JPEG_VALUE,
-      "dummy image content".getBytes());
+      JPEG_BYTES);
 
   private User createTestUser() {
     return User.builder()
@@ -133,6 +136,7 @@ class BookApiIntegrationTest {
           .param("condition", "New")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition))
           .andExpect(status().isCreated());
     }
@@ -162,6 +166,7 @@ class BookApiIntegrationTest {
           .param("condition", "Good")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition))
           .andExpect(status().isCreated());
     }
@@ -190,6 +195,7 @@ class BookApiIntegrationTest {
           .param("condition", "Fair")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition))
           .andExpect(status().isCreated());
     }
@@ -218,6 +224,7 @@ class BookApiIntegrationTest {
           .param("condition", "Like New")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition))
           .andExpect(status().isCreated());
     }
@@ -246,6 +253,7 @@ class BookApiIntegrationTest {
           .param("condition", "Good")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition)
           .param("location.latitude", "60.1699")
           .param("location.longitude", "24.9384")
@@ -292,6 +300,7 @@ class BookApiIntegrationTest {
           .param("condition", "Good")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition)
           .param("location", locationJson))
           .andExpect(status().isCreated());
@@ -317,6 +326,7 @@ class BookApiIntegrationTest {
           .param("condition", "Good")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", swapCondition))
           .andExpect(status().isBadRequest());
     }
@@ -332,6 +342,7 @@ class BookApiIntegrationTest {
           .param("condition", "Good")
           .param("genres", "Fiction")
           .param("ownerId", "user-123")
+          .principal(() -> "user-123")
           .param("swapCondition", "invalid json"))
           .andExpect(status().isBadRequest());
     }

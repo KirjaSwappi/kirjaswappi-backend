@@ -150,7 +150,8 @@ public class UserControllerTest {
   }
 
   @Test
-  @DisplayName("Should get user by ID")
+  @WithMockUser(username = "1")
+  @DisplayName("Should get full user profile when authenticated as same user")
   void shouldGetUser() throws Exception {
     when(userService.getUser("1")).thenReturn(user);
 
@@ -158,6 +159,23 @@ public class UserControllerTest {
         .header("Authorization ", "Bearer a.b.c"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.email").value(user.email()));
+  }
+
+  @Test
+  @WithMockUser(username = "2")
+  @DisplayName("Should return only public profile fields when viewing another user")
+  void shouldReturnPublicProfileForOtherUser() throws Exception {
+    when(userService.getUser("1")).thenReturn(user);
+
+    mockMvc.perform(get(API_BASE + "/1")
+        .header("Authorization ", "Bearer a.b.c"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value("1"))
+        .andExpect(jsonPath("$.email").doesNotExist())
+        .andExpect(jsonPath("$.phoneNumber").doesNotExist())
+        .andExpect(jsonPath("$.streetName").doesNotExist())
+        .andExpect(jsonPath("$.houseNumber").doesNotExist())
+        .andExpect(jsonPath("$.zipCode").doesNotExist());
   }
 
   @Test
@@ -200,6 +218,7 @@ public class UserControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "1")
   @DisplayName("Should change user password")
   void shouldChangePassword() throws Exception {
     ChangePasswordRequest request = new ChangePasswordRequest();
@@ -207,6 +226,7 @@ public class UserControllerTest {
     request.setNewPassword("newPassword1!");
     request.setConfirmPassword("newPassword1!");
 
+    when(userService.getUser("1")).thenReturn(user);
     Mockito.doNothing().when(userService).verifyCurrentPassword(any());
     when(userService.changePassword(any())).thenReturn("test@example.com");
 
@@ -226,7 +246,7 @@ public class UserControllerTest {
     request.setConfirmPassword("newPassword1!");
     request.setResetToken("valid-reset-token");
 
-    when(jwtUtil.validatePasswordResetToken("valid-reset-token")).thenReturn(true);
+    when(jwtUtil.validateAndConsumePasswordResetToken("valid-reset-token")).thenReturn(true);
     when(jwtUtil.extractEmailFromResetToken("valid-reset-token")).thenReturn("test@example.com");
     when(userService.changePassword(any())).thenReturn("test@example.com");
 
@@ -535,8 +555,11 @@ public class UserControllerTest {
   }
 
   @Test
+  @WithMockUser(username = "1")
   @DisplayName("Should return 400 when new and confirm password do not match")
   void shouldReturnBadRequestWhenPasswordsDoNotMatch() throws Exception {
+    when(userService.getUser("1")).thenReturn(user);
+
     ChangePasswordRequest request = new ChangePasswordRequest();
     request.setCurrentPassword("currentPassword");
     request.setNewPassword("newPassword1!");
@@ -547,6 +570,24 @@ public class UserControllerTest {
         .content(objectMapper.writeValueAsString(request))
         .header("Authorization", "Bearer a.b.c"))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @WithMockUser(username = "1")
+  @DisplayName("Should return 403 when path email differs from authenticated user")
+  void shouldRejectChangePasswordForOtherUserEmail() throws Exception {
+    when(userService.getUser("1")).thenReturn(user);
+
+    ChangePasswordRequest request = new ChangePasswordRequest();
+    request.setCurrentPassword("currentPassword");
+    request.setNewPassword("newPassword1!");
+    request.setConfirmPassword("newPassword1!");
+
+    mockMvc.perform(post(API_BASE + "/change-password/other@example.com")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request))
+        .header("Authorization", "Bearer a.b.c"))
+        .andExpect(status().isForbidden());
   }
 
   @Test

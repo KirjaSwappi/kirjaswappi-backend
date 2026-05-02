@@ -9,8 +9,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Metadata;
 import io.grpc.StatusRuntimeException;
 
 import org.slf4j.Logger;
@@ -36,10 +38,14 @@ public class NotificationService implements NotificationClient {
   private static final String STATUS_FAILED = "FAILED";
   private static final int MAX_RETRIES = 3;
   private static final Duration FAILED_RETENTION = Duration.ofDays(7);
+  private static final Duration SENT_RETENTION = Duration.ofDays(14);
   private static final long CLEANUP_INTERVAL_MS = 86_400_000L; // 1 day
 
   @Autowired
   private NotificationOutboxRepository notificationOutboxRepository;
+
+  private static final Metadata.Key<String> API_KEY_METADATA_KEY = Metadata.Key.of("x-api-key",
+      Metadata.ASCII_STRING_MARSHALLER);
 
   private final ManagedChannel channel;
   private final NotificationServiceGrpc.NotificationServiceBlockingStub stub;
@@ -48,25 +54,52 @@ public class NotificationService implements NotificationClient {
   public NotificationService(
       @Value("${notification.service.host}") String host,
       @Value("${notification.service.port}") int port,
-      @Value("${notification.service.enabled:true}") boolean enabled) {
+      @Value("${notification.service.enabled:true}") boolean enabled,
+      @Value("${notification.service.apiKey:}") String apiKey,
+      @Value("${notification.service.useTls:false}") boolean useTls) {
 
     this.enabled = enabled;
 
     if (enabled) {
-      this.channel = ManagedChannelBuilder.forAddress(host, port)
-          .usePlaintext()
+      var builder = ManagedChannelBuilder.forAddress(host, port)
           .keepAliveTime(30, TimeUnit.SECONDS)
           .keepAliveTimeout(5, TimeUnit.SECONDS)
-          .keepAliveWithoutCalls(true)
-          .build();
+          .keepAliveWithoutCalls(true);
+      if (!useTls) {
+        builder.usePlaintext();
+      }
+      this.channel = builder.build();
 
-      this.stub = NotificationServiceGrpc.newBlockingStub(channel);
-      logger.info("Notification service client initialized for {}:{}", host, port);
+      var bareStub = NotificationServiceGrpc.newBlockingStub(channel);
+      if (apiKey != null && !apiKey.isBlank()) {
+        this.stub = bareStub.withCallCredentials(apiKeyCallCredentials(apiKey));
+        logger.info("Notification service client initialized for {}:{} (with API key auth)", host, port);
+      } else {
+        this.stub = bareStub;
+        logger.warn("Notification service client initialized for {}:{} WITHOUT API key — gRPC auth disabled",
+            host, port);
+      }
     } else {
       this.channel = null;
       this.stub = null;
       logger.info("Notification service is disabled");
     }
+  }
+
+  /**
+   * Visible for testing. Builds a {@link CallCredentials} that applies the
+   * {@code x-api-key} metadata header on every outgoing call.
+   */
+  static CallCredentials apiKeyCallCredentials(String apiKey) {
+    return new CallCredentials() {
+      @Override
+      public void applyRequestMetadata(RequestInfo requestInfo, java.util.concurrent.Executor appExecutor,
+          MetadataApplier applier) {
+        Metadata headers = new Metadata();
+        headers.put(API_KEY_METADATA_KEY, apiKey);
+        applier.apply(headers);
+      }
+    };
   }
 
   @Override
@@ -162,9 +195,19 @@ public class NotificationService implements NotificationClient {
       return;
     }
 
-    Instant cutoff = Instant.now().minus(FAILED_RETENTION);
-    long deleted = notificationOutboxRepository.deleteByStatusAndCreatedAtBefore(STATUS_FAILED, cutoff);
-    logger.debug("Cleaned up {} FAILED notifications older than {} days", deleted, FAILED_RETENTION.toDays());
+    Instant failedCutoff = Instant.now().minus(FAILED_RETENTION);
+    long failedDeleted = notificationOutboxRepository
+        .deleteByStatusAndCreatedAtBefore(STATUS_FAILED, failedCutoff);
+    logger.debug("Cleaned up {} FAILED notifications older than {} days",
+        failedDeleted, FAILED_RETENTION.toDays());
+
+    // SENT notifications also accumulate forever otherwise. Keep a fortnight
+    // for ad-hoc debugging then prune so the outbox does not bloat MongoDB.
+    Instant sentCutoff = Instant.now().minus(SENT_RETENTION);
+    long sentDeleted = notificationOutboxRepository
+        .deleteByStatusAndCreatedAtBefore(STATUS_SENT, sentCutoff);
+    logger.debug("Cleaned up {} SENT notifications older than {} days",
+        sentDeleted, SENT_RETENTION.toDays());
   }
 
   @Override

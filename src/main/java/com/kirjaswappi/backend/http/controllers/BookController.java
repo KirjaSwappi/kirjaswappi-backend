@@ -63,9 +63,14 @@ public class BookController {
 
   @PostMapping(consumes = "multipart/form-data")
   @Operation(summary = "Add book to a user.", responses = {
-      @ApiResponse(responseCode = "201", description = "Book created.") })
-  public ResponseEntity<BookResponse> createBook(@Valid @ModelAttribute CreateBookRequest book) {
-    Book entity = book.toEntity();
+      @ApiResponse(responseCode = "201", description = "Book created."),
+      @ApiResponse(responseCode = "401", description = "Unauthenticated.") })
+  public ResponseEntity<BookResponse> createBook(@Valid @ModelAttribute CreateBookRequest book,
+      java.security.Principal principal) {
+    if (principal == null || principal.getName() == null) {
+      throw new AccessDeniedException("notAuthenticated", "");
+    }
+    Book entity = book.toEntity(principal.getName());
     entity = this.parseBookSwapCondition(book.getSwapCondition(), entity);
     entity = this.parseBookLocation(book.getLocation(), entity);
     Book savedBook = bookService.createBook(entity);
@@ -136,9 +141,6 @@ public class BookController {
     }
     if (filter.getNorth() < filter.getSouth()) {
       throw new BadRequestException("invalidMapBounds", "north must be >= south");
-    }
-    if (filter.getEast() < filter.getWest()) {
-      throw new BadRequestException("invalidMapBounds", "east must be >= west");
     }
     Page<Book> books = bookService.getAllBooksByFilter(filter, pageable);
     Page<BookListResponse> response = books.map(BookListResponse::new);

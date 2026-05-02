@@ -7,22 +7,34 @@ spring:
       autoIndexCreation: true
       uri: ${MONGODB_URI}
       database: ${MONGODB_DATABASE}
+    redis:
+      password: ${REDIS_PASSWORD}
   cache:
     type: redis
-
-
   threads:
     virtual:
       enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  rabbitmq:
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
 
 springdoc:
+  api-docs:
+    enabled: false
   swagger-ui:
+    enabled: false
     schemes:
       - https
 
 server:
   forward-headers-strategy: native
   port: 10000
+  shutdown: graceful
+  error:
+    include-stacktrace: never
+    include-message: never
 
 s3:
   url: ${S3_URL}

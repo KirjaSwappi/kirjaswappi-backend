@@ -41,10 +41,13 @@ class PhotoControllerTest {
   private final String userId = "user123";
   private final String email = "test@example.com";
   private final String photoUrl = "http://example.com/photo.jpg";
+  // Minimal JPEG SOI marker so ValidationUtil's magic-byte check passes.
+  private static final byte[] JPEG_BYTES = new byte[] { (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0,
+      0, 16, 'J', 'F', 'I', 'F', 0, 1, 1, 0, 0, 1, 0, 1, 0, 0 };
   private final MockMultipartFile file = new MockMultipartFile("image", "photo.jpg", MediaType.IMAGE_JPEG_VALUE,
-      "dummy".getBytes());
+      JPEG_BYTES);
   private final MockMultipartFile supportedCoverPhoto = new MockMultipartFile("coverPhoto", "photo.jpg",
-      MediaType.IMAGE_JPEG_VALUE, "dummy".getBytes());
+      MediaType.IMAGE_JPEG_VALUE, JPEG_BYTES);
 
   @Test
   @WithMockUser(username = "user123")

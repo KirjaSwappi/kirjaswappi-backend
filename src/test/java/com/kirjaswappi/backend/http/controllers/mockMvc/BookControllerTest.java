@@ -49,8 +49,11 @@ class BookControllerTest {
 
   private static final String BASE_PATH = API_BASE + BOOKS;
 
+  // Minimal JPEG SOI marker so ValidationUtil's magic-byte check passes.
+  private static final byte[] JPEG_BYTES = new byte[] { (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0,
+      0, 16, 'J', 'F', 'I', 'F', 0, 1, 1, 0, 0, 1, 0, 1, 0, 0 };
   MockMultipartFile coverPhoto = new MockMultipartFile("coverPhotos", "book.jpg", MediaType.IMAGE_JPEG_VALUE,
-      "dummy".getBytes());
+      JPEG_BYTES);
 
   @Test
   @DisplayName("Should create a Book with swap type ByBooks successfully")
@@ -82,6 +85,7 @@ class BookControllerTest {
         .param("condition", "New")
         .param("genres", "Fiction")
         .param("ownerId", "user-123")
+        .principal(() -> "user-123")
         .param("swapCondition", swapCondition))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.title").value("The Alchemist"));
@@ -112,6 +116,7 @@ class BookControllerTest {
         .param("condition", "New")
         .param("genres", "Fiction")
         .param("ownerId", "user-123")
+        .principal(() -> "user-123")
         .param("swapCondition", swapCondition))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.title").value("The Alchemist"));
@@ -143,6 +148,7 @@ class BookControllerTest {
         .param("condition", "New")
         .param("genres", "Fiction")
         .param("ownerId", "user-123")
+        .principal(() -> "user-123")
         .param("swapCondition", swapCondition))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.title").value("The Alchemist"));
@@ -173,6 +179,7 @@ class BookControllerTest {
         .param("condition", "New")
         .param("genres", "Fiction")
         .param("ownerId", "user-123")
+        .principal(() -> "user-123")
         .param("swapCondition", swapCondition))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.title").value("The Alchemist"));
@@ -211,6 +218,7 @@ class BookControllerTest {
         .param("condition", "New")
         .param("genres", "Fiction")
         .param("ownerId", "user-123")
+        .principal(() -> "user-123")
         .param("swapCondition", swapCondition)
         .with(request -> {
           request.setMethod("PUT");
@@ -249,6 +257,7 @@ class BookControllerTest {
         .param("condition", "New")
         .param("genres", "Fiction")
         .param("ownerId", "user-123")
+        .principal(() -> "user-123")
         .param("swapCondition", swapCondition)
         .with(request -> {
           request.setMethod("PUT");
@@ -287,6 +296,7 @@ class BookControllerTest {
         .param("condition", "New")
         .param("genres", "Fiction")
         .param("ownerId", "user-123")
+        .principal(() -> "user-123")
         .param("swapCondition", swapCondition)
         .with(request -> {
           request.setMethod("PUT");
@@ -325,6 +335,7 @@ class BookControllerTest {
         .param("condition", "New")
         .param("genres", "Fiction")
         .param("ownerId", "user-123")
+        .principal(() -> "user-123")
         .param("swapCondition", swapCondition)
         .with(request -> {
           request.setMethod("PUT");

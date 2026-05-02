@@ -22,8 +22,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
-import com.kirjaswappi.backend.common.service.AdminUserService;
-import com.kirjaswappi.backend.common.service.entities.AdminUser;
 import com.kirjaswappi.backend.common.utils.JwtUtil;
 
 @Configuration
@@ -32,9 +30,6 @@ public class WebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer
 
   @Autowired
   private JwtUtil jwtUtil;
-
-  @Autowired
-  private AdminUserService adminUserService;
 
   @Override
   public void configureClientInboundChannel(ChannelRegistration registration) {
@@ -53,32 +48,21 @@ public class WebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer
           String jwt = authHeader.substring(7);
 
           try {
-            if (jwtUtil.isUserToken(jwt)) {
-              // User token: extract userId from token claims
-              if (!jwtUtil.validateUserToken(jwt)) {
-                throw new IllegalArgumentException("Invalid user JWT token");
-              }
-              String userId = jwtUtil.extractUserId(jwt);
-              String role = jwtUtil.extractRole(jwt);
-              List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
-              Authentication auth = new UsernamePasswordAuthenticationToken(userId, null, authorities);
-              accessor.setUser(auth);
-            } else {
-              // Admin token: validate against AdminUser, use userId header for routing
-              String userId = accessor.getFirstNativeHeader("userId");
-              if (userId == null || userId.trim().isEmpty()) {
-                throw new IllegalArgumentException("userId header is required for admin token WebSocket connection");
-              }
-              String username = jwtUtil.extractUsername(jwt);
-              AdminUser adminUser = adminUserService.getAdminUserInfo(username);
-              if (!jwtUtil.validateJwtToken(jwt, adminUser)) {
-                throw new IllegalArgumentException("Invalid admin JWT token");
-              }
-              String role = jwtUtil.extractRole(jwt);
-              List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
-              Authentication auth = new UsernamePasswordAuthenticationToken(userId, null, authorities);
-              accessor.setUser(auth);
+            // Only end-user JWTs may connect to the application WebSocket.
+            // Admin JWTs are not allowed: principals on STOMP destinations
+            // are derived from the token subject, so trusting a client-supplied
+            // userId header from an admin token enables impersonation of any user.
+            if (!jwtUtil.isUserToken(jwt)) {
+              throw new IllegalArgumentException("Admin JWT cannot be used for application WebSocket");
             }
+            if (!jwtUtil.validateUserToken(jwt)) {
+              throw new IllegalArgumentException("Invalid user JWT token");
+            }
+            String userId = jwtUtil.extractUserId(jwt);
+            String role = jwtUtil.extractRole(jwt);
+            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+            Authentication auth = new UsernamePasswordAuthenticationToken(userId, null, authorities);
+            accessor.setUser(auth);
 
           } catch (Exception e) {
             throw new IllegalArgumentException("WebSocket authentication failed: " + e.getMessage(), e);

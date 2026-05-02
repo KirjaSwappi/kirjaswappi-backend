@@ -1,13 +1,39 @@
 version: 2
 updates:
-  # Enable version updates for Maven package
-  - package-ecosystem: "maven"
-    directory: "/" # Location of package manifests
+  - package-ecosystem: maven
+    directory: /
     schedule:
-      interval: "weekly"
-  
-  # Enable version updates for Docker
-  - package-ecosystem: "docker"
-    directory: "/"
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'Build(deps)'
+    labels:
+      - dependencies
+    groups:
+      spring:
+        patterns:
+          - 'org.springframework.boot:*'
+          - 'org.springframework.cloud:*'
+          - 'org.springframework.security:*'
+      grpc:
+        patterns:
+          - 'io.grpc:*'
+
+  - package-ecosystem: docker
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: weekly
+    commit-message:
+      prefix: 'Build(deps)'
+    labels:
+      - dependencies
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: 'Build(deps)'
+    labels:
+      - dependencies

@@ -1,13 +1,36 @@
-FROM maven:3-sapmachine-25
+################ Build stage ################
+FROM maven:3.9.9-sapmachine-25 AS builder
+
+WORKDIR /build
+
+# Cache dependencies first.
+COPY pom.xml ./
+COPY .mvn .mvn
+COPY mvnw mvnw.cmd ./
+RUN mvn -B -q dependency:go-offline
+
+# Copy sources and build.
+COPY src src
+COPY eclipse-formatter-profile.xml eclipse.importorder license-header ./
+RUN mvn -B -q -DskipTests package \
+    && cp target/backend-*-SNAPSHOT.jar /build/app.jar
+
+################ Runtime stage ################
+FROM eclipse-temurin:25-jre-noble
+
+# Create non-root user with stable UID/GID.
+RUN groupadd --system --gid 1001 kirja \
+    && useradd --system --uid 1001 --gid 1001 --shell /usr/sbin/nologin kirja
 
 WORKDIR /app
+COPY --from=builder --chown=kirja:kirja /build/app.jar /app/app.jar
 
-COPY . .
+USER 1001
 
-RUN mvn package -DskipTests
+ENV SPRING_PROFILES_ACTIVE=cloud \
+    PORT=10000 \
+    JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+UseG1GC"
 
-ENV SPRING_PROFILES_ACTIVE=cloud
-ENV PORT=10000
 EXPOSE 10000
 
-CMD ["java", "-jar", "target/backend-1.0.0-SNAPSHOT.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

@@ -6,14 +6,21 @@ package com.kirjaswappi.backend.jpa.repositories;
 
 import java.util.List;
 
+import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
 import com.kirjaswappi.backend.jpa.daos.SwapRequestDao;
 
 public interface SwapRequestRepository extends MongoRepository<SwapRequestDao, String> {
-  @Query(value = "{ 'sender.id': ?0, 'receiver.id': ?1, 'bookToSwapWith.id': ?2 }", exists = true)
-  boolean existsAlready(String senderId, String receiverId, String bookToSwapWithId);
+  /**
+   * Returns true only if there is an *active* swap (PENDING/ACCEPTED/RESERVED)
+   * for this triple. Closed states (REJECTED/CANCELLED/EXPIRED/COMPLETED) must
+   * not block the same pair from re-requesting the book later.
+   */
+  @Query(value = "{ 'sender.$id': ?0, 'receiver.$id': ?1, 'bookToSwapWith.$id': ?2, "
+      + "'swapStatus': { $in: ['Pending', 'Accepted', 'Reserved'] } }", exists = true)
+  boolean existsAlready(ObjectId senderId, ObjectId receiverId, ObjectId bookToSwapWithId);
 
   // Inbox query methods for received swap requests
   List<SwapRequestDao> findByReceiverIdOrderByRequestedAtDesc(String receiverId);

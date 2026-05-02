@@ -46,9 +46,6 @@ public class CreateBookRequest {
   @Schema(description = "The cover photos of the book.", requiredMode = REQUIRED)
   private List<MultipartFile> coverPhotos;
 
-  @Schema(description = "The user ID of the book owner.", example = "123456", requiredMode = REQUIRED)
-  private String ownerId;
-
   @Schema(description = "Swap condition of the book in JSON format.", requiredMode = REQUIRED, example = """
       {
         "conditionType": "ByBooks",
@@ -77,9 +74,9 @@ public class CreateBookRequest {
       }""")
   private String location;
 
-  public Book toEntity() {
+  public Book toEntity(String ownerId) {
     this.validateProperties();
-    var user = new User().id(this.ownerId);
+    var user = new User().id(ownerId);
 
     return Book.builder()
         .title(this.title)
@@ -112,14 +109,11 @@ public class CreateBookRequest {
     if (!ValidationUtil.validateNotBlank(this.swapCondition)) {
       throw new BadRequestException("swapConditionIsRequired");
     }
-    if (this.coverPhotos == null) {
+    if (this.coverPhotos == null || this.coverPhotos.isEmpty()) {
       throw new BadRequestException("atLeastOneCoverPhotoIsRequired");
     }
     for (var coverPhoto : this.coverPhotos) {
       ValidationUtil.validateMediaType(coverPhoto);
-    }
-    if (!ValidationUtil.validateNotBlank(this.ownerId)) {
-      throw new BadRequestException("ownerIdCannotBeBlank", this.ownerId);
     }
   }
 }

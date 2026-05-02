@@ -81,6 +81,22 @@ public class UserController {
   private static final Duration LOGIN_RATE_LIMIT_WINDOW = Duration.ofMinutes(15);
   private static final String LOGIN_RATE_LIMIT_PREFIX = "ratelimit:login:";
 
+  private static final int MAX_CHANGE_PW_ATTEMPTS = 5;
+  private static final Duration CHANGE_PW_RATE_LIMIT_WINDOW = Duration.ofMinutes(15);
+  private static final String CHANGE_PW_RATE_LIMIT_PREFIX = "ratelimit:change-password:";
+
+  private static final int MAX_RESET_PW_ATTEMPTS = 5;
+  private static final Duration RESET_PW_RATE_LIMIT_WINDOW = Duration.ofMinutes(15);
+  private static final String RESET_PW_RATE_LIMIT_PREFIX = "ratelimit:reset-password:";
+
+  private static final int MAX_REFRESH_TOKEN_ATTEMPTS = 30;
+  private static final Duration REFRESH_TOKEN_RATE_LIMIT_WINDOW = Duration.ofMinutes(15);
+  private static final String REFRESH_TOKEN_RATE_LIMIT_PREFIX = "ratelimit:refresh-token:";
+
+  private static final int MAX_GOOGLE_LOGIN_ATTEMPTS = 20;
+  private static final Duration GOOGLE_LOGIN_RATE_LIMIT_WINDOW = Duration.ofMinutes(15);
+  private static final String GOOGLE_LOGIN_RATE_LIMIT_PREFIX = "ratelimit:google-login:";
+
   @PostMapping(SIGNUP)
   @Operation(summary = "Create user.", responses = {
       @ApiResponse(responseCode = "201", description = "User created.") })
@@ -138,17 +154,24 @@ public class UserController {
   }
 
   @GetMapping(ID)
-  @Operation(summary = "Find user by User ID.", responses = {
+  @Operation(summary = "Find user by User ID.", description = "Returns the full profile when the authenticated user requests their own record; returns a minimal public profile otherwise.", responses = {
       @ApiResponse(responseCode = "200", description = "User found."),
+      @ApiResponse(responseCode = "401", description = "Unauthenticated."),
       @ApiResponse(responseCode = "404", description = "User not found.") })
-  public ResponseEntity<UserResponse> getUser(@Parameter(description = "User ID.") @PathVariable String id) {
+  public ResponseEntity<?> getUser(@Parameter(description = "User ID.") @PathVariable String id) {
     User user = userService.getUser(id);
-    return ResponseEntity.status(HttpStatus.OK).body(new UserResponse(user));
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    String authenticatedUserId = authentication != null ? authentication.getName() : null;
+    if (authenticatedUserId != null && authenticatedUserId.equals(id)) {
+      return ResponseEntity.ok(new UserResponse(user));
+    }
+    return ResponseEntity.ok(new PublicUserResponse(user));
   }
 
   @GetMapping
-  @Operation(summary = "Find all users.", responses = {
-      @ApiResponse(responseCode = "200", description = "List of users.") })
+  @Operation(summary = "Find all users (admin).", responses = {
+      @ApiResponse(responseCode = "200", description = "List of users."),
+      @ApiResponse(responseCode = "403", description = "Not an admin.") })
   public ResponseEntity<List<UserResponse>> getUsers() {
     List<User> users = userService.getUsers();
     return ResponseEntity.status(HttpStatus.OK).body(users.stream().map(UserResponse::new).toList());
@@ -171,7 +194,8 @@ public class UserController {
   public ResponseEntity<UserLoginResponse> login(@Valid @RequestBody AuthenticateUserRequest authenticateUserRequest) {
     String email = authenticateUserRequest.getEmail();
     String rateLimitKey = email != null ? LOGIN_RATE_LIMIT_PREFIX + email.toLowerCase() : null;
-    if (rateLimitKey != null && rateLimiterService.isRateLimited(rateLimitKey, MAX_LOGIN_ATTEMPTS)) {
+    if (rateLimitKey != null
+        && rateLimiterService.isRateLimitedFailClosed(rateLimitKey, MAX_LOGIN_ATTEMPTS)) {
       throw new BadRequestException("tooManyLoginAttempts", email);
     }
     try {
@@ -194,11 +218,17 @@ public class UserController {
   @Operation(summary = "Login with Google.", responses = {
       @ApiResponse(responseCode = "200", description = "User logged in with Google."),
       @ApiResponse(responseCode = "401", description = "Invalid token.") })
-  public ResponseEntity<?> loginWithGoogle(@RequestBody LoginWithGoogleRequest request) {
+  public ResponseEntity<?> loginWithGoogle(@RequestBody LoginWithGoogleRequest request,
+      jakarta.servlet.http.HttpServletRequest httpRequest) {
+    String rateLimitKey = GOOGLE_LOGIN_RATE_LIMIT_PREFIX + httpRequest.getRemoteAddr();
+    if (rateLimiterService.isRateLimitedFailClosed(rateLimitKey, MAX_GOOGLE_LOGIN_ATTEMPTS)) {
+      throw new BadRequestException("tooManyLoginAttempts", "");
+    }
     GoogleIdToken idToken;
     try {
       idToken = googleIdTokenVerifier.verify(request.idToken());
     } catch (Exception e) {
+      rateLimiterService.recordAttempt(rateLimitKey, GOOGLE_LOGIN_RATE_LIMIT_WINDOW);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
           .body(new ErrorResponse(new ErrorResponse.Error("invalidGoogleToken", "Invalid Google token")));
     }
@@ -213,21 +243,45 @@ public class UserController {
       User user = userService.findOrCreateGoogleUser(email, firstName, lastName, googleSub);
       String userToken = jwtUtil.generateUserToken(user.id(), user.email());
       String userRefreshToken = jwtUtil.generateUserRefreshToken(user.id(), user.email());
+      rateLimiterService.clearAttempts(rateLimitKey);
       return ResponseEntity.status(HttpStatus.OK).body(new UserLoginResponse(user, userToken, userRefreshToken));
     }
+    rateLimiterService.recordAttempt(rateLimitKey, GOOGLE_LOGIN_RATE_LIMIT_WINDOW);
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
         .body(new ErrorResponse(new ErrorResponse.Error("invalidIdToken", "Invalid ID token")));
   }
 
   @PostMapping(CHANGE_PASSWORD + EMAIL)
   @Operation(summary = "Change password.", responses = {
-      @ApiResponse(responseCode = "200", description = "Password changed.") })
+      @ApiResponse(responseCode = "200", description = "Password changed."),
+      @ApiResponse(responseCode = "403", description = "Path email does not match authenticated user.") })
   public ResponseEntity<ChangePasswordResponse> changePassword(
       @Parameter(description = "User email.") @PathVariable String email,
       @Valid @RequestBody ChangePasswordRequest request) {
-    userService.verifyCurrentPassword(request.toVerifyPasswordEntity(email));
-    String userEmail = userService.changePassword(request.toChangePasswordEntity(email));
-    return ResponseEntity.status(HttpStatus.OK).body(new ChangePasswordResponse(userEmail));
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null || authentication.getName() == null) {
+      throw new AccessDeniedException("notAccountOwner", email);
+    }
+    User authenticated = userService.getUser(authentication.getName());
+    if (!email.equalsIgnoreCase(authenticated.email())) {
+      throw new AccessDeniedException("notAccountOwner", email);
+    }
+    String rateLimitKey = CHANGE_PW_RATE_LIMIT_PREFIX + email.toLowerCase();
+    if (rateLimiterService.isRateLimitedFailClosed(rateLimitKey, MAX_CHANGE_PW_ATTEMPTS)) {
+      throw new BadRequestException("tooManyChangePasswordAttempts", email);
+    }
+    try {
+      userService.verifyCurrentPassword(request.toVerifyPasswordEntity(email));
+      String userEmail = userService.changePassword(request.toChangePasswordEntity(email));
+      if (request.getUserRefreshToken() != null && !request.getUserRefreshToken().isBlank()) {
+        jwtUtil.revokeUserRefreshToken(request.getUserRefreshToken());
+      }
+      rateLimiterService.clearAttempts(rateLimitKey);
+      return ResponseEntity.status(HttpStatus.OK).body(new ChangePasswordResponse(userEmail));
+    } catch (Exception e) {
+      rateLimiterService.recordAttempt(rateLimitKey, CHANGE_PW_RATE_LIMIT_WINDOW);
+      throw e;
+    }
   }
 
   @PostMapping(RESET_PASSWORD + EMAIL)
@@ -237,36 +291,79 @@ public class UserController {
   public ResponseEntity<ResetPasswordResponse> resetPassword(
       @Parameter(description = "User email.") @PathVariable String email,
       @Valid @RequestBody ResetPasswordRequest request) {
-    // Validate reset token from OTP verification
-    if (!jwtUtil.validatePasswordResetToken(request.getResetToken())) {
-      throw new BadRequestException("invalidOrExpiredResetToken", email);
+    String rateLimitKey = RESET_PW_RATE_LIMIT_PREFIX + email.toLowerCase();
+    if (rateLimiterService.isRateLimitedFailClosed(rateLimitKey, MAX_RESET_PW_ATTEMPTS)) {
+      throw new BadRequestException("tooManyResetPasswordAttempts", email);
     }
-    String tokenEmail = jwtUtil.extractEmailFromResetToken(request.getResetToken());
-    if (!email.equalsIgnoreCase(tokenEmail)) {
-      throw new BadRequestException("resetTokenEmailMismatch", email);
+    try {
+      // Atomically validate + consume — prevents TOCTOU replay
+      if (!jwtUtil.validateAndConsumePasswordResetToken(request.getResetToken())) {
+        rateLimiterService.recordAttempt(rateLimitKey, RESET_PW_RATE_LIMIT_WINDOW);
+        throw new BadRequestException("invalidOrExpiredResetToken", email);
+      }
+      String tokenEmail = jwtUtil.extractEmailFromResetToken(request.getResetToken());
+      if (!email.equalsIgnoreCase(tokenEmail)) {
+        rateLimiterService.recordAttempt(rateLimitKey, RESET_PW_RATE_LIMIT_WINDOW);
+        throw new BadRequestException("resetTokenEmailMismatch", email);
+      }
+      String userEmail = userService.changePassword(request.toUserEntity(email));
+      rateLimiterService.clearAttempts(rateLimitKey);
+      return ResponseEntity.status(HttpStatus.OK).body(new ResetPasswordResponse(userEmail));
+    } catch (BadRequestException e) {
+      throw e;
+    } catch (Exception e) {
+      rateLimiterService.recordAttempt(rateLimitKey, RESET_PW_RATE_LIMIT_WINDOW);
+      throw e;
     }
-    String userEmail = userService.changePassword(request.toUserEntity(email));
-    return ResponseEntity.status(HttpStatus.OK).body(new ResetPasswordResponse(userEmail));
+  }
+
+  @PostMapping("/logout")
+  @Operation(summary = "Log out the current user.", description = "Revokes the supplied refresh token so it cannot be used again. Access tokens expire naturally within minutes.", responses = {
+      @ApiResponse(responseCode = "204", description = "Logged out.") })
+  public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
+    String refreshToken = request.getUserRefreshToken();
+    if (refreshToken != null && !refreshToken.isBlank()) {
+      var authentication = SecurityContextHolder.getContext().getAuthentication();
+      String tokenSubject = jwtUtil.extractUserId(refreshToken);
+      if (authentication != null && authentication.getName().equals(tokenSubject)) {
+        jwtUtil.revokeUserRefreshToken(refreshToken);
+      }
+    }
+    return ResponseEntity.noContent().build();
   }
 
   @PostMapping("/refresh-token")
-  @Operation(summary = "Refresh user token.", responses = {
+  @Operation(summary = "Refresh user token.", description = "Returns a fresh access token AND a rotated refresh token; the previous refresh token is revoked.", responses = {
       @ApiResponse(responseCode = "200", description = "Token refreshed."),
       @ApiResponse(responseCode = "401", description = "Invalid or expired refresh token."),
       @ApiResponse(responseCode = "404", description = "User not found.") })
-  public ResponseEntity<?> refreshUserToken(@Valid @RequestBody RefreshTokenRequest request) {
+  public ResponseEntity<?> refreshUserToken(@Valid @RequestBody RefreshTokenRequest request,
+      jakarta.servlet.http.HttpServletRequest httpRequest) {
+    String rateLimitKey = REFRESH_TOKEN_RATE_LIMIT_PREFIX + httpRequest.getRemoteAddr();
+    if (rateLimiterService.isRateLimitedFailClosed(rateLimitKey, MAX_REFRESH_TOKEN_ATTEMPTS)) {
+      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Too many refresh attempts");
+    }
     String refreshToken = request.getUserRefreshToken();
     try {
       if (!jwtUtil.validateUserRefreshToken(refreshToken)) {
+        rateLimiterService.recordAttempt(rateLimitKey, REFRESH_TOKEN_RATE_LIMIT_WINDOW);
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
       }
     } catch (Exception e) {
+      rateLimiterService.recordAttempt(rateLimitKey, REFRESH_TOKEN_RATE_LIMIT_WINDOW);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
     }
     String userId = jwtUtil.extractUserId(refreshToken);
     User user = userService.getUser(userId);
-    String newToken = jwtUtil.generateUserToken(user.id(), user.email());
-    return ResponseEntity.ok(Map.of("userToken", newToken));
+    // Rotation: issue a new refresh token AND revoke the one we just consumed.
+    // If a stolen-token attacker tries to reuse the old refresh token they will
+    // be denied by the revocation check, even before its 7-day expiry.
+    String newAccessToken = jwtUtil.generateUserToken(user.id(), user.email());
+    String newRefreshToken = jwtUtil.generateUserRefreshToken(user.id(), user.email());
+    jwtUtil.revokeUserRefreshToken(refreshToken);
+    return ResponseEntity.ok(Map.of(
+        "userToken", newAccessToken,
+        "userRefreshToken", newRefreshToken));
   }
 
   @GetMapping(ID + BOOKS)

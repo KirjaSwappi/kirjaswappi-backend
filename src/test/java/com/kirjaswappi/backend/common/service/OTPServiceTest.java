@@ -24,7 +24,6 @@ import com.kirjaswappi.backend.common.service.entities.OTP;
 import com.kirjaswappi.backend.service.UserService;
 import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 import com.kirjaswappi.backend.service.exceptions.ResourceNotFoundException;
-import com.kirjaswappi.backend.service.exceptions.UserNotFoundException;
 
 class OTPServiceTest {
   @Mock
@@ -126,10 +125,15 @@ class OTPServiceTest {
   }
 
   @Test
-  @DisplayName("Should throw exception when user not found for OTP")
-  void saveAndSendOTPThrowsWhenUserNotFound() {
+  @DisplayName("Should silently succeed when user not found (no account enumeration)")
+  void saveAndSendOTPSilentForUnknownUser() throws Exception {
+    // Audit F8: /send-otp must not leak whether an account exists. The service
+    // returns the email and skips the OTP/email path for unknown addresses.
     when(userService.checkIfUserExists(email)).thenReturn(false);
-    assertThrows(UserNotFoundException.class, () -> otpService.saveAndSendOTP(email));
+    assertEquals(email, otpService.saveAndSendOTP(email));
+    verify(otpRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    verify(emailService, never()).sendOTPByEmail(org.mockito.ArgumentMatchers.anyString(),
+        org.mockito.ArgumentMatchers.anyString());
   }
 
   @Test
