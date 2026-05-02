@@ -293,6 +293,7 @@ class SwapServiceTest {
         .language(Language.ENGLISH)
         .condition(Condition.GOOD)
         .swapCondition(swapCondition)
+        .owner(User.builder().id("receiverId").build())
         .build();
 
     var swapOffer = SwapOffer.builder()
@@ -384,6 +385,7 @@ class SwapServiceTest {
         .language(Language.ENGLISH)
         .condition(Condition.GOOD)
         .swapCondition(swapCondition)
+        .owner(User.builder().id("receiverId").build())
         .build();
 
     var swapOffer = SwapOffer.builder()
@@ -745,6 +747,8 @@ class SwapServiceTest {
         .lastName("Doe")
         .books(List.of());
 
+    var receiver = new User().id("receiverId");
+
     var swapCondition = new SwapCondition()
         .swappableBooks(List.of())
         .swappableGenres(List.of())
@@ -758,9 +762,10 @@ class SwapServiceTest {
         .language(Language.ENGLISH)
         .condition(Condition.GOOD)
         .swapCondition(swapCondition)
+        .owner(User.builder().id("receiverId").build())
         .build();
 
-    var receiver = new User().id("receiverId").books(List.of(book));
+    receiver.books(List.of(book));
 
     var swapRequest = SwapRequest.builder()
         .sender(sender)
@@ -797,6 +802,8 @@ class SwapServiceTest {
         .lastName("Doe")
         .books(List.of());
 
+    var receiver = new User().id("receiverId");
+
     var swapCondition = new SwapCondition()
         .swappableBooks(List.of())
         .swappableGenres(List.of())
@@ -810,9 +817,10 @@ class SwapServiceTest {
         .language(Language.ENGLISH)
         .condition(Condition.GOOD)
         .swapCondition(swapCondition)
+        .owner(User.builder().id("receiverId").build())
         .build();
 
-    var receiver = new User().id("receiverId").books(List.of(book));
+    receiver.books(List.of(book));
 
     var swapRequest = SwapRequest.builder()
         .sender(sender)
@@ -850,6 +858,8 @@ class SwapServiceTest {
         .lastName("Doe")
         .books(List.of());
 
+    var receiver = new User().id("receiverId");
+
     var swapCondition = new SwapCondition().swappableBooks(List.of())
         .swappableGenres(List.of())
         .swapType(SwapType.BY_BOOKS)
@@ -862,9 +872,10 @@ class SwapServiceTest {
         .language(Language.ENGLISH)
         .condition(Condition.GOOD)
         .swapCondition(swapCondition)
+        .owner(User.builder().id("receiverId").build())
         .build();
 
-    var receiver = new User().id("receiverId").books(List.of(book));
+    receiver.books(List.of(book));
 
     var swapRequest = SwapRequest.builder()
         .sender(sender)
