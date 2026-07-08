@@ -64,7 +64,7 @@ public class CloudSecurityConfig {
         .csrf(csrf -> csrf.disable()) // Disable CSRF protection
         .authorizeHttpRequests(authorize -> authorize
             // =========== PUBLIC — infrastructure ===========
-            .requestMatchers(HEALTH, API_BASE + AUTHENTICATE,
+            .requestMatchers(HEALTH, PROMETHEUS, API_BASE + AUTHENTICATE,
                 API_BASE + AUTHENTICATE + REFRESH, "/ws/**")
             .permitAll()
             // =========== PUBLIC — authentication ===========

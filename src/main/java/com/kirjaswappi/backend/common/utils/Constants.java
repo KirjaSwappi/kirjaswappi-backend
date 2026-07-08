@@ -24,6 +24,7 @@ public class Constants {
   public static final String SWAGGER_UI = "/swagger-ui/**";
   public static final String API_DOCS = "/v3/api-docs/**";
   public static final String HEALTH = "/actuator/health";
+  public static final String PROMETHEUS = "/actuator/prometheus";
   public static final String ROLE = "role";
   public static final String CHANGE_PASSWORD = "/change-password";
   public static final String RESET_PASSWORD = "/reset-password";
