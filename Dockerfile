@@ -1,5 +1,5 @@
 ################ Build stage ################
-FROM maven:3.9.9-sapmachine-25 AS builder
+FROM maven:3-sapmachine-25 AS builder
 
 WORKDIR /build
 
