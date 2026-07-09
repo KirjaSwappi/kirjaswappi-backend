@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.3</version>
+		<version>4.1.0</version>
 		<relativePath/>
 	</parent>
 
@@ -39,9 +39,9 @@
 
 	<properties>
 		<java.version>25</java.version>
-		<spring-cloud.version>2025.1.1</spring-cloud.version>
+		<spring-cloud.version>2025.1.2</spring-cloud.version>
 		<start-class>com.kirjaswappi.backend.BackendApplication</start-class>
-		<native.maven.plugin.version>0.11.5</native.maven.plugin.version>
+		<native.maven.plugin.version>1.1.0</native.maven.plugin.version>
 	</properties>
 
 	<dependencies>
@@ -184,17 +184,17 @@
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-netty-shaded</artifactId>
-			<version>1.78.0</version>
+			<version>1.81.0</version>
 		</dependency>
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-protobuf</artifactId>
-			<version>1.78.0</version>
+			<version>1.81.0</version>
 		</dependency>
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-stub</artifactId>
-			<version>1.78.0</version>
+			<version>1.81.0</version>
 		</dependency>
 
 		<!-- WebSocket support -->
@@ -291,7 +291,7 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-				<version>4.0.3</version>
+				<version>4.1.0</version>
 			</plugin>
 
 			<!-- Compiler Plugin -->

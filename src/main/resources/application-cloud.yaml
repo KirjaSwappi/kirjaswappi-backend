@@ -52,4 +52,4 @@ cors:
 unleash:
   url: ${UNLEASH_URL}
   instanceId: ${UNLEASH_INSTANCE_ID}
-  apiKey: ${UNLEASH_API_KEY}
+  apiKey: ${UNLEASH_API_KEY:}
