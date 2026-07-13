@@ -37,7 +37,7 @@ jobs:
         run: echo "VERSION=0.0.${{ github.run_number }}" >> $GITHUB_ENV
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ env.VERSION }}
           name: Release v${{ env.VERSION }}
