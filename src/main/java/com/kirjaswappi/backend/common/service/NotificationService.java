@@ -6,7 +6,6 @@ package com.kirjaswappi.backend.common.service;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.grpc.CallCredentials;
@@ -19,6 +18,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -34,15 +38,20 @@ public class NotificationService implements NotificationClient {
   private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
 
   private static final String STATUS_PENDING = "PENDING";
+  private static final String STATUS_PROCESSING = "PROCESSING";
   private static final String STATUS_SENT = "SENT";
   private static final String STATUS_FAILED = "FAILED";
   private static final int MAX_RETRIES = 3;
   private static final Duration FAILED_RETENTION = Duration.ofDays(7);
   private static final Duration SENT_RETENTION = Duration.ofDays(14);
+  private static final Duration PROCESSING_TIMEOUT = Duration.ofMinutes(5);
   private static final long CLEANUP_INTERVAL_MS = 86_400_000L; // 1 day
 
   @Autowired
   private NotificationOutboxRepository notificationOutboxRepository;
+
+  @Autowired
+  private MongoTemplate mongoTemplate;
 
   private static final Metadata.Key<String> API_KEY_METADATA_KEY = Metadata.Key.of("x-api-key",
       Metadata.ASCII_STRING_MARSHALLER);
@@ -132,15 +141,18 @@ public class NotificationService implements NotificationClient {
       return;
     }
 
-    List<NotificationOutboxDao> pendingNotifications = notificationOutboxRepository
-        .findByStatusOrderByCreatedAtAsc(STATUS_PENDING);
-    if (pendingNotifications.isEmpty()) {
-      return;
-    }
+    // Atomically claim one PENDING doc at a time to prevent duplicate sends across
+    // instances.
+    Query query = new Query(Criteria.where("status").is(STATUS_PENDING))
+        .with(org.springframework.data.domain.Sort.by("createdAt"));
+    Update update = new Update()
+        .set("status", STATUS_PROCESSING)
+        .set("claimedAt", Instant.now());
+    FindAndModifyOptions options = FindAndModifyOptions.options().returnNew(true);
 
-    logger.debug("Processing {} pending notifications", pendingNotifications.size());
-
-    for (NotificationOutboxDao notification : pendingNotifications) {
+    NotificationOutboxDao notification;
+    while ((notification = mongoTemplate.findAndModify(query, update, options,
+        NotificationOutboxDao.class)) != null) {
       processNotification(notification);
     }
   }
@@ -182,7 +194,7 @@ public class NotificationService implements NotificationClient {
       logger.error("Notification failed permanently for user: {}. Error: {}", notification.userId(), error);
     } else {
       notification.retryCount(notification.retryCount() + 1);
-      // Keep status PENDING to try again
+      notification.status(STATUS_PENDING);
       logger.warn("Notification failed for user: {}. Retrying ({}/{}). Error: {}",
           notification.userId(), notification.retryCount(), MAX_RETRIES, error);
     }
@@ -193,6 +205,16 @@ public class NotificationService implements NotificationClient {
   public void cleanupFailedNotifications() {
     if (!enabled) {
       return;
+    }
+
+    // Crash recovery: reset stale PROCESSING docs back to PENDING.
+    Instant processingCutoff = Instant.now().minus(PROCESSING_TIMEOUT);
+    Query staleQuery = new Query(Criteria.where("status").is(STATUS_PROCESSING)
+        .and("claimedAt").lt(processingCutoff));
+    Update resetUpdate = new Update().set("status", STATUS_PENDING).unset("claimedAt");
+    var resetResult = mongoTemplate.updateMulti(staleQuery, resetUpdate, NotificationOutboxDao.class);
+    if (resetResult.getModifiedCount() > 0) {
+      logger.info("Reset {} stale PROCESSING notifications back to PENDING", resetResult.getModifiedCount());
     }
 
     Instant failedCutoff = Instant.now().minus(FAILED_RETENTION);

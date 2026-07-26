@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ import com.kirjaswappi.backend.jpa.repositories.UserRepository;
 import com.kirjaswappi.backend.mapper.SwapRequestMapper;
 import com.kirjaswappi.backend.service.entities.*;
 import com.kirjaswappi.backend.service.enums.SwapStatus;
+import com.kirjaswappi.backend.service.exceptions.BadRequestException;
 import com.kirjaswappi.backend.service.exceptions.IllegalSwapRequestException;
 import com.kirjaswappi.backend.service.exceptions.InvalidStatusTransitionException;
 import com.kirjaswappi.backend.service.exceptions.SwapRequestExistsAlreadyException;
@@ -50,6 +52,11 @@ public class SwapService {
   private final PhotoService photoService;
 
   public SwapRequest createSwapRequest(SwapRequest swapRequest) {
+    // validate ObjectId formats before use
+    validateObjectId(swapRequest.sender().id());
+    validateObjectId(swapRequest.receiver().id());
+    validateObjectId(swapRequest.bookToSwapWith().id());
+
     // validation: check if the swap request exists already for this book
     if (swapRequestRepository.existsAlready(new ObjectId(swapRequest.sender().id()),
         new ObjectId(swapRequest.receiver().id()), new ObjectId(swapRequest.bookToSwapWith().id()))) {
@@ -123,7 +130,12 @@ public class SwapService {
         .withSwapStatus(SwapStatus.PENDING);
 
     SwapRequestDao dao = SwapRequestMapper.toDao(updatedSwapRequest);
-    SwapRequestDao createdDao = swapRequestRepository.save(dao);
+    SwapRequestDao createdDao;
+    try {
+      createdDao = swapRequestRepository.save(dao);
+    } catch (DuplicateKeyException e) {
+      throw new SwapRequestExistsAlreadyException();
+    }
 
     // Send notification to receiver about new swap request
     try {
@@ -205,6 +217,12 @@ public class SwapService {
     }
 
     return resolveCoverPhotoUrls(SwapRequestMapper.toEntity(updatedDao));
+  }
+
+  private void validateObjectId(String id) {
+    if (!ObjectId.isValid(id)) {
+      throw new BadRequestException("invalidId", id);
+    }
   }
 
   /**

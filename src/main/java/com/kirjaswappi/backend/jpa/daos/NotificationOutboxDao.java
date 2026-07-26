@@ -48,5 +48,8 @@ public class NotificationOutboxDao {
   private Instant sentAt;
 
   @Nullable
+  private Instant claimedAt;
+
+  @Nullable
   private String errorMessage;
 }

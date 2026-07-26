@@ -52,9 +52,9 @@ public class InboxService {
 
       // Get both sent and received with status filter
       List<SwapRequestDao> receivedDaos = swapRequestRepository
-          .findByReceiverIdAndSwapStatusOrderByRequestedAtDesc(userId, status);
+          .findByReceiverIdAndSwapStatusOrderByRequestedAtDesc(userId, SwapStatus.fromCode(status).getCode());
       List<SwapRequestDao> sentDaos = swapRequestRepository.findBySenderIdAndSwapStatusOrderByRequestedAtDesc(userId,
-          status);
+          SwapStatus.fromCode(status).getCode());
 
       allSwapRequestDaos.addAll(receivedDaos);
       allSwapRequestDaos.addAll(sentDaos);
