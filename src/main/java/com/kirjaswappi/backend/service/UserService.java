@@ -9,6 +9,7 @@ import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,8 @@ public class UserService {
   private final SwapRequestRepository swapRequestRepository;
 
   private final EmailService emailService;
+
+  private final CacheManager cacheManager;
 
   public User addUser(User user) {
 
@@ -259,7 +262,9 @@ public class UserService {
     dao.salt(newSalt);
     dao.password(newPasswordWithNewSalt);
     userRepository.save(dao);
-    clearUserCache(dao.id());
+    // Evict via CacheManager directly — self-invocation bypasses Spring's AOP proxy
+    // so @CacheEvict on a helper method in the same bean would not fire.
+    cacheManager.getCache("users").evictIfPresent(dao.id());
 
     emailService.sendPasswordChangeConfirmation(dao.email());
 

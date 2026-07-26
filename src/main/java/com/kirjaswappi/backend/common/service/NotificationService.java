@@ -145,14 +145,17 @@ public class NotificationService implements NotificationClient {
     // instances.
     Query query = new Query(Criteria.where("status").is(STATUS_PENDING))
         .with(org.springframework.data.domain.Sort.by("createdAt"));
-    Update update = new Update()
-        .set("status", STATUS_PROCESSING)
-        .set("claimedAt", Instant.now());
     FindAndModifyOptions options = FindAndModifyOptions.options().returnNew(true);
 
     NotificationOutboxDao notification;
-    while ((notification = mongoTemplate.findAndModify(query, update, options,
-        NotificationOutboxDao.class)) != null) {
+    while (true) {
+      // Rebuild update each iteration so claimedAt records the actual claim time
+      Update update = new Update()
+          .set("status", STATUS_PROCESSING)
+          .set("claimedAt", Instant.now());
+      notification = mongoTemplate.findAndModify(query, update, options, NotificationOutboxDao.class);
+      if (notification == null)
+        break;
       processNotification(notification);
     }
   }

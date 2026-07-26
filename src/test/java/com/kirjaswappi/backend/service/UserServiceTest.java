@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.cache.CacheManager;
 
 import com.kirjaswappi.backend.common.service.EmailService;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
@@ -49,6 +50,10 @@ class UserServiceTest {
   private SwapRequestRepository swapRequestRepository;
   @Mock
   private EmailService emailService;
+  @Mock
+  private PhotoService photoService;
+  @Mock
+  private CacheManager cacheManager;
   @InjectMocks
   private UserService userService;
 
@@ -361,6 +366,8 @@ class UserServiceTest {
     when(userRepository.findByEmail("google@example.com")).thenReturn(Optional.of(dao));
     when(userRepository.save(any())).thenReturn(dao);
     doNothing().when(emailService).sendPasswordChangeConfirmation(any());
+    org.springframework.cache.Cache mockCache = mock(org.springframework.cache.Cache.class);
+    when(cacheManager.getCache("users")).thenReturn(mockCache);
 
     assertDoesNotThrow(
         () -> userService.changePassword(new User().email("google@example.com").password("newPass")));
