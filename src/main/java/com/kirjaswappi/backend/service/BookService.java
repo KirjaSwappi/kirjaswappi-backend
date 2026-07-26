@@ -341,8 +341,12 @@ public class BookService {
   }
 
   private SwappableBook swappableBookWithImageUrl(SwappableBookDao bookDao) {
-    var coverPhotoImageUrl = photoService.getBookCoverPhoto(bookDao.coverPhoto());
-    return SwappableBookMapper.toEntity(bookDao, coverPhotoImageUrl);
+    if (bookDao.coverPhoto() != null) {
+      var coverPhotoImageUrl = photoService.getBookCoverPhoto(bookDao.coverPhoto());
+      return SwappableBookMapper.toEntity(bookDao, coverPhotoImageUrl);
+    } else {
+      return SwappableBookMapper.toEntity(bookDao);
+    }
   }
 
   @NotNull

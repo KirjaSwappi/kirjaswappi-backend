@@ -9,7 +9,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.time.Instant;
-import java.util.List;
 
 import io.grpc.ManagedChannel;
 
@@ -31,6 +30,9 @@ class NotificationServiceTest {
   private NotificationOutboxRepository notificationOutboxRepository;
 
   @Mock
+  private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
+
+  @Mock
   private ManagedChannel channel;
 
   @Mock
@@ -47,6 +49,7 @@ class NotificationServiceTest {
     // Inject mocks using ReflectionTestUtils since they are not injected by
     // constructor
     ReflectionTestUtils.setField(notificationService, "notificationOutboxRepository", notificationOutboxRepository);
+    ReflectionTestUtils.setField(notificationService, "mongoTemplate", mongoTemplate);
     ReflectionTestUtils.setField(notificationService, "channel", channel);
     ReflectionTestUtils.setField(notificationService, "stub", stub);
   }
@@ -71,13 +74,16 @@ class NotificationServiceTest {
         .userId("user1")
         .title("Title")
         .message("Message")
-        .status("PENDING")
+        .status("PROCESSING")
         .retryCount(0)
         .createdAt(Instant.now())
         .build();
 
-    when(notificationOutboxRepository.findByStatusOrderByCreatedAtAsc("PENDING"))
-        .thenReturn(List.of(pendingNotification));
+    // First call returns the claimed notification, second call returns null (no
+    // more)
+    when(mongoTemplate.findAndModify(any(), any(), any(), eq(NotificationOutboxDao.class)))
+        .thenReturn(pendingNotification)
+        .thenReturn(null);
 
     NotificationResponse successResponse = NotificationResponse.newBuilder()
         .setSuccess(true)
@@ -102,13 +108,14 @@ class NotificationServiceTest {
         .userId("user1")
         .title("Title")
         .message("Message")
-        .status("PENDING")
+        .status("PROCESSING")
         .retryCount(0)
         .createdAt(Instant.now())
         .build();
 
-    when(notificationOutboxRepository.findByStatusOrderByCreatedAtAsc("PENDING"))
-        .thenReturn(List.of(pendingNotification));
+    when(mongoTemplate.findAndModify(any(), any(), any(), eq(NotificationOutboxDao.class)))
+        .thenReturn(pendingNotification)
+        .thenReturn(null);
 
     when(stub.sendNotification(any())).thenThrow(new RuntimeException("gRPC Error"));
 
@@ -131,13 +138,14 @@ class NotificationServiceTest {
         .userId("user1")
         .title("Title")
         .message("Message")
-        .status("PENDING")
+        .status("PROCESSING")
         .retryCount(3) // Already at max retries (assuming max=3 check is >=)
         .createdAt(Instant.now())
         .build();
 
-    when(notificationOutboxRepository.findByStatusOrderByCreatedAtAsc("PENDING"))
-        .thenReturn(List.of(pendingNotification));
+    when(mongoTemplate.findAndModify(any(), any(), any(), eq(NotificationOutboxDao.class)))
+        .thenReturn(pendingNotification)
+        .thenReturn(null);
 
     when(stub.sendNotification(any())).thenThrow(new RuntimeException("gRPC Error"));
 
@@ -153,6 +161,8 @@ class NotificationServiceTest {
   @DisplayName("Should delete FAILED notifications older than retention period when enabled")
   void shouldCleanupOldFailedNotificationsWhenEnabled() {
     // Given
+    when(mongoTemplate.updateMulti(any(), any(), eq(NotificationOutboxDao.class)))
+        .thenReturn(com.mongodb.client.result.UpdateResult.acknowledged(0, 0L, null));
     when(notificationOutboxRepository.deleteByStatusAndCreatedAtBefore(eq("FAILED"), any(Instant.class)))
         .thenReturn(3L);
 

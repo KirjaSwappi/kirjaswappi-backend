@@ -30,7 +30,10 @@ public class CacheConfig {
         long duration = 7;
         TimeUnit unit = TimeUnit.DAYS;
 
-        if (name.equals("unreadCounts")) {
+        if (name.equals("imageUrls")) {
+          duration = 6;
+          unit = TimeUnit.DAYS;
+        } else if (name.equals("unreadCounts")) {
           duration = 5;
           unit = TimeUnit.MINUTES;
         } else if (name.equals("users") || name.equals("books")) {

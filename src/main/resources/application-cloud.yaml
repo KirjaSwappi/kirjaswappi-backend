@@ -17,6 +17,7 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
   rabbitmq:
+    host: ${RABBITMQ_HOST}
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
 
