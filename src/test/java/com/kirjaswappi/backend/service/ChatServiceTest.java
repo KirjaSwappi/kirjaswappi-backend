@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
@@ -535,6 +537,23 @@ class ChatServiceTest {
 
     // Then
     verify(chatMessageRepository).markAsRead("swap123", "64e8f5d1a2b3c4d5e6f78901");
+  }
+
+  @Test
+  @DisplayName("Should mark read via targeted field update, never save() (avoids @Version optimistic-lock collision on concurrent chat opens)")
+  void shouldMarkReadWithoutBumpingSwapRequestVersion() {
+    // Given
+    when(swapRequestRepository.findById("swap123")).thenReturn(Optional.of(swapRequestDao));
+    when(chatMessageRepository.markAsRead("swap123", "64e8f5d1a2b3c4d5e6f78901")).thenReturn(2L);
+
+    // When - receiver opens the chat
+    chatService.markMessagesAsRead("swap123", "64e8f5d1a2b3c4d5e6f78901");
+
+    // Then - read receipt is applied through a direct field update on
+    // MongoTemplate,
+    // and swapRequestRepository.save() (which touches @Version) is NEVER called.
+    verify(mongoTemplate).updateFirst(any(Query.class), any(Update.class), eq(SwapRequestDao.class));
+    verify(swapRequestRepository, never()).save(any());
   }
 
   @Test
