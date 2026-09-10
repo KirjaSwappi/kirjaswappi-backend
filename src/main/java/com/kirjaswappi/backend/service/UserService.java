@@ -9,6 +9,7 @@ import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,8 @@ public class UserService {
   private final SwapRequestRepository swapRequestRepository;
 
   private final EmailService emailService;
+
+  private final CacheManager cacheManager;
 
   public User addUser(User user) {
 
@@ -243,10 +246,11 @@ public class UserService {
       throw new BadRequestException("userExistsButNotVerified", user.email());
     }
 
-    // forbid newPassword to be the same as currentPassword:
+    // forbid newPassword to be the same as currentPassword (skip for OAuth accounts
+    // with no password):
     String currentPassword = dao.password();
     String newPassword = Util.hashPassword(user.password(), dao.salt());
-    if (currentPassword.equals(newPassword)) {
+    if (currentPassword != null && currentPassword.equals(newPassword)) {
       throw new BadRequestException("newPasswordCannotBeSameAsCurrentPassword", user.email());
     }
 
@@ -258,6 +262,9 @@ public class UserService {
     dao.salt(newSalt);
     dao.password(newPasswordWithNewSalt);
     userRepository.save(dao);
+    // Evict via CacheManager directly — self-invocation bypasses Spring's AOP proxy
+    // so @CacheEvict on a helper method in the same bean would not fire.
+    cacheManager.getCache("users").evictIfPresent(dao.id());
 
     emailService.sendPasswordChangeConfirmation(dao.email());
 
@@ -303,7 +310,7 @@ public class UserService {
     if (userDao.favBooks() != null)
       userDao.favBooks().add(favBookDao);
     else
-      userDao.favBooks(List.of(favBookDao));
+      userDao.favBooks(new ArrayList<>(List.of(favBookDao)));
 
     userRepository.save(userDao);
     return getUser(user.id());
@@ -379,6 +386,11 @@ public class UserService {
       dao.mutedUserIds(mutedIds);
       userRepository.save(dao);
     }
+  }
+
+  @CacheEvict(value = "users", key = "#userId")
+  public void clearUserCache(String userId) {
+    // cache eviction handled by annotation
   }
 
   public User findOrCreateGoogleUser(String email, String firstName, String lastName, String googleSub) {

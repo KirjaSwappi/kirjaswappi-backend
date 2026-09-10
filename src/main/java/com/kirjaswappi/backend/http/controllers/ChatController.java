@@ -8,6 +8,7 @@ import static com.kirjaswappi.backend.common.utils.Constants.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import jakarta.validation.Valid;
 
@@ -61,11 +62,11 @@ public class ChatController {
     // Create swap context
     ChatMessageResponse.SwapContextResponse swapContext = createSwapContext(swapRequest);
 
-    List<ChatMessageResponse> response = messages.stream()
-        .map(message -> {
-          ChatMessageResponse chatResponse = new ChatMessageResponse(message, userId);
+    List<ChatMessageResponse> response = IntStream.range(0, messages.size())
+        .mapToObj(i -> {
+          ChatMessageResponse chatResponse = new ChatMessageResponse(messages.get(i), userId);
           // Include swap context only in the first message for efficiency
-          if (messages.indexOf(message) == 0) {
+          if (i == 0) {
             chatResponse.setSwapContext(swapContext);
           }
           return chatResponse;

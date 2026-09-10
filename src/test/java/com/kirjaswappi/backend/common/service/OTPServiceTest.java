@@ -57,7 +57,7 @@ class OTPServiceTest {
   @Test
   @DisplayName("Should throw exception when OTP does not match")
   void verifyOTPThrowsOnInvalid() {
-    OTPDao dao = new OTPDao(email, "654321", Instant.now());
+    OTPDao dao = OTPDao.builder().email(email).otp("654321").createdAt(Instant.now()).build();
     when(otpRepository.findByEmail(email)).thenReturn(Optional.of(dao));
     assertThrows(BadRequestException.class, () -> otpService.verifyOTPByEmail(otp));
   }
@@ -65,7 +65,8 @@ class OTPServiceTest {
   @Test
   @DisplayName("Should throw exception when OTP is expired")
   void verifyOTPThrowsOnExpired() {
-    OTPDao dao = new OTPDao(email, otpValue, Instant.now().minus(Duration.ofMinutes(16)));
+    OTPDao dao = OTPDao.builder().email(email).otp(otpValue).createdAt(Instant.now().minus(Duration.ofMinutes(16)))
+        .build();
     when(otpRepository.findByEmail(email)).thenReturn(Optional.of(dao));
     assertThrows(BadRequestException.class, () -> otpService.verifyOTPByEmail(otp));
   }
@@ -73,7 +74,7 @@ class OTPServiceTest {
   @Test
   @DisplayName("Should verify OTP successfully")
   void verifyOTPSuccess() {
-    OTPDao dao = new OTPDao(email, otpValue, Instant.now());
+    OTPDao dao = OTPDao.builder().email(email).otp(otpValue).createdAt(Instant.now()).build();
     when(otpRepository.findByEmail(email)).thenReturn(Optional.of(dao));
     doNothing().when(otpRepository).deleteAllByEmail(email);
     assertEquals(email, otpService.verifyOTPByEmail(otp));
@@ -118,7 +119,7 @@ class OTPServiceTest {
   void saveAndSendOTPThrowsWhenEmailServiceFails() throws Exception {
     when(userService.checkIfUserExists(email)).thenReturn(true);
     doNothing().when(otpRepository).deleteAllByEmail(email);
-    OTPDao dao = new OTPDao(email, otpValue, Instant.now());
+    OTPDao dao = OTPDao.builder().email(email).otp(otpValue).createdAt(Instant.now()).build();
     when(otpRepository.save(any(OTPDao.class))).thenReturn(dao);
     doThrow(new RuntimeException("email fail")).when(emailService).sendOTPByEmail(any(), any());
     assertThrows(RuntimeException.class, () -> otpService.saveAndSendOTP(email));
@@ -141,7 +142,7 @@ class OTPServiceTest {
   void saveAndSendOTPSuccess() throws Exception {
     when(userService.checkIfUserExists(email)).thenReturn(true);
     doNothing().when(otpRepository).deleteAllByEmail(email);
-    OTPDao dao = new OTPDao(email, otpValue, Instant.now());
+    OTPDao dao = OTPDao.builder().email(email).otp(otpValue).createdAt(Instant.now()).build();
     when(otpRepository.save(any(OTPDao.class))).thenReturn(dao);
     doNothing().when(emailService).sendOTPByEmail(anyString(), anyString());
     assertEquals(email, otpService.saveAndSendOTP(email));

@@ -270,14 +270,25 @@ public class ChatService {
     chatMessageRepository.markAsRead(swapRequestId, userId);
 
     // Also mark the swap request inbox item as read so the inbox endpoint returns
-    // unread=false
+    // unread=false. Use a targeted MongoTemplate field update instead of a full
+    // save(): loading the DAO and calling save() bumps its @Version, so concurrent
+    // chat opens (the client polls and refetches on focus) would collide on
+    // optimistic locking and surface as a 500 ("Could not load messages"). A direct
+    // $set touches only the read-receipt field and never the version.
     Instant now = Instant.now();
+    String readField;
     if (swapRequest.receiver().id().equals(userId)) {
-      swapRequest.readByReceiverAt(now);
-      swapRequestRepository.save(swapRequest);
+      readField = "readByReceiverAt";
     } else if (swapRequest.sender().id().equals(userId)) {
-      swapRequest.readBySenderAt(now);
-      swapRequestRepository.save(swapRequest);
+      readField = "readBySenderAt";
+    } else {
+      readField = null;
+    }
+    if (readField != null) {
+      mongoTemplate.updateFirst(
+          new Query(Criteria.where("_id").is(swapRequestId)),
+          new Update().set(readField, now),
+          SwapRequestDao.class);
     }
 
     // Clear unread count cache AFTER marking messages as read to ensure consistency

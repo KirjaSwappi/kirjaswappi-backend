@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.cache.CacheManager;
 
 import com.kirjaswappi.backend.common.service.EmailService;
 import com.kirjaswappi.backend.jpa.daos.BookDao;
@@ -49,6 +50,10 @@ class UserServiceTest {
   private SwapRequestRepository swapRequestRepository;
   @Mock
   private EmailService emailService;
+  @Mock
+  private PhotoService photoService;
+  @Mock
+  private CacheManager cacheManager;
   @InjectMocks
   private UserService userService;
 
@@ -342,5 +347,69 @@ class UserServiceTest {
     assertEquals(email, result.email());
     assertEquals(firstName, result.firstName());
     assertEquals(lastName, result.lastName());
+  }
+
+  @Test
+  @DisplayName("Should not throw NPE in changePassword when account has no stored password (Google/OAuth)")
+  void changePasswordNoNpeForOAuthAccount() {
+    // Google accounts have no stored password; use a real BCrypt salt so
+    // hashPassword doesn't throw
+    String realSalt = org.springframework.security.crypto.bcrypt.BCrypt.gensalt();
+    UserDao dao = UserDao.builder()
+        .id("oauthId")
+        .email("google@example.com")
+        .password(null)
+        .salt(realSalt)
+        .isEmailVerified(true)
+        .build();
+
+    when(userRepository.findByEmail("google@example.com")).thenReturn(Optional.of(dao));
+    when(userRepository.save(any())).thenReturn(dao);
+    doNothing().when(emailService).sendPasswordChangeConfirmation(any());
+    org.springframework.cache.Cache mockCache = mock(org.springframework.cache.Cache.class);
+    when(cacheManager.getCache("users")).thenReturn(mockCache);
+
+    assertDoesNotThrow(
+        () -> userService.changePassword(new User().email("google@example.com").password("newPass")));
+  }
+
+  @Test
+  @DisplayName("Should not throw UnsupportedOperationException when addFavouriteBook called with null favBooks")
+  void addFavouriteBookMutableListWhenFavBooksNull() {
+    UserDao ownerDao = UserDao.builder().id("other").build();
+    BookDao bookDao = BookDao.builder()
+        .id("bookId")
+        .owner(ownerDao)
+        .language("English")
+        .condition("New")
+        .genres(List.of(GenreDao.builder().id("genreId").name("Genre Name").build()))
+        .build();
+
+    UserDao userDao = UserDao.builder().id("id").favBooks(null).build();
+    when(userRepository.findByIdAndIsEmailVerifiedTrue("id")).thenReturn(Optional.of(userDao));
+    when(bookRepository.findByIdAndIsDeletedFalse("bookId")).thenReturn(Optional.of(bookDao));
+    when(userRepository.save(any())).thenReturn(userDao);
+
+    Book favBook = Book.builder().id("bookId").language(Language.ENGLISH).condition(Condition.NEW)
+        .genres(List.of(new Genre("genreId", "Genre Name", null))).build();
+    User user = new User().id("id").favBooks(List.of(favBook));
+
+    // First add — must not throw UnsupportedOperationException
+    assertDoesNotThrow(() -> userService.addFavouriteBook(user));
+
+    // Second add of a different book — list must remain mutable
+    BookDao bookDao2 = BookDao.builder()
+        .id("bookId2")
+        .owner(ownerDao)
+        .language("English")
+        .condition("New")
+        .genres(List.of(GenreDao.builder().id("genreId").name("Genre Name").build()))
+        .build();
+    when(bookRepository.findByIdAndIsDeletedFalse("bookId2")).thenReturn(Optional.of(bookDao2));
+    Book favBook2 = Book.builder().id("bookId2").language(Language.ENGLISH).condition(Condition.NEW)
+        .genres(List.of(new Genre("genreId", "Genre Name", null))).build();
+    User user2 = new User().id("id").favBooks(List.of(favBook2));
+
+    assertDoesNotThrow(() -> userService.addFavouriteBook(user2));
   }
 }
