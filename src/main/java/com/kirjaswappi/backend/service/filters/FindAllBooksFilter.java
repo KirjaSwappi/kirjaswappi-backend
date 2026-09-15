@@ -167,7 +167,9 @@ public class FindAllBooksFilter {
 
     // Filter by city if provided:
     if (city != null && !city.isEmpty()) {
-      combinedCriteria.add(Criteria.where("location.city").regex(java.util.regex.Pattern.quote(city), "i"));
+      combinedCriteria.add(Criteria.where("location.city")
+          .regex(java.util.regex.Pattern.compile("^" + java.util.regex.Pattern.quote(city),
+              java.util.regex.Pattern.CASE_INSENSITIVE)));
     }
 
     // Filter by country if provided:
