@@ -89,7 +89,7 @@
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>3.0.2</version>
+			<version>3.0.3</version>
 		</dependency>
 
 		<!-- JWT -->
@@ -184,17 +184,17 @@
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-netty-shaded</artifactId>
-			<version>1.81.0</version>
+			<version>1.84.0</version>
 		</dependency>
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-protobuf</artifactId>
-			<version>1.81.0</version>
+			<version>1.84.0</version>
 		</dependency>
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-stub</artifactId>
-			<version>1.81.0</version>
+			<version>1.84.0</version>
 		</dependency>
 
 		<!-- WebSocket support -->
@@ -219,7 +219,7 @@
 		<dependency>
 			<groupId>net.bytebuddy</groupId>
 			<artifactId>byte-buddy-agent</artifactId>
-			<version>1.18.7</version>
+			<version>1.18.11</version>
 			<scope>test</scope>
 		</dependency>
 
