@@ -1,42 +1,87 @@
-[![Main](https://github.com/kirjaswappi/kirjaswappi-backend/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/kirjaswappi/kirjaswappi-backend/actions/workflows/main.yml)
-
 # KirjaSwappi Backend
 
-REST API for [KirjaSwappi](https://kirjaswappi.fi) — a book exchange platform. Built with Java 25 and Spring Boot 4.0.
+[![CI](https://github.com/KirjaSwappi/kirjaswappi-backend/actions/workflows/main.yml/badge.svg)](https://github.com/KirjaSwappi/kirjaswappi-backend/actions/workflows/main.yml)
+[![CodeQL](https://github.com/KirjaSwappi/kirjaswappi-backend/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/KirjaSwappi/kirjaswappi-backend/security/code-scanning)
+
+REST API for [KirjaSwappi](https://kirjaswappi.fi) — a Finnish book exchange platform where users list books, negotiate swaps, and communicate in real time.
 
 ## Tech Stack
 
-- Java 25 + Spring Boot 4.0
-- MongoDB + Spring Data
-- Redis (caching)
-- RabbitMQ (WebSocket/STOMP messaging)
-- MinIO (S3-compatible photo storage)
-- gRPC (notification service integration)
+| Layer | Technology |
+| ----- | ---------- |
+| Language | Java 25 |
+| Framework | Spring Boot 4.0 |
+| Primary database | MongoDB + Spring Data |
+| Cache | Redis |
+| Messaging | RabbitMQ (STOMP / WebSocket relay) |
+| Object storage | MinIO (S3-compatible) |
+| Notification | gRPC (kirjaswappi-notification service) |
+| Security | Spring Security, JWT, TOTP 2FA |
+| Feature flags | Unleash |
 
 ## Getting Started
 
-**Prerequisites:** JDK 25
+**Prerequisites:** JDK 25, Docker
 
 ```bash
-# Build and run tests
+git clone https://github.com/KirjaSwappi/kirjaswappi-backend.git
+cd kirjaswappi-backend
+
+# Copy and configure local settings
+cp src/main/resources/application-local.yaml.example src/main/resources/application-local.yaml
+
+# Start backing services (MongoDB, Redis, RabbitMQ, MinIO)
+docker compose up -d
+
+# Build and run
 mvn clean package
-
-# Run locally
 mvn spring-boot:run
-
-# Format code
-mvn spotless:apply
 ```
 
-Configure via `src/main/resources/application-local.yaml` for local development.
+## Commands
+
+| Command | Description |
+| ------- | ----------- |
+| `mvn spring-boot:run` | Start the API locally |
+| `mvn test` | Run all tests (requires Docker for TestContainers) |
+| `mvn spotless:apply` | Format code |
+| `mvn clean package` | Build JAR |
 
 ## API Documentation
 
-[Swagger UI](https://api.kirjaswappi.fi/swagger-ui/index.html)
+- Local: `http://localhost:8080/swagger-ui/index.html`
+- Production: [api.kirjaswappi.fi/swagger-ui/index.html](https://api.kirjaswappi.fi/swagger-ui/index.html)
+
+## Architecture
+
+```text
+HTTP client
+    │
+    ▼
+Spring Security (JWT + 2FA)
+    │
+    ▼
+Controllers → Services → Repositories (MongoDB)
+                │
+                ├── Redis (cache, sessions, rate limiting)
+                ├── MinIO (photo storage)
+                ├── RabbitMQ (STOMP WebSocket relay)
+                └── gRPC → kirjaswappi-notification
+```
+
+## Related Repositories
+
+| Repo | Description |
+| ---- | ----------- |
+| [kirjaswappi-frontend](https://github.com/KirjaSwappi/kirjaswappi-frontend) | React TypeScript SPA |
+| [kirjaswappi-notification](https://github.com/KirjaSwappi/kirjaswappi-notification) | Go notification service |
+| [kirjaswappi-infra](https://github.com/KirjaSwappi/kirjaswappi-infra) | Infrastructure & deployment |
 
 ## Links
 
 - **Production API:** <https://api.kirjaswappi.fi>
-- **Frontend:** <https://kirjaswappi.fi>
+- **Web app:** <https://kirjaswappi.fi>
 
-© 2025 KirjaSwappi. All rights reserved.
+---
+
+© 2024–2026 KirjaSwappi. All rights reserved. See [LICENSE](LICENSE) for terms.
