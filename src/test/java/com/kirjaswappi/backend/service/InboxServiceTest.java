@@ -896,4 +896,27 @@ class InboxServiceTest {
     verify(userService).getUser("sender123");
     verify(swapRequestRepository).findById("nonexistent");
   }
+
+  @Test
+  @DisplayName("Lowercase status string should return same results as canonical-case (M2 fix)")
+  void shouldAcceptLowercaseStatusFilter() {
+    // Given
+    when(userService.getUser("receiver123")).thenReturn(userEntity);
+    when(swapRequestRepository.findByReceiverIdAndSwapStatusOrderByRequestedAtDesc("receiver123",
+        SwapStatus.PENDING.getCode()))
+            .thenReturn(List.of(receivedSwapRequest));
+    when(swapRequestRepository.findBySenderIdAndSwapStatusOrderByRequestedAtDesc("receiver123",
+        SwapStatus.PENDING.getCode()))
+            .thenReturn(List.of());
+
+    // When — pass lowercase "pending"; the fix normalises it to "Pending" via
+    // SwapStatus.fromCode
+    List<SwapRequest> result = inboxService.getUnifiedInbox("receiver123", "pending", null);
+
+    // Then
+    assertEquals(1, result.size());
+    assertEquals("received1", result.getFirst().id());
+    verify(swapRequestRepository).findByReceiverIdAndSwapStatusOrderByRequestedAtDesc(
+        "receiver123", SwapStatus.PENDING.getCode());
+  }
 }
