@@ -47,14 +47,15 @@ public class InboxService {
     List<SwapRequestDao> allSwapRequestDaos = new ArrayList<>();
 
     if (status != null && !status.trim().isEmpty()) {
-      // Validate status
-      SwapStatus.fromCode(status); // This will throw BadRequestException if invalid
+      // Parse once — validates and normalises to canonical code (e.g. "accepted" →
+      // "Accepted")
+      String normalizedStatus = SwapStatus.fromCode(status).getCode();
 
       // Get both sent and received with status filter
       List<SwapRequestDao> receivedDaos = swapRequestRepository
-          .findByReceiverIdAndSwapStatusOrderByRequestedAtDesc(userId, status);
+          .findByReceiverIdAndSwapStatusOrderByRequestedAtDesc(userId, normalizedStatus);
       List<SwapRequestDao> sentDaos = swapRequestRepository.findBySenderIdAndSwapStatusOrderByRequestedAtDesc(userId,
-          status);
+          normalizedStatus);
 
       allSwapRequestDaos.addAll(receivedDaos);
       allSwapRequestDaos.addAll(sentDaos);
