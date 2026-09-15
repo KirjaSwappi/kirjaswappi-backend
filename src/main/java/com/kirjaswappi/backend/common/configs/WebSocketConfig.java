@@ -45,6 +45,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
       config.enableStompBrokerRelay("/topic", "/queue")
           .setRelayHost(relayHost)
           .setRelayPort(relayPort)
+          .setVirtualHost("/")
           .setClientLogin(relayUser)
           .setClientPasscode(relayPass)
           .setSystemLogin(relayUser)
@@ -60,7 +61,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     config.setUserDestinationPrefix("/user");
   }
 
-  @org.springframework.beans.factory.annotation.Value("${FRONTEND_URL:http://localhost:5173,https://canary.kirjaswappi.fi}")
+  @org.springframework.beans.factory.annotation.Value("${FRONTEND_URL:http://localhost:5173,https://kirjaswappi.fi,https://www.kirjaswappi.fi}")
   private String[] allowedOriginPatterns;
 
   @Override
