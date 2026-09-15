@@ -12,6 +12,7 @@ import lombok.*;
 import lombok.experimental.Accessors;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -28,6 +29,9 @@ import com.mongodb.lang.Nullable;
 public class UserDao {
   @Id
   private String id;
+
+  @Version
+  private Long version;
 
   @NotNull
   private String firstName;
