@@ -98,8 +98,8 @@ public class MongoIndexConfig {
       // Create compound index for latitude and longitude as fallback
       createLocationIndexes();
 
-      // Create text indexes for city and country for faster text searches
-      createTextIndexes();
+      // Create btree indexes for city and country for faster prefix searches
+      createCityCountryIndexes();
 
       logger.info("Successfully created all MongoDB indexes");
 
@@ -161,9 +161,10 @@ public class MongoIndexConfig {
   }
 
   /**
-   * Creates text indexes for city and country searches.
+   * Creates btree indexes for city and country fields to support fast
+   * prefix-anchored searches.
    */
-  private void createTextIndexes() {
+  private void createCityCountryIndexes() {
     try {
       Index cityIndex = new Index()
           .on("location.city", org.springframework.data.domain.Sort.Direction.ASC)
@@ -175,9 +176,9 @@ public class MongoIndexConfig {
           .named("book_location_country");
       mongoTemplate.indexOps(BookDao.class).createIndex(countryIndex);
 
-      logger.debug("Created text indexes for city and country searches");
+      logger.debug("Created btree indexes for city and country searches");
     } catch (Exception e) {
-      logger.warn("Failed to create text indexes: {}", e.getMessage());
+      logger.warn("Failed to create city/country indexes: {}", e.getMessage());
     }
   }
 
